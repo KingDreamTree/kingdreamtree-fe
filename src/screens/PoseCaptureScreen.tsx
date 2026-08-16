@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
-import { createHoldGate, evaluate, MESSAGES, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
+import { createHoldGate, evaluate, IDX, MESSAGES, SEGMENTS, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
 import { loadVideoLandmarker } from '../lib/landmarkers'
 import { areaRatio, chooseScaleBasis, findOutOfRangeLandmark } from '../lib/pose-detector'
 import { RefitApiError, uploadUserPhoto, userFacingMessage } from '../lib/api'
@@ -70,6 +70,8 @@ function cameraErrorMessage(error: unknown) {
 
 export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, referenceUrl, onNext, onBrowse }: PoseCaptureScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const refImageRef = useRef<HTMLImageElement>(null)
+  const skeletonRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const capturedRef = useRef(false)
@@ -85,6 +87,66 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
     phaseRef.current = next.kind
     setPhaseState(next)
   }, [])
+
+  /**
+   * 레퍼런스 사진 위에 관절 스켈레톤을 그린다 (web/pose-live.html 참고).
+   * 사진은 letterbox(contain)로 들어가므로 실제 그려진 사각형에 좌표를 맞춘다.
+   */
+  const drawReferenceSkeleton = useCallback(() => {
+    const image = refImageRef.current
+    const canvas = skeletonRef.current
+    const box = canvas?.parentElement
+    if (!image || !canvas || !box || !image.naturalWidth) return
+    const cw = box.clientWidth
+    const ch = box.clientHeight
+    if (!(cw > 0 && ch > 0)) return
+    canvas.width = cw
+    canvas.height = ch
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    ctx.clearRect(0, 0, cw, ch)
+
+    const scale = Math.min(cw / image.naturalWidth, ch / image.naturalHeight)
+    const dw = image.naturalWidth * scale
+    const dh = image.naturalHeight * scale
+    const ox = (cw - dw) / 2
+    const oy = (ch - dh) / 2
+    const X = (p: { x: number }) => ox + p.x * dw
+    const Y = (p: { y: number }) => oy + p.y * dh
+
+    ctx.strokeStyle = '#ffe250'
+    ctx.lineWidth = 3
+    ctx.lineCap = 'round'
+    for (const [, a, b] of SEGMENTS) {
+      if (!refLm[a] || !refLm[b]) continue
+      ctx.beginPath()
+      ctx.moveTo(X(refLm[a]), Y(refLm[a]))
+      ctx.lineTo(X(refLm[b]), Y(refLm[b]))
+      ctx.stroke()
+    }
+    const sl = refLm[IDX.shoulderL], sr = refLm[IDX.shoulderR], hl = refLm[IDX.hipL], hr = refLm[IDX.hipR]
+    if (sl && sr && hl && hr) {
+      ctx.beginPath()
+      ctx.moveTo((X(sl) + X(sr)) / 2, (Y(sl) + Y(sr)) / 2)
+      ctx.lineTo((X(hl) + X(hr)) / 2, (Y(hl) + Y(hr)) / 2)
+      ctx.stroke()
+    }
+    // 가려진 관절은 MediaPipe 추측값 — 흐리고 작게 그려서 추측임을 알 수 있게 한다.
+    for (const i of Object.values(IDX)) {
+      const p = refLm[i]
+      if (!p) continue
+      const visibility = typeof p.visibility === 'number' ? p.visibility : 1
+      const weak = visibility < criteria.min_visibility
+      ctx.fillStyle = weak ? 'rgba(246, 246, 246, .3)' : '#f6f6f6'
+      ctx.beginPath()
+      ctx.arc(X(p), Y(p), weak ? 2.5 : 4, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }, [criteria.min_visibility, refLm])
+
+  useEffect(() => {
+    drawReferenceSkeleton()
+  }, [drawReferenceSkeleton])
 
   const uploadCapture = useCallback(async (payload: CapturePayload) => {
     setPhase({ kind: 'uploading' })
@@ -118,14 +180,25 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
     let raf = 0
     const hold = createHoldGate(criteria)
 
+    // 점수·게이지는 프레임마다 튀므로 지수 이동 평균으로 부드럽게 따라가게 한다.
+    const smooth = { score: 0, hasScore: false, progress: 0 }
     const updateHud = (result: EvaluateResult | null) => {
+      if (result) {
+        smooth.score = smooth.hasScore ? smooth.score + (result.pose_similarity - smooth.score) * 0.12 : result.pose_similarity
+        smooth.hasScore = true
+      } else {
+        smooth.hasScore = false
+      }
+      smooth.progress += (hold.progress - smooth.progress) * 0.2
+      if (Math.abs(hold.progress - smooth.progress) < 0.004) smooth.progress = hold.progress
+
       const next: Hud = {
         message: result ? result.message : MESSAGES.NOT_ENOUGH_JOINTS,
-        score: result ? result.pose_similarity : null,
-        progress: hold.progress,
+        score: smooth.hasScore ? Math.round(smooth.score * 10) / 10 : null,
+        progress: Math.round(smooth.progress * 200) / 200,
       }
       const prev = hudRef.current
-      if (prev.message === next.message && prev.score === next.score && Math.abs(prev.progress - next.progress) < 0.02) return
+      if (prev.message === next.message && prev.score === next.score && prev.progress === next.progress) return
       hudRef.current = next
       setHud(next)
     }
@@ -254,7 +327,10 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
     <h1>실시간 자세 촬영</h1>
     <p className="step-description">레퍼런스와 같은 포즈를 유지하면 자동으로 촬영됩니다</p>
 
-    <div className="pose-reference pose-reference--live"><img src={referenceUrl} alt="레퍼런스 체형" /></div>
+    <div className="pose-reference pose-reference--live">
+      <img ref={refImageRef} src={referenceUrl} alt="레퍼런스 체형" onLoad={drawReferenceSkeleton} />
+      <canvas ref={skeletonRef} className="pose-reference__skeleton" aria-hidden="true" />
+    </div>
     <ul className="pose-guide" aria-label="촬영 안내">
       {CAPTURE_GUIDES.map((guide) => <li key={guide}>{guide}</li>)}
     </ul>

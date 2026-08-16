@@ -60,6 +60,11 @@ export interface HoldGate {
 
 export declare const MESSAGES: Record<string, string>
 
+/** 이 계산이 쓰는 MediaPipe 랜드마크 인덱스 (shoulderL, hipR, ankleL, …). */
+export declare const IDX: Record<string, number>
+/** 재는 방향 8개 — [이름, 시작 인덱스, 끝 인덱스]. 스켈레톤 그리기에도 쓴다. */
+export declare const SEGMENTS: Array<[string, number, number]>
+
 export declare function evaluate(
   ref: PoseLandmarks,
   user: PoseLandmarks,
