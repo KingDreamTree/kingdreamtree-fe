@@ -139,8 +139,6 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
   const [phase, setPhaseState] = useState<Phase>({ kind: 'starting' })
   const [hud, setHud] = useState<Hud>({ message: '카메라를 준비하고 있어요…', score: null, progress: 0 })
   const [initNonce, setInitNonce] = useState(0)
-  const [diag, setDiag] = useState<string | null>(null)
-  const lastDiagRef = useRef(0)
 
   const setPhase = useCallback((next: Phase) => {
     phaseRef.current = next.kind
@@ -284,33 +282,15 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
               })
               // 크기 기준(TORSO/HIP_KNEE)이 레퍼런스와 다르면 서버가 거부하므로
               // 셔터 조건에서 빼고, 문구로 즉시 안내한다 (게이지가 차지 않는 이유가 보이게).
-              const liveBasis = chooseScaleBasis(liveLm)
-              const basisMismatch = liveBasis !== refScaleBasis
+              const basisMismatch = chooseScaleBasis(liveLm) !== refScaleBasis
               updateHud(result, basisMismatch && result.pass ? '레퍼런스와 같은 부위가 나오도록 서주세요.' : undefined)
               if (hold(result.pass && !basisMismatch) && !capturedRef.current) {
                 capturedRef.current = true
                 shutter(liveLm, result, multiPerson)
               }
-              // 지금 뭐가 셔터를 막는지 보여주는 진단줄 (pose-live.html의 지표 패널)
-              const now = performance.now()
-              if (now - lastDiagRef.current > 300) {
-                lastDiagRef.current = now
-                setDiag(
-                  `자세 ${result.pose_similarity.toFixed(0)}/${criteria.threshold}` +
-                  ` · 거리 ${result.framing_score.toFixed(2)}/${criteria.f_hard}` +
-                  ` · 관절각 ${result.detail.usedAngles}/${criteria.min_visible_angles}개` +
-                  ` · 기준 ${liveBasis}${basisMismatch ? `≠${refScaleBasis}` : ''}` +
-                  (multiPerson ? ' · 여러 명 감지' : ''),
-                )
-              }
             } else {
               hold(false)
               updateHud(null)
-              const now = performance.now()
-              if (now - lastDiagRef.current > 300) {
-                lastDiagRef.current = now
-                setDiag('관절 인식 안 됨 — 몸이 화면에 나오게 서주세요')
-              }
             }
           } else if (phaseRef.current !== 'live') {
             // 촬영/업로드 상태에서는 마지막 프레임의 스켈레톤이 남지 않게 지운다
@@ -375,7 +355,6 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       <canvas ref={liveSkeletonRef} className="pose-live-skeleton" aria-hidden="true" />
       {phase.kind === 'starting' && <p className="pose-live-starting">카메라를 준비하고 있어요…</p>}
       {phase.kind === 'live' && <>
-        {diag && <p className="pose-live-diag">{diag}</p>}
         <p className="pose-live-message" aria-live="polite">{hud.message}</p>
         <div className="pose-live-hold" role="progressbar" aria-label="자동 촬영 진행" aria-valuemin={0} aria-valuemax={1} aria-valuenow={Math.round(hud.progress * 100) / 100}>
           <span style={{ width: `${Math.round(hud.progress * 100)}%` }} />
