@@ -17,17 +17,12 @@ import referenceContrast from './assets/reference-contrast.svg'
 import referenceResolution from './assets/reference-resolution.svg'
 import referencePerson from './assets/reference-person.svg'
 import referenceUploaded from './assets/reference-uploaded.svg'
-import poseReference from './assets/pose-reference.png'
-import poseCornerTopLeft from './assets/pose-corner-top-left.svg'
-import poseCornerTopRight from './assets/pose-corner-top-right.svg'
-import poseCornerBottomLeft from './assets/pose-corner-bottom-left.svg'
-import poseCornerBottomRight from './assets/pose-corner-bottom-right.svg'
-import poseScoreRing from './assets/pose-score-ring.svg'
-import poseScoreArc from './assets/pose-score-arc.svg'
 import poseSuccessCheck from './assets/pose-success-check.svg'
-import poseFailLineOne from './assets/pose-fail-line-1.svg'
-import poseFailLineTwo from './assets/pose-fail-line-2.svg'
 import { FixedStepFrame } from './components/FixedStepFrame'
+import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
+import { ensureSession, ensureUser, loadCriteria, uploadReferencePhoto } from './lib/api'
+import { loadLandmarkers } from './lib/landmarkers'
+import type { PoseCriteria, PoseLandmarks } from './lib/pose-score.js'
 import { InbodyUploadAfterScreen } from './screens/InbodyUploadAfterScreen'
 import { InbodyUploadBeforeScreen } from './screens/InbodyUploadBeforeScreen'
 import { InbodyUploadSuccessScreen } from './screens/InbodyUploadSuccessScreen'
@@ -53,7 +48,7 @@ import { FeedbackConversationLockedScreen } from './screens/FeedbackConversation
 import './App.css'
 
 type SectionProps = { children: ReactNode; className: string; label: string; scaleToViewport?: boolean; designHeight?: number }
-type AppView = 'onboarding' | 'reference-notice' | 'reference-ready' | 'pose-analyzing' | 'pose-failure' | 'pose-success' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-exercise-intensity' | 'feedback-reflection' | 'feedback-conversation-locked' | 'feedback-applied' | 'feedback-kept'
+type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-exercise-intensity' | 'feedback-reflection' | 'feedback-conversation-locked' | 'feedback-applied' | 'feedback-kept'
 
 /** Reveals a design section once it reaches the viewport. */
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
@@ -161,17 +156,39 @@ function ReferenceHints() {
   </div>)}</div>
 }
 
-function ReferenceScreen({ ready, onConfirm, onStart }: { ready: boolean; onConfirm: () => void; onStart: () => void }) {
+type ReferenceScreenProps = {
+  ready: boolean
+  detecting: boolean
+  uploading: boolean
+  error: string | null
+  showNotice: boolean
+  onConfirm: () => void
+  onSelectFile: (file: File) => void
+  onStart: () => void
+}
+
+function ReferenceScreen({ ready, detecting, uploading, error, showNotice, onConfirm, onSelectFile, onStart }: ReferenceScreenProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const pick = (files: FileList | null) => { const file = files?.[0]; if (file) onSelectFile(file) }
   return <FixedStepFrame label="Step 1 목표 체형 레퍼런스"><div className="reference-page">
       <p className="step-label">Step 1/3</p>
       <h1>목표 체형 레퍼런스</h1>
       <p className="step-description">원하는 체형의 사진을 등록하면 AI가 차이를 분석합니다</p>
       <ReferenceHints />
-      <div className={`reference-dropzone ${ready ? 'is-ready' : ''}`}>
-        {ready ? <><img className="reference-dropzone__done" src={referenceUploaded} alt="" /><img className="reference-dropzone__check" src={poseSuccessCheck} alt="" /><strong>사진이 업로드 되었습니다!</strong><span>다른 사진으로 변경하려면 클릭하세요</span></> : <><img src={referenceUpload} alt="" /><p>파일을 선택하거나 여기로 끌어다 놓으세요.</p></>}
-      </div>
-      <button className={`reference-start ${ready ? 'is-ready' : ''}`} type="button" onClick={onStart}>AI 분석 비교 시작 →</button>
-      {!ready && <section className="reference-notice" role="dialog" aria-modal="true" aria-labelledby="reference-notice-title">
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" hidden onChange={event => { pick(event.target.files); event.target.value = '' }} />
+      <button type="button" className={`reference-dropzone ${ready ? 'is-ready' : ''}`}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={event => event.preventDefault()}
+        onDrop={event => { event.preventDefault(); pick(event.dataTransfer.files) }}>
+        {detecting
+          ? <p>레퍼런스 사진을 분석하고 있어요…</p>
+          : ready
+            ? <><img className="reference-dropzone__done" src={referenceUploaded} alt="" /><img className="reference-dropzone__check" src={poseSuccessCheck} alt="" /><strong>사진이 업로드 되었습니다!</strong><span>다른 사진으로 변경하려면 클릭하세요</span></>
+            : <><img src={referenceUpload} alt="" /><p>파일을 선택하거나 여기로 끌어다 놓으세요.</p></>}
+      </button>
+      {error && <p className="reference-error" role="alert">{error}</p>}
+      <button className={`reference-start ${ready ? 'is-ready' : ''}`} type="button" disabled={!ready || detecting || uploading} onClick={onStart}>{uploading ? '레퍼런스 업로드 중…' : 'AI 분석 비교 시작 →'}</button>
+      {showNotice && <section className="reference-notice" role="dialog" aria-modal="true" aria-labelledby="reference-notice-title">
         <span className="reference-notice__icon"><img src={referenceInfo} alt="" /></span>
         <h2 id="reference-notice-title">레퍼런스 주의사항 안내</h2>
         <p>해당 레퍼런스 이미지에 있는 부위에 대한 루틴만 제공되오니<br />신중하게 업로드해주시길 바랍니다.</p>
@@ -180,62 +197,97 @@ function ReferenceScreen({ ready, onConfirm, onStart }: { ready: boolean; onConf
   </div></FixedStepFrame>
 }
 
-function PoseCorners() {
-  return <><img className="pose-corner pose-corner--top-left" src={poseCornerTopLeft} alt="" /><img className="pose-corner pose-corner--top-right" src={poseCornerTopRight} alt="" /><img className="pose-corner pose-corner--bottom-left" src={poseCornerBottomLeft} alt="" /><img className="pose-corner pose-corner--bottom-right" src={poseCornerBottomRight} alt="" /></>
-}
-
-function PoseScore({ score }: { score: number }) {
-  return <div className="pose-score" aria-label={`일치도 ${score}점`}><img src={poseScoreRing} alt="" /><img src={poseScoreArc} alt="" /><strong>{score.toFixed(1)} <small>점</small></strong></div>
-}
-
-function PoseStatus({ result, onRetry }: { result: 'loading' | 'failure' | 'success'; onRetry: () => void }) {
-  if (result === 'loading') return <div className="pose-status pose-status--loading" aria-live="polite"><span className="loading-dot">•</span><span className="loading-dot">•</span><span className="loading-dot">•</span><p>AI가 일치도를 분석하고 있어요!</p><small>사진을 업로드하려면 클릭하세요</small><button type="button">Browse File</button></div>
-  const success = result === 'success'
-  return <div className={`pose-status pose-status--${result}`}>
-    <span className="pose-status__symbol">{success ? <img src={poseSuccessCheck} alt="" /> : <><img src={poseFailLineOne} alt="" /><img src={poseFailLineTwo} alt="" /></>}</span>
-    <strong>{success ? '사진이 업로드 되었습니다!' : '레퍼런스의 포즈와 일치하지 않아요!'}</strong>
-    <small>{success ? '다음 단계로 넘어가세요' : '다시 업로드 해주세요'}</small>
-    {success ? null : <button type="button" onClick={onRetry}>Browse File</button>}
-  </div>
-}
-
-function PoseScreen({ result, onRetry, onNext }: { result: 'loading' | 'failure' | 'success'; onRetry: () => void; onNext: () => void }) {
-  return <FixedStepFrame label={`Step 2 체형 사진 ${result}`}><div className="pose-page">
-      <p className="step-label">Step 2/3</p>
-      <h1>체형 사진 업로드</h1>
-      <p className="step-description">레퍼런스와 같은 포즈로 자신의 체형을 업로드 해주세요!</p>
-      <div className="pose-reference"><img src={poseReference} alt="레퍼런스 체형" /></div>
-      <PoseCorners />
-      <PoseScore score={result === 'failure' ? 82 : 98} />
-      {result === 'success' && <button className="pose-next" type="button" onClick={onNext}>다음 단계</button>}
-      <PoseStatus result={result} onRetry={onRetry} />
-  </div></FixedStepFrame>
-}
+type ReferenceData = { file: File; lm: PoseLandmarks; aspect: number; multiPerson: boolean; url: string }
+type Boot = { userId: string; sessionId: string; criteria: PoseCriteria }
 
 function App() {
   const [view, setView] = useState<AppView>('onboarding')
-  const [analysisAttempt, setAnalysisAttempt] = useState(0)
   const [workoutDays, setWorkoutDays] = useState(1)
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [followupFeedbackMessage, setFollowupFeedbackMessage] = useState('')
-  const openReference = () => setView('reference-notice')
-  const startAnalysis = (attempt = 0) => { setAnalysisAttempt(attempt); setView('pose-analyzing') }
-  useEffect(() => {
-    if (view !== 'pose-analyzing') return
-    const timer = window.setTimeout(() => setView(analysisAttempt === 0 ? 'pose-failure' : 'pose-success'), 2200)
-    return () => window.clearTimeout(timer)
-  }, [analysisAttempt, view])
+  const [boot, setBoot] = useState<Boot | null>(null)
+  const bootPromise = useRef<Promise<Boot> | null>(null)
+  const [refData, setRefData] = useState<ReferenceData | null>(null)
+  const [refDetecting, setRefDetecting] = useState(false)
+  const [refUploading, setRefUploading] = useState(false)
+  const [refError, setRefError] = useState<string | null>(null)
+
+  // 사용자·세션·판정 기준(GET /pose-criteria)은 시작 시 한 번만. 모델·wasm도 미리 로드.
+  const ensureBoot = () => {
+    if (!bootPromise.current) {
+      const promise = (async () => {
+        const userId = await ensureUser()
+        const [sessionId, criteria] = await Promise.all([ensureSession(userId), loadCriteria()])
+        return { userId, sessionId, criteria }
+      })()
+      promise.then(setBoot, () => { bootPromise.current = null })
+      bootPromise.current = promise
+      loadLandmarkers().catch(() => undefined)
+    }
+    return bootPromise.current
+  }
+
+  const openReference = () => { void ensureBoot(); setView('reference-notice') }
+
+  const handleReferenceFile = async (file: File) => {
+    setRefDetecting(true)
+    setRefError(null)
+    const url = URL.createObjectURL(file)
+    try {
+      const { image } = await loadLandmarkers()
+      const img = new Image()
+      img.src = url
+      await img.decode()
+      const res = image.detect(img)
+      const lm = res.landmarks[0] as PoseLandmarks | undefined
+      if (!lm) {
+        URL.revokeObjectURL(url)
+        setRefError('사람을 찾지 못했어요. 전신이 나온 다른 사진으로 시도해주세요.')
+        return
+      }
+      setRefData(prev => {
+        if (prev) URL.revokeObjectURL(prev.url)
+        return { file, lm, aspect: img.naturalWidth / img.naturalHeight, multiPerson: res.landmarks.length > 1, url }
+      })
+    } catch {
+      URL.revokeObjectURL(url)
+      setRefError('사진을 분석하지 못했어요. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setRefDetecting(false)
+    }
+  }
+
+  const startAnalysis = async () => {
+    if (!refData) return
+    setRefUploading(true)
+    setRefError(null)
+    try {
+      const ready = await ensureBoot()
+      await uploadReferencePhoto(ready.userId, ready.sessionId, refData.file, refData.lm, refData.multiPerson)
+      setView('pose-capture')
+    } catch (error) {
+      setRefError(error instanceof Error ? error.message : '레퍼런스 업로드에 실패했습니다.')
+    } finally {
+      setRefUploading(false)
+    }
+  }
   useEffect(() => {
     if (view !== 'feedback-applied' && view !== 'feedback-kept') return
     const timer = window.setTimeout(() => setView('feedback-conversation-locked'), 2000)
     return () => window.clearTimeout(timer)
   }, [view])
 
-  if (view === 'reference-notice') return <ReferenceScreen ready={false} onConfirm={() => setView('reference-ready')} onStart={() => startAnalysis()} />
-  if (view === 'reference-ready') return <ReferenceScreen ready onConfirm={() => undefined} onStart={() => startAnalysis()} />
-  if (view === 'pose-analyzing') return <PoseScreen result="loading" onRetry={() => startAnalysis(1)} onNext={() => undefined} />
-  if (view === 'pose-failure') return <PoseScreen result="failure" onRetry={() => startAnalysis(1)} onNext={() => undefined} />
-  if (view === 'pose-success') return <PoseScreen result="success" onRetry={() => undefined} onNext={() => setView('inbody-upload')} />
+  if (view === 'reference-notice' || view === 'reference') return <ReferenceScreen
+    ready={Boolean(refData)} detecting={refDetecting} uploading={refUploading} error={refError}
+    showNotice={view === 'reference-notice'}
+    onConfirm={() => setView('reference')}
+    onSelectFile={file => void handleReferenceFile(file)}
+    onStart={() => void startAnalysis()} />
+  if (view === 'pose-capture') return boot && refData
+    ? <PoseCaptureScreen userId={boot.userId} sessionId={boot.sessionId} criteria={boot.criteria}
+        refLm={refData.lm} refAspect={refData.aspect} referenceUrl={refData.url}
+        onNext={() => setView('inbody-upload')} />
+    : null
   if (view === 'inbody-upload') return <InbodyUploadBeforeScreen onUpload={() => setView('inbody-uploaded')} onComplete={() => undefined} />
   if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => undefined} onStart={() => setView('inbody-form')} onSkip={() => setView('inbody-loading')} />
   if (view === 'inbody-form') return <InbodyUploadAfterScreen onConfirm={() => setView('inbody-range-error')} onSkip={() => setView('inbody-loading')} onPrevious={() => setView('inbody-uploaded')} />
