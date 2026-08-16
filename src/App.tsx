@@ -21,12 +21,11 @@ import poseCornerTopLeft from './assets/pose-corner-top-left.svg'
 import poseCornerTopRight from './assets/pose-corner-top-right.svg'
 import poseCornerBottomLeft from './assets/pose-corner-bottom-left.svg'
 import poseCornerBottomRight from './assets/pose-corner-bottom-right.svg'
-import poseScoreRing from './assets/pose-score-ring.svg'
-import poseScoreArc from './assets/pose-score-arc.svg'
 import poseSuccessCheck from './assets/pose-success-check.svg'
 import poseFailLineOne from './assets/pose-fail-line-1.svg'
 import poseFailLineTwo from './assets/pose-fail-line-2.svg'
 import { FixedStepFrame } from './components/FixedStepFrame'
+import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
 import { ensureActiveSession, getPoseCriteria, getStoredSessionId, RefitApiError, uploadReferencePhoto, uploadUserPhoto, userFacingMessage } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
@@ -215,9 +214,6 @@ function PoseCorners() {
   return <><img className="pose-corner pose-corner--top-left" src={poseCornerTopLeft} alt="" /><img className="pose-corner pose-corner--top-right" src={poseCornerTopRight} alt="" /><img className="pose-corner pose-corner--bottom-left" src={poseCornerBottomLeft} alt="" /><img className="pose-corner pose-corner--bottom-right" src={poseCornerBottomRight} alt="" /></>
 }
 
-function PoseScore({ score }: { score: number }) {
-  return <div className="pose-score" aria-label={`일치도 ${score}점`}><img src={poseScoreRing} alt="" /><img src={poseScoreArc} alt="" /><strong>{score.toFixed(1)} <small>점</small></strong></div>
-}
 
 function PoseStatus({ result, message, onRetry, onBrowse }: { result: 'loading' | 'failure' | 'success' | 'unavailable'; message?: string; onRetry: () => void; onBrowse: () => void }) {
   if (result === 'loading') return <div className="pose-status pose-status--loading" aria-live="polite"><span className="loading-dot">•</span><span className="loading-dot">•</span><span className="loading-dot">•</span><p>AI가 일치도를 분석하고 있어요!</p><small>사진을 업로드하려면 클릭하세요</small><button type="button" onClick={onBrowse}>Browse File</button></div>
