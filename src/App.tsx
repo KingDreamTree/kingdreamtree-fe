@@ -30,7 +30,7 @@ import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
 import { ensureActiveSession, getPoseCriteria, getStoredSessionId, RefitApiError, uploadReferencePhoto, uploadUserPhoto, userFacingMessage } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
-import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
+import { evaluateEitherWay, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
 
 // 부분 신체(상체/하체만) 레퍼런스를 허용하므로 "전신이 보이도록"은 부정확하다.
 // MESSAGES는 교체 가능하게 export되어 있고 evaluate()가 이 표를 그대로 읽는다.
@@ -332,7 +332,9 @@ function App() {
         setView('pose-failure')
         return
       }
-      const result = evaluate(refData.pose.landmarks, userPose.landmarks, criteria, {
+      // 갤러리 사진도 어느 방향으로 찍었는지 알 수 없으므로 양방향 판정 (백엔드 결정).
+      // 업로드하는 사진·좌표·점수는 원본 기준 그대로.
+      const result = evaluateEitherWay(refData.pose.landmarks, userPose.landmarks, criteria, {
         multiPerson: userPose.multiPerson,
         refAspect: refData.aspect,
         userAspect: image.naturalWidth / image.naturalHeight,

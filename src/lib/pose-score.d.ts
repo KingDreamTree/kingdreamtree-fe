@@ -72,6 +72,25 @@ export declare function evaluate(
   opts?: { multiPerson?: boolean; refAspect?: number; userAspect?: number },
 ): EvaluateResult
 
+/** MediaPipe 33개 중 좌/우 쌍 인덱스. */
+export declare const LR_PAIRS: Array<[number, number]>
+
+/** 랜드마크 좌우반전 — x 반전 + 좌/우 이름표 스왑. */
+export declare function mirrorLandmarks(lm: PoseLandmarks): PoseLandmarks
+
+export interface EvaluateEitherWayResult extends EvaluateResult {
+  /** 거울 방향으로 매칭됐는가 (표시용 — 업로드 값·좌표는 원본 그대로). */
+  mirroredReference: boolean
+}
+
+/** 정방향/거울 방향 중 더 잘 맞는 쪽으로 판정. 실시간 촬영은 evaluate 대신 이것. */
+export declare function evaluateEitherWay(
+  ref: PoseLandmarks,
+  user: PoseLandmarks,
+  criteria: PoseCriteria,
+  opts?: { multiPerson?: boolean; refAspect?: number; userAspect?: number },
+): EvaluateEitherWayResult
+
 export declare function createHoldGate(criteria: PoseCriteria): HoldGate
 
 export declare function fetchCriteria(baseUrl?: string): Promise<PoseCriteria>
