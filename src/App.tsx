@@ -58,11 +58,10 @@ import { FeedbackExerciseIntensityScreen } from './screens/FeedbackExerciseInten
 import { FeedbackReflectionScreen } from './screens/FeedbackReflectionScreen'
 import { FeedbackAppliedScreen } from './screens/FeedbackAppliedScreen'
 import { FeedbackKeptScreen } from './screens/FeedbackKeptScreen'
-import { FeedbackConversationLockedScreen } from './screens/FeedbackConversationLockedScreen'
 import './App.css'
 
 type SectionProps = { children: ReactNode; className: string; label: string; scaleToViewport?: boolean; designHeight?: number }
-type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' | 'pose-analyzing' | 'pose-failure' | 'pose-unavailable' | 'pose-success' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-exercise-intensity' | 'feedback-reflection' | 'feedback-conversation-locked' | 'feedback-applied' | 'feedback-kept'
+type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' | 'pose-analyzing' | 'pose-failure' | 'pose-unavailable' | 'pose-success' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-exercise-intensity' | 'feedback-reflection' | 'feedback-applied' | 'feedback-kept'
 
 /** Reveals a design section once it reaches the viewport. */
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
@@ -510,8 +509,9 @@ function App() {
       setView('feedback-loading')
       await sendCoach([{ role: 'user', content: feedbackText }])
     } else {
+      // 피드백 없이 완료 — 갱신된 오늘 루틴으로 복귀 (대화잠금 화면은 흐름에서 제외)
       setCoach(null)
-      setView('feedback-conversation-locked')
+      await openTodayRoutine()
     }
   }
 
@@ -526,7 +526,7 @@ function App() {
       setView(response.finalized ? 'feedback-reflection' : response.turn > 1 ? 'feedback-exercise-intensity' : 'feedback-attention-area')
     } catch (error) {
       window.alert(userFacingMessage(error, '코치와 연결하지 못했어요. 잠시 후 다시 시도해주세요.'))
-      setView('feedback-conversation-locked')
+      await openTodayRoutine()
     }
   }
 
@@ -567,8 +567,10 @@ function App() {
 
   useEffect(() => {
     if (view !== 'feedback-applied' && view !== 'feedback-kept') return
-    const timer = window.setTimeout(() => setView('feedback-conversation-locked'), 2000)
+    // 결과 카드를 잠시 보여준 뒤 갱신된 오늘 루틴으로 복귀 (대화잠금 화면은 흐름에서 제외)
+    const timer = window.setTimeout(() => { void openTodayRoutine() }, 2500)
     return () => window.clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view])
 
   if (view === 'reference-notice' || view === 'reference') return <ReferenceScreen
@@ -606,7 +608,6 @@ function App() {
   if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => void continueCoach(message)} />
   if (view === 'feedback-exercise-intensity') return <FeedbackExerciseIntensityScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => void continueCoach(message)} onNext={() => { if (coach?.finalized) setView('feedback-reflection') }} />
   if (view === 'feedback-reflection') return <FeedbackReflectionScreen finalized={coach?.finalized ?? null} onApply={() => void applyCoach()} onKeep={() => setView('feedback-kept')} />
-  if (view === 'feedback-conversation-locked') return <FeedbackConversationLockedScreen finalized={coach?.finalized ?? null} />
   if (view === 'feedback-applied') return <FeedbackAppliedScreen onViewRoutine={() => void viewChangedRoutine()} />
   if (view === 'feedback-kept') return <FeedbackKeptScreen />
   return <main className="onboarding"><OnboardingOne onStart={openReference} /><OnboardingTwo /><OnboardingThree /><OnboardingFour onStart={openReference} /></main>
