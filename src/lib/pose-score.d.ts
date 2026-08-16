@@ -1,13 +1,8 @@
 /** Type declarations for the backend-provided pose-score.js (verbatim copy — do not edit the .js). */
 
-export interface PoseLandmarkPoint {
-  x: number
-  y: number
-  z?: number
-  visibility?: number
-}
-
-export type PoseLandmarks = PoseLandmarkPoint[]
+export type PosePoint = { x: number; y: number; z?: number; visibility?: number }
+export type PoseLandmarkPoint = PosePoint
+export type PoseLandmarks = PosePoint[]
 
 /** Response of GET /pose-criteria. Numbers may change server-side — never hardcode. */
 export interface PoseCriteria {
@@ -53,6 +48,8 @@ export interface EvaluateResult {
     oksPer: Record<string, number>
   }
 }
+
+export type PoseEvaluation = EvaluateResult
 
 export interface HoldGate {
   (ok: boolean): boolean

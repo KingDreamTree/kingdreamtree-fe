@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { createHoldGate, evaluate, MESSAGES, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
-import { loadLandmarkers } from '../lib/landmarkers'
-import { ApiError, uploadUserPhoto } from '../lib/api'
+import { loadVideoLandmarker } from '../lib/landmarkers'
+import { areaRatio, chooseScaleBasis } from '../lib/pose-detector'
+import { RefitApiError, uploadUserPhoto } from '../lib/api'
 import poseCornerTopLeft from '../assets/pose-corner-top-left.svg'
 import poseCornerTopRight from '../assets/pose-corner-top-right.svg'
 import poseCornerBottomLeft from '../assets/pose-corner-bottom-left.svg'
@@ -14,13 +15,14 @@ import poseFailLineOne from '../assets/pose-fail-line-1.svg'
 import poseFailLineTwo from '../assets/pose-fail-line-2.svg'
 
 type PoseCaptureScreenProps = {
-  userId: string
   sessionId: string
   criteria: PoseCriteria
   refLm: PoseLandmarks
   refAspect: number
   referenceUrl: string
   onNext: () => void
+  /** 갤러리에서 사진을 골라 업로드 판정 경로로 전환한다. */
+  onBrowse: (file: File) => void
 }
 
 type Phase =
@@ -35,10 +37,11 @@ type Phase =
   | { kind: 'camera-error'; message: string }
 
 type CapturePayload = {
-  blob: Blob
+  file: File
   url: string
   lm: PoseLandmarks
-  scores: { pose_similarity: number; framing_score: number; facing_delta: number; multi_person: boolean }
+  result: EvaluateResult
+  multiPerson: boolean
 }
 
 type Hud = { message: string; score: number | null; progress: number }
@@ -53,8 +56,9 @@ const CAPTURE_GUIDES = [
 
 const RETRY_MESSAGE = '일시적인 문제로 사진을 확인하지 못했어요. 잠시 후 다시 시도해주세요.'
 
-export function PoseCaptureScreen({ userId, sessionId, criteria, refLm, refAspect, referenceUrl, onNext }: PoseCaptureScreenProps) {
+export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, referenceUrl, onNext, onBrowse }: PoseCaptureScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const capturedRef = useRef(false)
   const payloadRef = useRef<CapturePayload | null>(null)
@@ -72,18 +76,29 @@ export function PoseCaptureScreen({ userId, sessionId, criteria, refLm, refAspec
   const uploadCapture = useCallback(async (payload: CapturePayload) => {
     setPhase({ kind: 'uploading' })
     try {
-      await uploadUserPhoto(userId, sessionId, payload.blob, payload.lm, payload.scores, 'CAPTURE')
+      await uploadUserPhoto(sessionId, {
+        file: payload.file,
+        captureSource: 'CAPTURE',
+        poseLandmarks: payload.lm,
+        poseSimilarity: payload.result.pose_similarity,
+        framingScore: payload.result.framing_score,
+        poseScaleBasis: chooseScaleBasis(payload.lm),
+        facingDelta: payload.result.facing_delta,
+        poseOks: payload.result.oks,
+        posePersonAreaRatio: areaRatio(payload.lm, 1, 1),
+        multiPerson: payload.multiPerson,
+      })
       setPhase({ kind: 'done' })
     } catch (error) {
-      if (error instanceof ApiError && error.status === 503) {
+      if (error instanceof RefitApiError && error.status === 503) {
         setPhase({ kind: 'retry', message: RETRY_MESSAGE })
-      } else if (error instanceof ApiError) {
+      } else if (error instanceof RefitApiError) {
         setPhase({ kind: 'rejected', message: error.message })
       } else {
         setPhase({ kind: 'retry', message: RETRY_MESSAGE })
       }
     }
-  }, [sessionId, setPhase, userId])
+  }, [sessionId, setPhase])
 
   useEffect(() => {
     let cancelled = false
@@ -115,17 +130,8 @@ export function PoseCaptureScreen({ userId, sessionId, criteria, refLm, refAspec
           return
         }
         if (payloadRef.current) URL.revokeObjectURL(payloadRef.current.url)
-        const payload: CapturePayload = {
-          blob,
-          url: URL.createObjectURL(blob),
-          lm,
-          scores: {
-            pose_similarity: result.pose_similarity,
-            framing_score: result.framing_score,
-            facing_delta: result.facing_delta,
-            multi_person: multiPerson,
-          },
-        }
+        const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' })
+        const payload: CapturePayload = { file, url: URL.createObjectURL(file), lm, result, multiPerson }
         payloadRef.current = payload
         void uploadCapture(payload)
       }, 'image/jpeg', 0.9)
@@ -133,8 +139,8 @@ export function PoseCaptureScreen({ userId, sessionId, criteria, refLm, refAspec
 
     ;(async () => {
       try {
-        const [{ video: videoLandmarker }, stream] = await Promise.all([
-          loadLandmarkers(),
+        const [videoLandmarker, stream] = await Promise.all([
+          loadVideoLandmarker(),
           navigator.mediaDevices.getUserMedia({ video: { width: 960, height: 1280, facingMode: 'user' } }),
         ])
         if (cancelled) {
@@ -232,6 +238,10 @@ export function PoseCaptureScreen({ userId, sessionId, criteria, refLm, refAspec
     <img className="pose-corner pose-corner--top-right" src={poseCornerTopRight} alt="" />
     <img className="pose-corner pose-corner--bottom-left" src={poseCornerBottomLeft} alt="" />
     <img className="pose-corner pose-corner--bottom-right" src={poseCornerBottomRight} alt="" />
+
+    <input ref={fileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/heic"
+      onChange={event => { const file = event.currentTarget.files?.[0]; if (file) onBrowse(file); event.currentTarget.value = '' }} />
+    {(phase.kind === 'live' || phase.kind === 'camera-error') && <button className="pose-gallery" type="button" onClick={() => fileInputRef.current?.click()}>갤러리에서 업로드</button>}
 
     {hud.score !== null && phase.kind === 'live' && <div className="pose-score" aria-label={`일치도 ${hud.score}점`}>
       <img src={poseScoreRing} alt="" />

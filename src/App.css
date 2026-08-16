@@ -15,7 +15,7 @@
 .motion--delay-1 { transition-delay: 120ms; }.motion--delay-2 { transition-delay: 240ms; }.motion--delay-3 { transition-delay: 360ms; }.is-visible .motion { opacity: 1; transform: none; }
 .hero-section, .closing-section { background: #222; color: #f6f6f6; }
 .hero-section__texture { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }.hero-section__content { position: absolute; top: 281px; left: 53px; z-index: 1; }
-.logo { margin: 0; font-family: esamanru, Pretendard, sans-serif; font-size: 190.242px; font-weight: 700; line-height: 1; letter-spacing: -5.707px; color: #f6f6f6; }.logo strong { color: #ffe250; font: inherit; }
+.logo { margin: 0; font-family: "Isamanru", Pretendard, sans-serif; font-size: 190.242px; font-weight: 700; font-synthesis: none; line-height: 1; letter-spacing: -5.707px; color: #f6f6f6; }.logo strong { color: #ffe250; font: inherit; }
 .hero-section__description { margin: 42px 0 43px 14px; font-size: 28px; font-weight: 500; line-height: 1.5; letter-spacing: -0.84px; }
 .ai-button { display: grid; width: 240px; height: 60px; margin-left: 14px; place-items: center; border: 1px solid #f6f6f6; border-radius: 41px; background: transparent; color: #f6f6f6; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -0.66px; cursor: pointer; transition: background-color 180ms ease, color 180ms ease, transform 180ms ease; }.ai-button:hover { background: #f6f6f6; color: #222; transform: translateY(-2px); }.ai-button:focus-visible { outline: 3px solid #ffe250; outline-offset: 5px; }
 .hero-section__character { position: absolute; top: 304px; left: 585px; width: 927px; height: 914.143px; filter: drop-shadow(0 0 2px rgba(0, 0, 0, .25)); }
@@ -39,7 +39,8 @@
 .reference-hint img { position: absolute; z-index: 1; top: 19px; left: 22px; width: 66px; height: 66px; object-fit: contain; }
 .reference-hint:nth-child(2) img { top: 19px; left: 19px; width: 72px; height: 72px; }.reference-hint:nth-child(3) img { top: 20px; left: 21px; width: 68px; height: 68px; }
 .reference-hint p { position: absolute; top: 17px; left: 137px; margin: 0; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; white-space: nowrap; }
-.reference-dropzone { position: absolute; top: 513px; left: 273px; width: 893px; height: 298px; overflow: hidden; border: 2px dashed #b0b0b0; border-radius: 11.544px; background: #3b3b3b; text-align: center; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+.reference-dropzone { position: absolute; top: 513px; left: 273px; width: 893px; height: 298px; padding: 0; overflow: hidden; border: 2px dashed #b0b0b0; border-radius: 11.544px; background: #3b3b3b; color: #f6f6f6; text-align: center; cursor: pointer; }.reference-dropzone:disabled { cursor: wait; opacity: .8; }
 .reference-dropzone > img { position: absolute; top: 97px; left: 409px; width: 72px; height: 72px; }.reference-dropzone p { margin: 170px 0 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
 .reference-dropzone.is-ready { border-color: #ffe250; }.reference-dropzone.is-ready .reference-dropzone__done { top: 76px; left: 409px; width: 72px; height: 72px; }.reference-dropzone.is-ready .reference-dropzone__check { top: 103px; left: 433px; width: 24px; height: 24px; }.reference-dropzone.is-ready strong { position: absolute; top: 171px; left: 0; width: 100%; color: #ffe250; font: 700 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }.reference-dropzone.is-ready span { position: absolute; top: 201px; left: 0; width: 100%; color: #ccc; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; }
 .reference-start { position: absolute; top: 861px; left: 574px; display: grid; width: 293px; height: 63px; place-items: center; border: 0; border-radius: 41px; background: rgba(255, 226, 80, .2); color: #222; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; transition: transform 180ms ease, background-color 180ms ease; }.reference-start.is-ready { background: #ffe250; }.reference-start:hover { transform: translateY(-2px); }.reference-start:focus-visible, .reference-notice button:focus-visible, .pose-next:focus-visible, .pose-status button:focus-visible { outline: 3px solid #ffe250; outline-offset: 5px; }
@@ -322,7 +323,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .inbody-unreadable-gender .is-selected { border: 0; background: #f6f6f6; color: #222; }
 
 /* ── 실시간 자세 촬영 (Step 2) ─────────────────────────────────────────── */
-button.reference-dropzone { display: block; padding: 0; color: #f6f6f6; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; cursor: pointer; }
 .reference-error { position: absolute; top: 818px; left: 273px; width: 893px; margin: 0; color: #e52f28; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; text-align: center; }
 .reference-start:disabled { cursor: default; transform: none; }
 .reference-start:disabled:hover { transform: none; }
@@ -343,3 +343,4 @@ button.reference-dropzone { display: block; padding: 0; color: #f6f6f6; font: 50
 
 .pose-status--retry strong, .pose-status--failure strong { max-width: 700px; }
 .pose-status--retry strong { font-size: 18px; }
+.pose-gallery { position: absolute; top: 198px; left: 1104px; width: 239px; height: 63px; border: 1px solid #3b3b3b; border-radius: 13px; background: rgba(59, 59, 59, .4); color: #f6f6f6; font: 500 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; cursor: pointer; }
