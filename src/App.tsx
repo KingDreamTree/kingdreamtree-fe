@@ -54,6 +54,7 @@ import { TodayRoutineScreen } from './screens/TodayRoutineScreen'
 import { FeedbackScreen } from './screens/FeedbackScreen'
 import { FeedbackLoadingScreen } from './screens/FeedbackLoadingScreen'
 import { FeedbackAttentionAreaScreen } from './screens/FeedbackAttentionAreaScreen'
+import { FeedbackExerciseIntensityScreen } from './screens/FeedbackExerciseIntensityScreen'
 import { FeedbackReflectionScreen } from './screens/FeedbackReflectionScreen'
 import { FeedbackAppliedScreen } from './screens/FeedbackAppliedScreen'
 import { FeedbackKeptScreen } from './screens/FeedbackKeptScreen'
@@ -61,7 +62,7 @@ import { FeedbackConversationLockedScreen } from './screens/FeedbackConversation
 import './App.css'
 
 type SectionProps = { children: ReactNode; className: string; label: string; scaleToViewport?: boolean; designHeight?: number }
-type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' | 'pose-analyzing' | 'pose-failure' | 'pose-unavailable' | 'pose-success' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-reflection' | 'feedback-conversation-locked' | 'feedback-applied' | 'feedback-kept'
+type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' | 'pose-analyzing' | 'pose-failure' | 'pose-unavailable' | 'pose-success' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-exercise-intensity' | 'feedback-reflection' | 'feedback-conversation-locked' | 'feedback-applied' | 'feedback-kept'
 
 /** Reveals a design section once it reaches the viewport. */
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
@@ -521,7 +522,8 @@ function App() {
     try {
       const response = await sendCoachMessage(sessionId, messages)
       setCoach(response)
-      setView(response.finalized ? 'feedback-reflection' : 'feedback-attention-area')
+      // 디자인 흐름 유지: 첫 응답은 주의부위 화면, 2턴째부터는 운동·강도 화면 레이아웃
+      setView(response.finalized ? 'feedback-reflection' : response.turn > 1 ? 'feedback-exercise-intensity' : 'feedback-attention-area')
     } catch (error) {
       window.alert(userFacingMessage(error, '코치와 연결하지 못했어요. 잠시 후 다시 시도해주세요.'))
       setView('feedback-conversation-locked')
@@ -602,6 +604,7 @@ function App() {
   if (view === 'feedback') return <FeedbackScreen onSubmit={message => void completeWorkout(message)} onSkip={() => void completeWorkout()} />
   if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => undefined} />
   if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => void continueCoach(message)} />
+  if (view === 'feedback-exercise-intensity') return <FeedbackExerciseIntensityScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => void continueCoach(message)} onNext={() => { if (coach?.finalized) setView('feedback-reflection') }} />
   if (view === 'feedback-reflection') return <FeedbackReflectionScreen finalized={coach?.finalized ?? null} onApply={() => void applyCoach()} onKeep={() => setView('feedback-kept')} />
   if (view === 'feedback-conversation-locked') return <FeedbackConversationLockedScreen finalized={coach?.finalized ?? null} />
   if (view === 'feedback-applied') return <FeedbackAppliedScreen onViewRoutine={() => void viewChangedRoutine()} />
