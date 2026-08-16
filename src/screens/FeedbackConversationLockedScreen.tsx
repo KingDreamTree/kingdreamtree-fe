@@ -4,16 +4,18 @@ import info from '../assets/feedback-lock-info.svg'
 import lock from '../assets/feedback-lock-icon.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 
-/** Figma 782:1221 — 피드백-대화잠금 */
-export function FeedbackConversationLockedScreen() {
+import type { CoachFinalized } from '../lib/api'
+
+/** Figma 782:1221 — 피드백-대화잠금. 변경 요약은 코치 대화 finalized 실데이터. */
+export function FeedbackConversationLockedScreen({ finalized }: { finalized: CoachFinalized | null }) {
   return <FixedStepFrame label="피드백 대화 잠금"><main className="feedback-locked-page">
     <img className="feedback-locked-page__glow" src={glow} alt="" />
     <img className="feedback-locked-page__coach" src={coach} alt="피드백을 정리하는 운동 코치" />
-    <h1>좋아요! 정리해드릴게요.</h1>
-    <p className="feedback-locked-page__notice">통증이 계속되면 운동을 중단하고 전문가와 상담하세요.</p>
+    <h1>{finalized ? '좋아요! 정리해드릴게요.' : '오늘 운동 완료!'}</h1>
+    <p className="feedback-locked-page__notice">{finalized?.summary ?? '통증이 계속되면 운동을 중단하고 전문가와 상담하세요.'}</p>
     <section className="feedback-locked-page__changes" aria-label="루틴 변경 사항">
-      <article><strong>스쿼트 → 레그프레스</strong><span>무릎에 부담이 적은 운동으로 바꿨어요.</span></article>
-      <article><strong>무릎 → 주의 부위 등록</strong><span>앞으로 모든 루틴에 반영되어요.</span></article>
+      {(finalized?.changes ?? []).map((change, index) => <article key={index}><strong>{change.what}</strong><span>{change.why}</span></article>)}
+      {(!finalized || finalized.changes.length === 0) && <article><strong>변경 사항 없음</strong><span>다음 운동도 지금 루틴 그대로 진행돼요.</span></article>}
     </section>
     {/* 대화 잠금 화면 — 선택은 이미 끝났으므로 버튼을 비활성화해 잠금 상태를 명확히 한다 */}
     <div className="feedback-locked-page__choices" aria-label="피드백 반영 선택 (완료됨)"><button className="is-selected" type="button" disabled>이대로 적용할게요</button><button type="button" disabled>그대로 둘게요</button></div>

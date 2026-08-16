@@ -3,53 +3,77 @@ import todayRoutineExercise from '../assets/today-routine-dumbbell-bench-press.p
 import todayRoutineNextExercise from '../assets/today-routine-next-exercise.png'
 import todayRoutineProgressLine from '../assets/today-routine-progress-line.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
+import type { RoutineExercise, TodayRoutine } from '../lib/api'
 
-/** Figma 657:4412 — 오늘 루틴 */
-export function TodayRoutineScreen({ onFinish }: { onFinish: () => void }) {
-  const [step, setStep] = useState<1 | 2>(1)
+function exerciseDose(exercise: RoutineExercise | undefined): string {
+  if (!exercise) return ''
+  if (exercise.exercise_kind === 'CARDIO') return `${exercise.duration_min ?? '-'}분`
+  const parts: string[] = []
+  if (exercise.sets) parts.push(`${exercise.sets}세트`)
+  if (exercise.reps) parts.push(`x ${exercise.reps}회`)
+  if (exercise.rir !== null && exercise.rir !== undefined) parts.push(`x RIR ${exercise.rir}`)
+  return parts.join(' ') || '자유 진행'
+}
+
+type TodayRoutineScreenProps = { today: TodayRoutine | null; onFinish: () => void }
+
+/** Figma 657:4412 — 오늘 루틴. 운동 목록은 GET /routines/today의 Day 실데이터로 진행한다. */
+export function TodayRoutineScreen({ today, onFinish }: TodayRoutineScreenProps) {
+  const exercises = today?.day.exercises ?? []
+  const [step, setStep] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
-  const [isWorkoutComplete, setIsWorkoutComplete] = useState(false)
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  const current = exercises[step]
+  const next = exercises[step + 1]
+  const isLastStep = step >= exercises.length - 1
+  const isWorkoutComplete = exercises.length === 0 ? false : step >= exercises.length
 
   useEffect(() => {
     if (!isTransitioning) return
     const timer = window.setTimeout(() => {
-      setStep(2)
+      setStep(value => value + 1)
       setIsTransitioning(false)
     }, 520)
     return () => window.clearTimeout(timer)
   }, [isTransitioning])
 
   const completeSet = () => {
-    if (isTransitioning) return
-    if (step === 1) {
-      if (prefersReducedMotion) {
-        setStep(2)
-        return
-      }
-      setIsTransitioning(true)
+    if (isTransitioning || isWorkoutComplete) return
+    if (isLastStep) {
+      setStep(value => value + 1)
       return
     }
-    setIsWorkoutComplete(true)
+    if (prefersReducedMotion) {
+      setStep(value => value + 1)
+      return
+    }
+    setIsTransitioning(true)
   }
 
   return <FixedStepFrame label="오늘 루틴"><div className="today-routine-page">
-    <p className="today-routine-page__eyebrow">오늘의 루틴</p>
-    <h1>오늘 해야 하는 루틴이에요</h1>
+    <p className="today-routine-page__eyebrow">오늘의 루틴 {today ? `· ${today.progress.cycle_no}주차 Day ${today.day.day_order}` : ''}</p>
+    <h1>{today?.day.title ?? '오늘 해야 하는 루틴이에요'}</h1>
     <p className="today-routine-page__notice">완료 버튼을 눌러야 다음 스텝으로 이동할 수 있어요!</p>
-    <img className="today-routine-page__progress" src={todayRoutineProgressLine} alt="현재 첫 번째 운동 단계" />
+    <img className="today-routine-page__progress" src={todayRoutineProgressLine} alt={`운동 ${Math.min(step + 1, exercises.length)} / ${exercises.length} 단계`} />
     <button className="today-routine-page__finish" type="button" disabled={!isWorkoutComplete} onClick={onFinish}>운동마치기</button>
 
-    <section className={`today-routine-page__current ${isTransitioning ? 'is-exiting' : ''}`} aria-label={`현재 운동 Step ${step}`}>
-      <span>Step {step}</span><h2>덤벨 벤치 프레스</h2><small>10세트 x 5회 x 20kg</small>
-      <p>날개뼈를 모아 발로 바닥을<br />밀어내는 것에 신경써주셔야합니다.</p>
-      <button type="button">자세가이드</button><img src={step === 1 ? todayRoutineExercise : todayRoutineNextExercise} alt="덤벨 벤치 프레스 동작" />
-    </section>
+    {current && <section className={`today-routine-page__current ${isTransitioning ? 'is-exiting' : ''}`} aria-label={`현재 운동 Step ${step + 1}`}>
+      <span>Step {step + 1}/{exercises.length}</span><h2>{current.name}</h2><small>{exerciseDose(current)}</small>
+      <p>{current.note ?? (current.muscle_group ? `${current.muscle_group} 자극에 집중해주세요.` : '정확한 자세에 집중해주세요.')}</p>
+      <img src={current.image_url ?? todayRoutineExercise} alt={`${current.name} 동작`} />
+    </section>}
 
-    {step === 1 && <aside className={`today-routine-page__next ${isTransitioning ? 'is-promoting' : ''}`} aria-label="다음 운동">
-      <p>Next →</p><h2>덤벨 벤치 프레스</h2><span>날개뼈를 모아 발로 바닥을<br />밀어내는 것에 신경써주셔야합니다.</span><img src={todayRoutineNextExercise} alt="다음 덤벨 벤치 프레스 동작" />
+    {isWorkoutComplete && <section className="today-routine-page__current" aria-label="운동 완료">
+      <span>완료</span><h2>오늘 운동을 모두 마쳤어요!</h2><small>{exercises.length}개 운동 완료</small>
+      <p>운동마치기를 눌러 피드백을 남겨주세요.</p>
+    </section>}
+
+    {next && !isWorkoutComplete && <aside className={`today-routine-page__next ${isTransitioning ? 'is-promoting' : ''}`} aria-label="다음 운동">
+      <p>Next →</p><h2>{next.name}</h2><span>{exerciseDose(next)}</span><img src={next.image_url ?? todayRoutineNextExercise} alt={`다음 ${next.name} 동작`} />
     </aside>}
 
-    <button className={`today-routine-page__complete ${isWorkoutComplete ? 'is-complete' : ''}`} type="button" disabled={isTransitioning || isWorkoutComplete} onClick={completeSet}>세트 완료</button>
+    <button className={`today-routine-page__complete ${isWorkoutComplete ? 'is-complete' : ''}`} type="button" disabled={isTransitioning || isWorkoutComplete || !current} onClick={completeSet}>세트 완료</button>
+    {today?.disclaimer && <p className="today-routine-page__disclaimer">{today.disclaimer}</p>}
   </div></FixedStepFrame>
 }

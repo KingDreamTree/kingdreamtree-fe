@@ -27,7 +27,7 @@ import poseFailLineTwo from './assets/pose-fail-line-2.svg'
 import { FixedStepFrame } from './components/FixedStepFrame'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { createRoutine, createWorkoutLog, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type Job, type SessionSegmentation } from './lib/api'
+import { applyCoachChanges, createRoutine, createWorkoutLog, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -37,7 +37,7 @@ import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLa
 MESSAGES.NOT_ENOUGH_JOINTS = '레퍼런스에 나온 부위가 보이도록 서주세요.'
 
 const SCALE_BASIS_GUIDE = '레퍼런스와 같은 부위가 나오도록 촬영해주세요. 계속 어려우면 레퍼런스를 다시 등록해주세요.'
-import { InbodyUploadAfterScreen } from './screens/InbodyUploadAfterScreen'
+import { InbodyUploadAfterScreen, type InbodyPatch } from './screens/InbodyUploadAfterScreen'
 import { InbodyUploadBeforeScreen } from './screens/InbodyUploadBeforeScreen'
 import { InbodyUploadSuccessScreen } from './screens/InbodyUploadSuccessScreen'
 import { InbodyRangeErrorScreen } from './screens/InbodyRangeErrorScreen'
@@ -54,7 +54,6 @@ import { TodayRoutineScreen } from './screens/TodayRoutineScreen'
 import { FeedbackScreen } from './screens/FeedbackScreen'
 import { FeedbackLoadingScreen } from './screens/FeedbackLoadingScreen'
 import { FeedbackAttentionAreaScreen } from './screens/FeedbackAttentionAreaScreen'
-import { FeedbackExerciseIntensityScreen } from './screens/FeedbackExerciseIntensityScreen'
 import { FeedbackReflectionScreen } from './screens/FeedbackReflectionScreen'
 import { FeedbackAppliedScreen } from './screens/FeedbackAppliedScreen'
 import { FeedbackKeptScreen } from './screens/FeedbackKeptScreen'
@@ -62,7 +61,7 @@ import { FeedbackConversationLockedScreen } from './screens/FeedbackConversation
 import './App.css'
 
 type SectionProps = { children: ReactNode; className: string; label: string; scaleToViewport?: boolean; designHeight?: number }
-type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' | 'pose-analyzing' | 'pose-failure' | 'pose-unavailable' | 'pose-success' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-exercise-intensity' | 'feedback-reflection' | 'feedback-conversation-locked' | 'feedback-applied' | 'feedback-kept'
+type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' | 'pose-analyzing' | 'pose-failure' | 'pose-unavailable' | 'pose-success' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-reflection' | 'feedback-conversation-locked' | 'feedback-applied' | 'feedback-kept'
 
 /** Reveals a design section once it reaches the viewport. */
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
@@ -275,7 +274,6 @@ function App() {
   const [view, setView] = useState<AppView>('onboarding')
   const [workoutDays, setWorkoutDays] = useState(1)
   const [feedbackMessage, setFeedbackMessage] = useState('')
-  const [followupFeedbackMessage, setFollowupFeedbackMessage] = useState('')
   const [isPreparingSession, setIsPreparingSession] = useState(false)
   const [criteria, setCriteria] = useState<PoseCriteria | null>(null)
   const [refData, setRefData] = useState<ReferenceData | null>(null)
@@ -287,9 +285,13 @@ function App() {
   const inbodyFileInputRef = useRef<HTMLInputElement>(null)
   const [inbodyId, setInbodyId] = useState<string | null>(null)
   const [inbodyJobId, setInbodyJobId] = useState<string | null>(null)
-  const [todayRoutine, setTodayRoutine] = useState<Record<string, unknown> | null>(null)
+  const [inbodyData, setInbodyData] = useState<InbodyDetail | null>(null)
+  const [todayRoutine, setTodayRoutine] = useState<TodayRoutine | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null)
   const [segmentationData, setSegmentationData] = useState<SessionSegmentation | null>(null)
+  const [routineData, setRoutineData] = useState<RoutineDetail | null>(null)
+  const [selectedDay, setSelectedDay] = useState<RoutineDay | null>(null)
+  const [coach, setCoach] = useState<CoachChatResponse | null>(null)
 
   // 세션과 판정 기준(GET /pose-criteria)은 시작 시 한 번만. 모델·wasm도 미리 로드.
   const openReference = async () => {
@@ -440,16 +442,17 @@ function App() {
     if (!inbodyId) return
     try {
       if (inbodyJobId) await waitForJob(inbodyJobId)
-      await getInbody(inbodyId)
+      const detail = await getInbody(inbodyId)
+      setInbodyData(detail)
       setView('inbody-form')
     } catch (error) {
       window.alert(userFacingMessage(error, '인바디 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'))
     }
   }
 
-  const verifyInbodyAndBeginAnalysis = async () => {
+  const verifyInbodyAndBeginAnalysis = async (patch?: InbodyPatch) => {
     try {
-      if (inbodyId) await patchInbody(inbodyId, { verified: true })
+      if (inbodyId) await patchInbody(inbodyId, { ...(patch ?? {}), verified: true })
       await beginAnalysis()
     } catch (error) {
       window.alert(userFacingMessage(error, '인바디 정보를 확인하지 못했습니다. 입력값을 다시 확인해주세요.'))
@@ -464,6 +467,8 @@ function App() {
       const result = await createRoutine(sessionId, workoutDays)
       const jobId = getJobId(result)
       if (jobId) await waitForJob(jobId)
+      const routine = await getActiveRoutine(sessionId)
+      setRoutineData(routine)
       setView('custom-routine')
     } catch (error) {
       window.alert(userFacingMessage(error, '맞춤 루틴을 생성하지 못했습니다. 잠시 후 다시 시도해주세요.'))
@@ -483,23 +488,79 @@ function App() {
     }
   }
 
+  /**
+   * 운동 완료 기록 후 피드백이 있으면 코치 대화(방법 B)로 잇는다.
+   * workout-log의 feedback_text(방법 A)는 쓰지 않는다 — 코치 대화 [적용]과
+   * 이중으로 루틴이 패치되는 것을 막기 위해 완료 기록만 남긴다.
+   */
   const completeWorkout = async (feedbackText?: string) => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
-    const progress = todayRoutine?.progress as Record<string, unknown> | undefined
-    const dayOrder = typeof progress?.next_day_order === 'number' ? progress.next_day_order : 1
-    const cycleNo = typeof progress?.cycle_no === 'number' ? progress.cycle_no : 1
+    const dayOrder = todayRoutine?.progress.next_day_order ?? 1
+    const cycleNo = todayRoutine?.progress.cycle_no ?? 1
     try {
-      await createWorkoutLog(sessionId, { day_order: dayOrder, cycle_no: cycleNo, feedback_text: feedbackText || null })
-      if (feedbackText) {
-        setFeedbackMessage(feedbackText)
-        setView('feedback-loading')
-      } else {
-        setView('feedback-conversation-locked')
-      }
+      await createWorkoutLog(sessionId, { day_order: dayOrder, cycle_no: cycleNo, feedback_text: null })
     } catch (error) {
       window.alert(userFacingMessage(error, '운동 완료를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.'))
+      return
     }
+    if (feedbackText) {
+      setFeedbackMessage(feedbackText)
+      setView('feedback-loading')
+      await sendCoach([{ role: 'user', content: feedbackText }])
+    } else {
+      setCoach(null)
+      setView('feedback-conversation-locked')
+    }
+  }
+
+  /** 코치 대화 왕복 — 응답의 messages를 그대로 되돌려 보낸다 (서버는 stateless). */
+  const sendCoach = async (messages: CoachChatMessage[]) => {
+    const sessionId = getStoredSessionId()
+    if (!sessionId) return
+    try {
+      const response = await sendCoachMessage(sessionId, messages)
+      setCoach(response)
+      setView(response.finalized ? 'feedback-reflection' : 'feedback-attention-area')
+    } catch (error) {
+      window.alert(userFacingMessage(error, '코치와 연결하지 못했어요. 잠시 후 다시 시도해주세요.'))
+      setView('feedback-conversation-locked')
+    }
+  }
+
+  const continueCoach = async (text: string) => {
+    if (!coach) return
+    setFeedbackMessage(text)
+    setView('feedback-loading')
+    await sendCoach([...coach.messages, { role: 'user', content: text }])
+  }
+
+  const applyCoach = async () => {
+    const sessionId = getStoredSessionId()
+    if (!sessionId || !coach) {
+      setView('feedback-kept')
+      return
+    }
+    try {
+      await applyCoachChanges(sessionId, coach.messages)
+      setView('feedback-applied')
+    } catch (error) {
+      window.alert(userFacingMessage(error, '변경 사항을 적용하지 못했어요. 잠시 후 다시 시도해주세요.'))
+    }
+  }
+
+  /** [적용] 후 "바뀐 루틴 보기" — 새 버전이 활성화됐으므로 다시 불러온다. */
+  const viewChangedRoutine = async () => {
+    const sessionId = getStoredSessionId()
+    if (sessionId) {
+      try {
+        const routine = await getActiveRoutine(sessionId)
+        setRoutineData(routine)
+      } catch {
+        // 조회 실패해도 화면 이동은 한다 — 이전 버전이 보일 뿐
+      }
+    }
+    setView('custom-routine')
   }
 
   useEffect(() => {
@@ -526,7 +587,7 @@ function App() {
   if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} />
   if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} onSkip={() => void beginAnalysis()} /></>
   if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => setView('inbody-upload')} onStart={() => void openInbodyConfirmation()} onSkip={() => void beginAnalysis()} />
-  if (view === 'inbody-form') return <InbodyUploadAfterScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-uploaded')} />
+  if (view === 'inbody-form') return <InbodyUploadAfterScreen inbody={inbodyData} onConfirm={patch => void verifyInbodyAndBeginAnalysis(patch)} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'inbody-range-error') return <InbodyRangeErrorScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-form')} />
   if (view === 'inbody-warning') return <InbodyValidationWarningScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-range-error')} />
   if (view === 'inbody-fixed') return <InbodyAllErrorsFixedScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-warning')} />
@@ -535,16 +596,15 @@ function App() {
   if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} />
   if (view === 'loading-two') return <LoadingTwoScreen onComplete={() => undefined} />
-  if (view === 'custom-routine') return <CustomRoutineScreen workoutDays={workoutDays} onAdjustDays={() => setView('exercise-days')} onViewDayOne={() => setView('custom-routine-detail')} onNext={() => void openTodayRoutine()} />
-  if (view === 'custom-routine-detail') return <CustomRoutineDetailScreen onPrevious={() => setView('custom-routine')} />
-  if (view === 'today-routine') return <TodayRoutineScreen onFinish={() => setView('feedback')} />
+  if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setSelectedDay(day); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />
+  if (view === 'custom-routine-detail') return <CustomRoutineDetailScreen day={selectedDay} onPrevious={() => setView('custom-routine')} />
+  if (view === 'today-routine') return <TodayRoutineScreen today={todayRoutine} onFinish={() => setView('feedback')} />
   if (view === 'feedback') return <FeedbackScreen onSubmit={message => void completeWorkout(message)} onSkip={() => void completeWorkout()} />
-  if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => setView('feedback-attention-area')} />
-  if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen feedback={feedbackMessage} onSubmit={message => { setFollowupFeedbackMessage(message); setView('feedback-exercise-intensity') }} />
-  if (view === 'feedback-exercise-intensity') return <FeedbackExerciseIntensityScreen feedback={followupFeedbackMessage} onNext={() => setView('feedback-reflection')} />
-  if (view === 'feedback-reflection') return <FeedbackReflectionScreen onApply={() => setView('feedback-applied')} onKeep={() => setView('feedback-kept')} />
-  if (view === 'feedback-conversation-locked') return <FeedbackConversationLockedScreen />
-  if (view === 'feedback-applied') return <FeedbackAppliedScreen onViewRoutine={() => setView('custom-routine')} />
+  if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => undefined} />
+  if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => void continueCoach(message)} />
+  if (view === 'feedback-reflection') return <FeedbackReflectionScreen finalized={coach?.finalized ?? null} onApply={() => void applyCoach()} onKeep={() => setView('feedback-kept')} />
+  if (view === 'feedback-conversation-locked') return <FeedbackConversationLockedScreen finalized={coach?.finalized ?? null} />
+  if (view === 'feedback-applied') return <FeedbackAppliedScreen onViewRoutine={() => void viewChangedRoutine()} />
   if (view === 'feedback-kept') return <FeedbackKeptScreen />
   return <main className="onboarding"><OnboardingOne onStart={openReference} /><OnboardingTwo /><OnboardingThree /><OnboardingFour onStart={openReference} /></main>
 }

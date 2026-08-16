@@ -278,6 +278,83 @@ export interface SessionSegmentation {
   }
 }
 
+// ── 루틴(F10~F12)·인바디(F07)·코치(F13) 응답 타입 — 백엔드 app/schemas 와 1:1 ──
+
+export interface RoutineExercise {
+  order_index: number
+  name: string
+  exercise_ref: string | null
+  image_url: string | null
+  exercise_kind: string
+  muscle_group: string | null
+  sets: number | null
+  reps: number | null
+  duration_min: number | null
+  rest_sec: number | null
+  /** N회 남기고 멈추는 무게 — 중량(kg)은 서버가 제공하지 않는다 */
+  rir: number | null
+  boosted_by: string | null
+  note: string | null
+}
+
+export interface RoutineDay { day_order: number; title: string | null; estimated_duration_min: number | null; exercises: RoutineExercise[] }
+
+export interface RoutineProgress {
+  completed_count: number
+  total_count: number
+  cycle_no: number
+  next_day_order: number
+  is_completed: boolean
+  percent: number
+  day_source: string
+}
+
+export interface RoutineDetail {
+  month_routine_id: string
+  version: number
+  exercise_days_per_week: number
+  total_cycles: number
+  goal: string | null
+  focus_areas: string[]
+  status: string
+  is_active: boolean
+  days: RoutineDay[]
+  progress: RoutineProgress
+  notice: string | null
+  disclaimer: string
+}
+
+export interface TodayRoutine { month_routine_id: string; cycle_no: number; day: RoutineDay; progress: RoutineProgress; disclaimer: string }
+
+export type InbodySegmentKey = 'LEFT_ARM' | 'RIGHT_ARM' | 'TRUNK' | 'LEFT_LEG' | 'RIGHT_LEG'
+export interface InbodySegmentDto { segment: InbodySegmentKey; lean_mass: number | null; fat_mass: number | null }
+
+export interface InbodyDetail {
+  inbody_id: string
+  status: string
+  device_type: string | null
+  measured_at: string | null
+  /** inbody 테이블 컬럼 (weight, bmi, height, age, gender, skeletal_muscle_mass, body_fat_percentage, …) */
+  fields: Record<string, unknown>
+  /** 서버 계산값 (골격근량 ÷ 신장²) — 읽기 전용 */
+  smi: number | null
+  segments: InbodySegmentDto[]
+  /** WARN 필드만 {"필드": {level, message}} */
+  validation: Record<string, { level: string; message: string }>
+  verified_at: string | null
+}
+
+export interface CoachChatMessage { role: string; content: string }
+export interface CoachFinalized { summary: string; changes: Array<{ what: string; why: string }> }
+export interface CoachChatResponse {
+  reply: string
+  messages: CoachChatMessage[]
+  tool_events: Array<{ name: string; args: Record<string, unknown> }>
+  finalized: CoachFinalized | null
+  turn: number
+  max_turns: number
+}
+
 export function getJob(jobId: string) { return request<Job>(`/jobs/${jobId}`) }
 export function getSessionJobs(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/jobs`) }
 export function getReferencePhoto(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/reference`) }
@@ -287,7 +364,7 @@ export function getSignedUrls(items: Array<{ bucket: string; path: string }>, ex
   return request<Record<string, unknown>>('/storage/signed-urls', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items, expires_in: expiresIn }) })
 }
 export function listInbody(sessionId: string) { return request<Record<string, unknown>[]>(`/sessions/${sessionId}/inbody`) }
-export function getInbody(inbodyId: string) { return request<Record<string, unknown>>(`/inbody/${inbodyId}`) }
+export function getInbody(inbodyId: string) { return request<InbodyDetail>(`/inbody/${inbodyId}`) }
 export function patchInbody(inbodyId: string, body: { fields?: Record<string, unknown>; segments?: unknown[]; verified?: boolean }) {
   return request<Record<string, unknown>>(`/inbody/${inbodyId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 }
@@ -299,18 +376,18 @@ export function createRoutine(sessionId: string, exerciseDaysPerWeek: number) {
   return request<Record<string, unknown>>(`/sessions/${sessionId}/routines`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ exercise_days_per_week: exerciseDaysPerWeek }) })
 }
 export function listRoutineVersions(sessionId: string) { return request<Record<string, unknown>[]>(`/sessions/${sessionId}/routines`) }
-export function getActiveRoutine(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/routines/active`) }
-export function getTodayRoutine(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/routines/today`) }
+export function getActiveRoutine(sessionId: string) { return request<RoutineDetail>(`/sessions/${sessionId}/routines/active`) }
+export function getTodayRoutine(sessionId: string) { return request<TodayRoutine>(`/sessions/${sessionId}/routines/today`) }
 export function getRoutineDay(monthRoutineId: string, dayOrder: number) { return request<Record<string, unknown>>(`/routines/${monthRoutineId}/days/${dayOrder}`) }
 export function createWorkoutLog(sessionId: string, body: { day_order: number; cycle_no: number; feedback_text?: string | null }) {
   return request<Record<string, unknown>>(`/sessions/${sessionId}/workout-logs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 }
 export function listWorkoutLogs(sessionId: string) { return request<Record<string, unknown>[]>(`/sessions/${sessionId}/workout-logs`) }
 export function listRevisions(sessionId: string) { return request<Record<string, unknown>[]>(`/sessions/${sessionId}/revisions`) }
-export function sendCoachMessage(sessionId: string, messages: Record<string, unknown>[]) {
-  return request<Record<string, unknown>>(`/sessions/${sessionId}/coach-chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages }) })
+export function sendCoachMessage(sessionId: string, messages: CoachChatMessage[]) {
+  return request<CoachChatResponse>(`/sessions/${sessionId}/coach-chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages }) })
 }
-export function applyCoachChanges(sessionId: string, messages: Record<string, unknown>[]) {
-  return request<Record<string, unknown>>(`/sessions/${sessionId}/coach-chat/apply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages }) })
+export function applyCoachChanges(sessionId: string, messages: CoachChatMessage[]) {
+  return request<{ no_change?: boolean; month_routine_id?: string; version?: number }>(`/sessions/${sessionId}/coach-chat/apply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages }) })
 }
 export function archiveSession(sessionId: string) { return request<Session>(`/sessions/${sessionId}/archive`, { method: 'POST' }) }
