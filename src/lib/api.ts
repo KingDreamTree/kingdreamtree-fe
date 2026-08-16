@@ -182,9 +182,10 @@ export function uploadUserPhoto(sessionId: string, input: {
   return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/user`, { method: 'POST', body: form })
 }
 
-export function uploadInbody(sessionId: string, file: File) {
+/** 인바디 결과지 업로드 — 여러 페이지를 한 건(1~5장 배열)으로 올린다. 202 + OCR 잡. */
+export function uploadInbody(sessionId: string, files: File[]) {
   const form = new FormData()
-  form.set('file', file)
+  for (const file of files) form.append('files', file)
   return request<{ inbody_id: string; job_id: string; status: string }>(`/sessions/${sessionId}/inbody`, { method: 'POST', body: form })
 }
 

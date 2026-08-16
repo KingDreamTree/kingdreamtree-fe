@@ -430,7 +430,7 @@ function App() {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
     try {
-      const result = await uploadInbody(sessionId, file)
+      const result = await uploadInbody(sessionId, [file])
       setInbodyId(result.inbody_id)
       setInbodyJobId(result.job_id)
       setView('inbody-uploaded')
