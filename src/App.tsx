@@ -27,7 +27,7 @@ import poseFailLineTwo from './assets/pose-fail-line-2.svg'
 import { FixedStepFrame } from './components/FixedStepFrame'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { createRoutine, createWorkoutLog, getInbody, getJob, getPoseCriteria, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type Job } from './lib/api'
+import { createRoutine, createWorkoutLog, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type Job, type SessionSegmentation } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -288,6 +288,8 @@ function App() {
   const [inbodyId, setInbodyId] = useState<string | null>(null)
   const [inbodyJobId, setInbodyJobId] = useState<string | null>(null)
   const [todayRoutine, setTodayRoutine] = useState<Record<string, unknown> | null>(null)
+  const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null)
+  const [segmentationData, setSegmentationData] = useState<SessionSegmentation | null>(null)
 
   // 세션과 판정 기준(GET /pose-criteria)은 시작 시 한 번만. 모델·wasm도 미리 로드.
   const openReference = async () => {
@@ -382,11 +384,40 @@ function App() {
     if (!sessionId) return
     setView('inbody-loading')
     try {
-      const result = await startAnalysis(sessionId)
-      const jobId = getJobId(result)
-      if (jobId) await waitForJob(jobId)
+      // 사진 세그멘테이션(사피엔스)이 아직 도는 중이면 서버가 409를 준다.
+      // 에러가 아니라 "아직"이라는 뜻이므로, 로딩 화면을 유지한 채 기다렸다가
+      // 자동 재시도한다 — 사용자에게 "왜 안 넘어가지?"라는 순간을 만들지 않는다.
+      let result: Record<string, unknown> | null = null
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        try {
+          result = await startAnalysis(sessionId)
+          break
+        } catch (error) {
+          if (error instanceof RefitApiError && error.status === 409) {
+            await new Promise(resolve => window.setTimeout(resolve, 3000))
+            continue
+          }
+          throw error
+        }
+      }
+      if (!result) throw new Error('사진 분석이 예상보다 오래 걸리고 있어요. 잠시 후 다시 시도해주세요.')
+      // 부위 진단(VLM)이 끝날 때까지 진행률 폴링 — reused=true(기존 결과)면 바로 완료로 나온다
+      for (let attempt = 0; attempt < 200; attempt += 1) {
+        const progress = await getAnalysisProgress(sessionId)
+        if (progress.completed) break
+        await new Promise(resolve => window.setTimeout(resolve, 2000))
+      }
+      const [analysis, segmentation] = await Promise.all([getAnalysis(sessionId), getSessionSegmentation(sessionId)])
+      setAnalysisData(analysis)
+      setSegmentationData(segmentation)
       setView('comparison')
     } catch (error) {
+      // 비교 가능한 부위가 부족하면 사진 문제 — 재촬영으로 유도한다
+      if (error instanceof RefitApiError && error.code === 'INSUFFICIENT_PARTS') {
+        window.alert(error.message)
+        setView('pose-capture')
+        return
+      }
       window.alert(userFacingMessage(error, '분석을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.'))
       setView('inbody-upload')
     }
@@ -493,7 +524,7 @@ function App() {
   if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
   if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
   if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} />
-  if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} /></>
+  if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} onSkip={() => void beginAnalysis()} /></>
   if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => setView('inbody-upload')} onStart={() => void openInbodyConfirmation()} onSkip={() => void beginAnalysis()} />
   if (view === 'inbody-form') return <InbodyUploadAfterScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'inbody-range-error') return <InbodyRangeErrorScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-form')} />
@@ -501,7 +532,7 @@ function App() {
   if (view === 'inbody-fixed') return <InbodyAllErrorsFixedScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-warning')} />
   if (view === 'inbody-unreadable') return <InbodyUnreadableScreen onConfirm={() => setView('inbody-form')} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'inbody-loading') return <LoadingOneScreen onComplete={() => undefined} />
-  if (view === 'comparison') return <ComparisonAnalysisScreen onCreateRoutine={() => setView('exercise-days')} />
+  if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} />
   if (view === 'loading-two') return <LoadingTwoScreen onComplete={() => undefined} />
   if (view === 'custom-routine') return <CustomRoutineScreen workoutDays={workoutDays} onAdjustDays={() => setView('exercise-days')} onViewDayOne={() => setView('custom-routine-detail')} onNext={() => void openTodayRoutine()} />
@@ -513,7 +544,7 @@ function App() {
   if (view === 'feedback-exercise-intensity') return <FeedbackExerciseIntensityScreen feedback={followupFeedbackMessage} onNext={() => setView('feedback-reflection')} />
   if (view === 'feedback-reflection') return <FeedbackReflectionScreen onApply={() => setView('feedback-applied')} onKeep={() => setView('feedback-kept')} />
   if (view === 'feedback-conversation-locked') return <FeedbackConversationLockedScreen />
-  if (view === 'feedback-applied') return <FeedbackAppliedScreen />
+  if (view === 'feedback-applied') return <FeedbackAppliedScreen onViewRoutine={() => setView('custom-routine')} />
   if (view === 'feedback-kept') return <FeedbackKeptScreen />
   return <main className="onboarding"><OnboardingOne onStart={openReference} /><OnboardingTwo /><OnboardingThree /><OnboardingFour onStart={openReference} /></main>
 }

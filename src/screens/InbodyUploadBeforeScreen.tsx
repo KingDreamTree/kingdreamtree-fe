@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import inbodyInfo from '../assets/inbody-info.svg'
 import inbodyUpload from '../assets/inbody-upload.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
+import { InbodyWimDialog } from '../components/InbodyWimDialog'
 
 type InbodyUploadBeforeScreenProps = {
   onUpload: () => void
   onComplete: () => void
+  onSkip: () => void
 }
 
-export function InbodyUploadBeforeScreen({ onUpload, onComplete }: InbodyUploadBeforeScreenProps) {
+export function InbodyUploadBeforeScreen({ onUpload, onComplete, onSkip }: InbodyUploadBeforeScreenProps) {
   const [isWimModalOpen, setIsWimModalOpen] = useState(false)
 
   const startMyDataConnection = () => {
@@ -23,7 +24,7 @@ export function InbodyUploadBeforeScreen({ onUpload, onComplete }: InbodyUploadB
         <h1>인바디 정보 입력</h1>
         <p className="step-description">정확한 분석을 위해 최근 인바디 측정 결과를 입력해주세요</p>
 
-        <button className="inbody-before-skip" type="button">건너뛰기</button>
+        <button className="inbody-before-skip" type="button" onClick={onSkip}>건너뛰기</button>
         <button className="inbody-before-dropzone" type="button" onClick={onUpload}>
           <img src={inbodyUpload} alt="" />
           <span>파일을 선택하거나 여기로 끌어다 놓으세요.</span>
@@ -37,18 +38,13 @@ export function InbodyUploadBeforeScreen({ onUpload, onComplete }: InbodyUploadB
         >
           WIM 회원이신가요?
         </button>
-        <button className="inbody-before-complete" type="button" onClick={onComplete}>
+        {/* 이 화면에서는 아직 업로드한 게 없으므로 항상 비활성 — 진행은 업로드 또는 건너뛰기로.
+            눌리는데 서버 에러가 뜨는 혼란을 막는다. */}
+        <button className="inbody-before-complete" type="button" disabled onClick={onComplete}>
           인바디 입력 완료
         </button>
 
-        {isWimModalOpen && (
-          <section className="inbody-wim-modal" role="dialog" aria-modal="true" aria-labelledby="inbody-wim-title">
-            <span className="inbody-wim-modal__icon"><img src={inbodyInfo} alt="" /></span>
-            <h2 id="inbody-wim-title">WIM 회원이신가요?</h2>
-            <p>WIM 회원이시면 인바디 정보를 연동하여<br />업로드 할 수 있어요!</p>
-            <button type="button" onClick={startMyDataConnection}>마이데이터 연동하기</button>
-          </section>
-        )}
+        <InbodyWimDialog open={isWimModalOpen} onClose={() => setIsWimModalOpen(false)} onConnect={startMyDataConnection} />
       </div>
     </FixedStepFrame>
   )
