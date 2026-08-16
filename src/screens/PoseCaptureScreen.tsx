@@ -19,6 +19,8 @@ type PoseCaptureScreenProps = {
   criteria: PoseCriteria
   refLm: PoseLandmarks
   refAspect: number
+  /** 레퍼런스의 크기 기준 — 사용자 사진도 같아야 서버가 받는다. */
+  refScaleBasis: 'TORSO' | 'HIP_KNEE'
   referenceUrl: string
   onNext: () => void
   /** 갤러리에서 사진을 골라 업로드 판정 경로로 전환한다. */
@@ -68,7 +70,7 @@ function cameraErrorMessage(error: unknown) {
   return '카메라를 열 수 없어요. 브라우저 카메라 권한을 확인해주세요.'
 }
 
-export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, referenceUrl, onNext, onBrowse }: PoseCaptureScreenProps) {
+export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refScaleBasis, referenceUrl, onNext, onBrowse }: PoseCaptureScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const refImageRef = useRef<HTMLImageElement>(null)
   const skeletonRef = useRef<HTMLCanvasElement>(null)
@@ -209,7 +211,13 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
       // 서버가 400으로 거부할 좌표(화면 밖으로 잘린 부위)는 업로드 전에 걸러서 재촬영 유도
       if (findOutOfRangeLandmark(lm) !== null) {
         capturedRef.current = false
-        setPhase({ kind: 'rejected', message: '몸 일부가 화면 밖으로 잘렸어요. 머리부터 발까지 다 나오게 서주세요.' })
+        setPhase({ kind: 'rejected', message: '몸 일부가 화면 밖으로 잘렸어요. 레퍼런스에 나온 부위가 다 보이게 서주세요.' })
+        return
+      }
+      // 크기 기준(TORSO/HIP_KNEE)이 레퍼런스와 다르면 서버가 SCALE_BASIS_MISMATCH로 거부한다.
+      if (chooseScaleBasis(lm) !== refScaleBasis) {
+        capturedRef.current = false
+        setPhase({ kind: 'rejected', message: '레퍼런스와 같은 부위가 나오도록 서주세요.' })
         return
       }
       const canvas = document.createElement('canvas')
@@ -298,7 +306,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
       streamRef.current?.getTracks().forEach((track) => track.stop())
       streamRef.current = null
     }
-  }, [criteria, refAspect, refLm, setPhase, uploadCapture, initNonce])
+  }, [criteria, refAspect, refLm, refScaleBasis, setPhase, uploadCapture, initNonce])
 
   useEffect(() => () => {
     if (payloadRef.current) URL.revokeObjectURL(payloadRef.current.url)

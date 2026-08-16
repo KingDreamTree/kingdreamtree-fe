@@ -32,6 +32,12 @@ import { ensureActiveSession, getPoseCriteria, getStoredSessionId, RefitApiError
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
+
+// 부분 신체(상체/하체만) 레퍼런스를 허용하므로 "전신이 보이도록"은 부정확하다.
+// MESSAGES는 교체 가능하게 export되어 있고 evaluate()가 이 표를 그대로 읽는다.
+MESSAGES.NOT_ENOUGH_JOINTS = '레퍼런스에 나온 부위가 보이도록 서주세요.'
+
+const SCALE_BASIS_GUIDE = '레퍼런스와 같은 부위가 나오도록 촬영해주세요. 계속 어려우면 레퍼런스를 다시 등록해주세요.'
 import { InbodyUploadAfterScreen } from './screens/InbodyUploadAfterScreen'
 import { InbodyUploadBeforeScreen } from './screens/InbodyUploadBeforeScreen'
 import { InbodyUploadSuccessScreen } from './screens/InbodyUploadSuccessScreen'
@@ -323,6 +329,13 @@ function App() {
       image.src = url
       await image.decode()
       const userPose = await detectPoseFromImage(image)
+      // 크기 기준(TORSO/HIP_KNEE)이 레퍼런스와 다르면 서버가 SCALE_BASIS_MISMATCH로
+      // 거부한다 — 업로드 전에 걸러서 안내한다.
+      if (userPose.scaleBasis !== refData.pose.scaleBasis) {
+        setPoseMessage(SCALE_BASIS_GUIDE)
+        setView('pose-failure')
+        return
+      }
       const result = evaluate(refData.pose.landmarks, userPose.landmarks, criteria, {
         multiPerson: userPose.multiPerson,
         refAspect: refData.aspect,
@@ -362,7 +375,7 @@ function App() {
     onStart={() => setView('pose-capture')} />
   if (view === 'pose-capture') return refData && criteria
     ? <PoseCaptureScreen sessionId={getStoredSessionId() ?? ''} criteria={criteria}
-        refLm={refData.pose.landmarks as PoseLandmarks} refAspect={refData.aspect} referenceUrl={refData.url}
+        refLm={refData.pose.landmarks as PoseLandmarks} refAspect={refData.aspect} refScaleBasis={refData.pose.scaleBasis} referenceUrl={refData.url}
         onNext={() => setView('inbody-upload')}
         onBrowse={file => void uploadUser(file)} />
     : null
