@@ -72,6 +72,15 @@ export declare function evaluate(
   opts?: { multiPerson?: boolean; refAspect?: number; userAspect?: number },
 ): EvaluateResult
 
+/** MediaPipe 33개 중 좌/우 쌍 인덱스. */
+export declare const LR_PAIRS: Array<[number, number]>
+
+/**
+ * 랜드마크 좌우반전 — x 반전 + 좌/우 이름표 스왑.
+ * 실시간 촬영 화면의 판정 기준 레퍼런스에만 쓴다 (프리뷰가 거울이므로).
+ */
+export declare function mirrorLandmarks(lm: PoseLandmarks): PoseLandmarks
+
 export declare function createHoldGate(criteria: PoseCriteria): HoldGate
 
 export declare function fetchCriteria(baseUrl?: string): Promise<PoseCriteria>

@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { PoseScore } from '../components/PoseScore'
-import { createHoldGate, evaluate, IDX, MESSAGES, SEGMENTS, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
+import { createHoldGate, evaluate, IDX, MESSAGES, mirrorLandmarks, SEGMENTS, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
 import { loadVideoLandmarker } from '../lib/landmarkers'
 import { areaRatio, chooseScaleBasis, findOutOfRangeLandmark } from '../lib/pose-detector'
 import { RefitApiError, uploadUserPhoto, userFacingMessage } from '../lib/api'
@@ -49,6 +49,7 @@ type Hud = { message: string; score: number | null; progress: number }
 
 // docs/FRONTEND-HANDOFF.md §2 촬영 안내 문구 (필수)
 const CAPTURE_GUIDES = [
+  '레퍼런스를 화면에 보이는 대로 따라 하세요',
   '정면으로 서고, 머리부터 발까지 나오게',
   '팔을 몸에서 15~30도 벌려주세요',
   '몸에 붙는 옷을 입어주세요',
@@ -139,6 +140,11 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
   const [phase, setPhaseState] = useState<Phase>({ kind: 'starting' })
   const [hud, setHud] = useState<Hud>({ message: '카메라를 준비하고 있어요…', score: null, progress: 0 })
   const [initNonce, setInitNonce] = useState(0)
+
+  // 프리뷰가 거울이므로 판정 기준 레퍼런스만 좌우반전 — 화면에 보이는 대로
+  // 따라 하는 게 곧 정답이 된다. 한 번만 계산해서 재사용 (백엔드 최종 결정).
+  // 레퍼런스 화면 표시·사용자 좌표·업로드 사진은 전부 원본 그대로.
+  const mirroredRefLm = useMemo(() => mirrorLandmarks(refLm), [refLm])
 
   const setPhase = useCallback((next: Phase) => {
     phaseRef.current = next.kind
@@ -275,7 +281,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
             drawSkeletonOn(liveSkeletonRef.current, liveLm, video.videoWidth, video.videoHeight, criteria.min_visibility)
             if (liveLm) {
               const multiPerson = res.landmarks.length > 1
-              const result = evaluate(refLm, liveLm, criteria, {
+              const result = evaluate(mirroredRefLm, liveLm, criteria, {
                 multiPerson,
                 refAspect,
                 userAspect: video.videoWidth / video.videoHeight,
@@ -312,7 +318,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       streamRef.current?.getTracks().forEach((track) => track.stop())
       streamRef.current = null
     }
-  }, [criteria, refAspect, refLm, refScaleBasis, setPhase, uploadCapture, initNonce])
+  }, [criteria, refAspect, mirroredRefLm, refScaleBasis, setPhase, uploadCapture, initNonce])
 
   useEffect(() => () => {
     if (payloadRef.current) URL.revokeObjectURL(payloadRef.current.url)

@@ -332,6 +332,7 @@ function App() {
         setView('pose-failure')
         return
       }
+      // 갤러리 업로드는 프리뷰(거울)가 없으므로 정방향 판정 그대로 (백엔드 최종 결정).
       const result = evaluate(refData.pose.landmarks, userPose.landmarks, criteria, {
         multiPerson: userPose.multiPerson,
         refAspect: refData.aspect,
