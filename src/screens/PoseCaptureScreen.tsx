@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
+import { PoseScore } from '../components/PoseScore'
 import { createHoldGate, evaluate, IDX, MESSAGES, SEGMENTS, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
 import { loadVideoLandmarker } from '../lib/landmarkers'
 import { areaRatio, chooseScaleBasis, findOutOfRangeLandmark } from '../lib/pose-detector'
@@ -8,8 +9,6 @@ import poseCornerTopLeft from '../assets/pose-corner-top-left.svg'
 import poseCornerTopRight from '../assets/pose-corner-top-right.svg'
 import poseCornerBottomLeft from '../assets/pose-corner-bottom-left.svg'
 import poseCornerBottomRight from '../assets/pose-corner-bottom-right.svg'
-import poseScoreRing from '../assets/pose-score-ring.svg'
-import poseScoreArc from '../assets/pose-score-arc.svg'
 import poseSuccessCheck from '../assets/pose-success-check.svg'
 import poseFailLineOne from '../assets/pose-fail-line-1.svg'
 import poseFailLineTwo from '../assets/pose-fail-line-2.svg'
@@ -190,7 +189,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
 
     // 점수·게이지는 프레임마다 튀므로 지수 이동 평균으로 부드럽게 따라가게 한다.
     const smooth = { score: 0, hasScore: false, progress: 0 }
-    const updateHud = (result: EvaluateResult | null) => {
+    const updateHud = (result: EvaluateResult | null, messageOverride?: string) => {
       if (result) {
         smooth.score = smooth.hasScore ? smooth.score + (result.pose_similarity - smooth.score) * 0.12 : result.pose_similarity
         smooth.hasScore = true
@@ -201,7 +200,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       if (Math.abs(hold.progress - smooth.progress) < 0.004) smooth.progress = hold.progress
 
       const next: Hud = {
-        message: result ? result.message : MESSAGES.NOT_ENOUGH_JOINTS,
+        message: messageOverride ?? (result ? result.message : MESSAGES.NOT_ENOUGH_JOINTS),
         score: smooth.hasScore ? Math.round(smooth.score * 10) / 10 : null,
         progress: Math.round(smooth.progress * 200) / 200,
       }
@@ -218,12 +217,6 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       if (findOutOfRangeLandmark(lm) !== null) {
         capturedRef.current = false
         setPhase({ kind: 'rejected', message: '사진을 처리하지 못했어요. 다시 촬영해주세요.' })
-        return
-      }
-      // 크기 기준(TORSO/HIP_KNEE)이 레퍼런스와 다르면 서버가 SCALE_BASIS_MISMATCH로 거부한다.
-      if (chooseScaleBasis(lm) !== refScaleBasis) {
-        capturedRef.current = false
-        setPhase({ kind: 'rejected', message: '레퍼런스와 같은 부위가 나오도록 서주세요.' })
         return
       }
       const canvas = document.createElement('canvas')
@@ -287,8 +280,11 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
                 refAspect,
                 userAspect: video.videoWidth / video.videoHeight,
               })
-              updateHud(result)
-              if (hold(result.pass) && !capturedRef.current) {
+              // 크기 기준(TORSO/HIP_KNEE)이 레퍼런스와 다르면 서버가 거부하므로
+              // 셔터 조건에서 빼고, 문구로 즉시 안내한다 (게이지가 차지 않는 이유가 보이게).
+              const basisMismatch = chooseScaleBasis(liveLm) !== refScaleBasis
+              updateHud(result, basisMismatch && result.pass ? '레퍼런스와 같은 부위가 나오도록 서주세요.' : undefined)
+              if (hold(result.pass && !basisMismatch) && !capturedRef.current) {
                 capturedRef.current = true
                 shutter(liveLm, result, multiPerson)
               }
@@ -382,11 +378,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       onChange={event => { const file = event.currentTarget.files?.[0]; if (file) onBrowse(file); event.currentTarget.value = '' }} />
     {(phase.kind === 'live' || phase.kind === 'camera-error') && <button className="pose-gallery" type="button" onClick={() => fileInputRef.current?.click()}>갤러리에서 업로드</button>}
 
-    {hud.score !== null && phase.kind === 'live' && <div className="pose-score" aria-label={`일치도 ${hud.score}점`}>
-      <img src={poseScoreRing} alt="" />
-      <img src={poseScoreArc} alt="" />
-      <strong>{hud.score.toFixed(1)} <small>점</small></strong>
-    </div>}
+    {hud.score !== null && phase.kind === 'live' && <PoseScore score={hud.score} />}
 
     {phase.kind === 'done' && <>
       <div className="pose-status pose-status--success">
