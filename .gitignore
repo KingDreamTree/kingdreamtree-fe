@@ -23,3 +23,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 백엔드 데모 로컬 사본 - 커밋하면 실서비스에 공개됨
+public/pose-live.html
+public/pose-score.js

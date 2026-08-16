@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import comparisonCommentCircle from '../assets/comparison-analysis-comment-circle.svg'
 import comparisonCommentIcon from '../assets/comparison-analysis-comment-icon.svg'
 import comparisonHighlight from '../assets/comparison-analysis-highlight.svg'
@@ -9,6 +10,7 @@ const bodyParts = ['왼쪽팔', '오른쪽팔', '상체부', '왼쪽하체', '�
 
 /** Figma 41:189 — 비교 분석 */
 export function ComparisonAnalysisScreen({ onCreateRoutine }: { onCreateRoutine: () => void }) {
+  const [selectedPart, setSelectedPart] = useState(bodyParts[0])
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
     <section className="comparison-analysis-page">
       <header className="comparison-analysis-header">
@@ -41,11 +43,11 @@ export function ComparisonAnalysisScreen({ onCreateRoutine }: { onCreateRoutine:
 
       <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요.</p>
       <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
-        {bodyParts.map((part, index) => <button className={index === 0 ? 'is-selected' : ''} type="button" key={part}>{part}</button>)}
+        {bodyParts.map(part => <button className={part === selectedPart ? 'is-selected' : ''} type="button" key={part} aria-pressed={part === selectedPart} onClick={() => setSelectedPart(part)}>{part}</button>)}
       </nav>
 
       <section className="comparison-analysis-diagnosis" aria-labelledby="comparison-diagnosis-title">
-        <h2 id="comparison-diagnosis-title"><em>왼쪽팔</em>의 진단 결과</h2>
+        <h2 id="comparison-diagnosis-title"><em>{selectedPart}</em>의 진단 결과</h2>
         <div>
           <span><img src={comparisonCommentCircle} alt="" /><img src={comparisonCommentIcon} alt="" /></span>
           <section>
