@@ -208,10 +208,10 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     const shutter = (lm: PoseLandmarks, result: EvaluateResult, multiPerson: boolean) => {
       const video = videoRef.current
       if (!video) return
-      // 서버가 400으로 거부할 좌표(화면 밖으로 잘린 부위)는 업로드 전에 걸러서 재촬영 유도
+      // 서버 ±10 검증과 같은 안전망 — 걸리면 좌표 단위 버그이므로 재촬영만 유도
       if (findOutOfRangeLandmark(lm) !== null) {
         capturedRef.current = false
-        setPhase({ kind: 'rejected', message: '몸 일부가 화면 밖으로 잘렸어요. 레퍼런스에 나온 부위가 다 보이게 서주세요.' })
+        setPhase({ kind: 'rejected', message: '사진을 처리하지 못했어요. 다시 촬영해주세요.' })
         return
       }
       // 크기 기준(TORSO/HIP_KNEE)이 레퍼런스와 다르면 서버가 SCALE_BASIS_MISMATCH로 거부한다.
