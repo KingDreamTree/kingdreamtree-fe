@@ -340,6 +340,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .pose-live-skeleton { position: absolute; inset: 0; transform: scaleX(-1); pointer-events: none; } /* 비반전 좌표로 그리고 미리보기와 같이 CSS로 반전 */
 .pose-live-starting { position: absolute; top: 50%; left: 0; width: 100%; margin: 0; transform: translateY(-50%); color: #ccc; font: 500 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; text-align: center; }
 .pose-live-message { position: absolute; bottom: 26px; left: 50%; margin: 0; padding: 8px 22px; transform: translateX(-50%); border-radius: 30px; background: rgba(34, 34, 34, .78); color: #f6f6f6; font: 600 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; white-space: nowrap; }
+.pose-live-diag { position: absolute; top: 10px; left: 10px; max-width: calc(100% - 20px); margin: 0; padding: 4px 12px; border-radius: 6px; background: rgba(17, 17, 17, .72); color: #ccc; font: 500 13px/1.6 Pretendard, sans-serif; letter-spacing: -.3px; }
 .pose-live-hold { position: absolute; bottom: 0; left: 0; width: 100%; height: 7px; background: rgba(246, 246, 246, .18); }
 .pose-live-hold span { display: block; height: 100%; background: #ffe250; transition: width 120ms linear; }
 .pose-live-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(17, 17, 17, .55); }
