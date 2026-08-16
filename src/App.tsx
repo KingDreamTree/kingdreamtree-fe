@@ -97,21 +97,22 @@ function RevealSection({ children, className, label, scaleToViewport = false, de
   </section>
 }
 
-function RefitLogo({ small = false }: { small?: boolean }) {
-  return <p className={`logo ${small ? 'logo--small' : ''}`} aria-label="REFIT"><span>RE</span><span>:</span><strong>FIT</strong></p>
+function RefitLogo({ small = false, className = '' }: { small?: boolean; className?: string }) {
+  return <p className={`logo ${small ? 'logo--small' : ''} ${className}`} aria-label="REFIT"><span>RE</span><span>:</span><strong>FIT</strong></p>
 }
 
 function StartButton({ wide = false, onStart }: { wide?: boolean; onStart: () => void }) {
   return <button className={`ai-button ${wide ? 'ai-button--wide' : ''}`} type="button" onClick={onStart}>AI 분석 진단하기</button>
 }
 
-function OnboardingOne({ onStart }: { onStart: () => void }) {
+function OnboardingOne() {
   return <RevealSection className="hero-section" label="REFIT 소개" scaleToViewport>
     <img className="hero-section__texture motion motion--soft" src={heroBackground} alt="" />
+    <RefitLogo small className="hero-section__top-logo" />
     <div className="hero-section__content">
       <div className="motion motion--delay-1"><RefitLogo /></div>
       <p className="hero-section__description motion motion--delay-2">원하는 체형의 사진을 선택하고, 나의 체형 정보를<br />입력하면 AI가 운동 루틴을 제공합니다.</p>
-      <div className="motion motion--delay-3"><StartButton onStart={onStart} /></div>
+      <div className="hero-section__scroll-cue motion motion--delay-3" aria-hidden="true"><span>SCROLL TO EXPLORE</span><i /></div>
     </div>
     <div className="hero-section__character motion motion--from-right" aria-label="운동을 준비하는 인물">
       <div className="hero-section__character-window"><img src={heroPhone} alt="" /></div>
@@ -546,7 +547,7 @@ function App() {
   if (view === 'feedback-conversation-locked') return <FeedbackConversationLockedScreen />
   if (view === 'feedback-applied') return <FeedbackAppliedScreen onViewRoutine={() => setView('custom-routine')} />
   if (view === 'feedback-kept') return <FeedbackKeptScreen />
-  return <main className="onboarding"><OnboardingOne onStart={openReference} /><OnboardingTwo /><OnboardingThree /><OnboardingFour onStart={openReference} /></main>
+  return <main className="onboarding"><OnboardingOne /><OnboardingTwo /><OnboardingThree /><OnboardingFour onStart={openReference} /></main>
 }
 
 export default App
