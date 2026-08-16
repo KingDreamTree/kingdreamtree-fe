@@ -15,7 +15,8 @@ export function FeedbackConversationLockedScreen() {
       <article><strong>스쿼트 → 레그프레스</strong><span>무릎에 부담이 적은 운동으로 바꿨어요.</span></article>
       <article><strong>무릎 → 주의 부위 등록</strong><span>앞으로 모든 루틴에 반영되어요.</span></article>
     </section>
-    <div className="feedback-locked-page__choices" aria-label="피드백 반영 선택"><button className="is-selected" type="button">이대로 적용할게요</button><button type="button">그대로 둘게요</button></div>
+    {/* 대화 잠금 화면 — 선택은 이미 끝났으므로 버튼을 비활성화해 잠금 상태를 명확히 한다 */}
+    <div className="feedback-locked-page__choices" aria-label="피드백 반영 선택 (완료됨)"><button className="is-selected" type="button" disabled>이대로 적용할게요</button><button type="button" disabled>그대로 둘게요</button></div>
     <div className="feedback-locked-page__overlay" aria-hidden="true" />
     <p className="feedback-locked-page__message">
       <span className="feedback-locked-page__info-icon" aria-hidden="true"><img src={info} alt="" /></span>
