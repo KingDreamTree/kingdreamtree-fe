@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { createHoldGate, evaluate, MESSAGES, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
 import { loadVideoLandmarker } from '../lib/landmarkers'
-import { areaRatio, chooseScaleBasis } from '../lib/pose-detector'
-import { RefitApiError, uploadUserPhoto } from '../lib/api'
+import { areaRatio, chooseScaleBasis, findOutOfRangeLandmark } from '../lib/pose-detector'
+import { RefitApiError, uploadUserPhoto, userFacingMessage } from '../lib/api'
 import poseCornerTopLeft from '../assets/pose-corner-top-left.svg'
 import poseCornerTopRight from '../assets/pose-corner-top-right.svg'
 import poseCornerBottomLeft from '../assets/pose-corner-bottom-left.svg'
@@ -106,7 +106,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
       if (error instanceof RefitApiError && error.status === 503) {
         setPhase({ kind: 'retry', message: RETRY_MESSAGE })
       } else if (error instanceof RefitApiError) {
-        setPhase({ kind: 'rejected', message: error.message })
+        setPhase({ kind: 'rejected', message: userFacingMessage(error, '사진을 처리하지 못했어요. 같은 포즈로 다시 촬영해주세요.') })
       } else {
         setPhase({ kind: 'retry', message: RETRY_MESSAGE })
       }
@@ -133,6 +133,12 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
     const shutter = (lm: PoseLandmarks, result: EvaluateResult, multiPerson: boolean) => {
       const video = videoRef.current
       if (!video) return
+      // 서버가 400으로 거부할 좌표(화면 밖으로 잘린 부위)는 업로드 전에 걸러서 재촬영 유도
+      if (findOutOfRangeLandmark(lm) !== null) {
+        capturedRef.current = false
+        setPhase({ kind: 'rejected', message: '몸 일부가 화면 밖으로 잘렸어요. 머리부터 발까지 다 나오게 서주세요.' })
+        return
+      }
       const canvas = document.createElement('canvas')
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
