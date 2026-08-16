@@ -318,7 +318,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       streamRef.current?.getTracks().forEach((track) => track.stop())
       streamRef.current = null
     }
-  }, [criteria, refAspect, refLm, refScaleBasis, setPhase, uploadCapture, initNonce])
+  }, [criteria, refAspect, mirroredRefLm, refScaleBasis, setPhase, uploadCapture, initNonce])
 
   useEffect(() => () => {
     if (payloadRef.current) URL.revokeObjectURL(payloadRef.current.url)
