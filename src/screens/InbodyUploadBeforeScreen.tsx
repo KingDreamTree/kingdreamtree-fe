@@ -38,7 +38,9 @@ export function InbodyUploadBeforeScreen({ onUpload, onComplete, onSkip }: Inbod
         >
           WIM 회원이신가요?
         </button>
-        <button className="inbody-before-complete" type="button" onClick={onComplete}>
+        {/* 이 화면에서는 아직 업로드한 게 없으므로 항상 비활성 — 진행은 업로드 또는 건너뛰기로.
+            눌리는데 서버 에러가 뜨는 혼란을 막는다. */}
+        <button className="inbody-before-complete" type="button" disabled onClick={onComplete}>
           인바디 입력 완료
         </button>
 
