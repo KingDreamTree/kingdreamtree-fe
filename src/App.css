@@ -178,6 +178,26 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-diagnosis section p { margin: 0; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }
 .comparison-analysis-routine { position: absolute; top: 2410px; left: 536px; width: 367.413px; height: 78px; border: 0; border-radius: 41px; background: #ffe250; color: #222; font: 700 27.59px/1.5 Pretendard, sans-serif; letter-spacing: -.828px; cursor: pointer; }
 
+/* ── 비교 분석 실데이터 요소 ── */
+.comparison-analysis-score__fill { position: absolute; top: 20.5px; left: 9.63px; width: 300.21px; height: 300.21px; overflow: visible; }
+.comparison-analysis-score__fill circle { transition: stroke-dashoffset 600ms ease; }
+.comparison-analysis-score__rationale { position: absolute; top: 246px; left: 15px; width: 320px; margin: 0; color: #b0b0b0; font: 500 15px/1.5 Pretendard, sans-serif; letter-spacing: -.45px; text-align: center; }
+.comparison-analysis-summary > div { height: auto; min-height: 169px; }
+.comparison-analysis-notes { width: 832px; margin: 14px 0 0; padding: 0; list-style: none; color: #ccc; font: 500 18px/1.7 Pretendard, sans-serif; letter-spacing: -.54px; }
+.comparison-analysis-photo { position: relative; width: 573.124px; height: 797px; overflow: hidden; border-radius: 41.548px; background: #161616; }
+.comparison-analysis-photo__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.comparison-analysis-photo__overlay { position: absolute; inset: 0; pointer-events: none; }
+.comparison-analysis-photo__label { position: absolute; top: 24px; left: 28px; padding: 6px 18px; border-radius: 24px; background: rgba(17, 17, 17, .65); color: #f6f6f6; font: 600 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; }
+.comparison-analysis-parts { max-width: 1182px; flex-wrap: wrap; }
+.comparison-analysis-gap { margin-left: 16px; padding: 4px 14px; border-radius: 20px; background: rgba(255, 226, 80, .15); color: #ffe250; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; vertical-align: middle; }
+.comparison-analysis-badge { margin-left: 10px; padding: 4px 14px; border-radius: 20px; background: rgba(255, 198, 70, .15); color: #ffc646; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; vertical-align: middle; }
+.comparison-analysis-badge--dim { background: rgba(176, 176, 176, .15); color: #b0b0b0; }
+.comparison-analysis-diagnosis > div.is-low-confidence section { opacity: .65; }
+.comparison-analysis-differences { margin-top: 10px !important; color: #b0b0b0 !important; font-size: 18px !important; }
+.comparison-analysis-excluded { position: absolute; top: 2280px; left: 131px; width: 1182px; }
+.comparison-analysis-excluded p { margin: 0 0 4px; color: #8e8e8e; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }
+.comparison-analysis-disclaimer { position: absolute; top: 2530px; left: 131px; width: 1178px; margin: 0; color: #707070; font: 500 14px/1.6 Pretendard, sans-serif; letter-spacing: -.42px; text-align: center; }
+
 /* Figma 618:3197 — 운동일수 */
 .exercise-days-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; text-align: center; }
 .exercise-days-page__eyebrow { position: absolute; top: 275px; left: 0; width: 100%; margin: 0; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }

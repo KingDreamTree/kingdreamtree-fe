@@ -188,10 +188,100 @@ export function uploadInbody(sessionId: string, file: File) {
   return request<{ inbody_id: string; job_id: string; status: string }>(`/sessions/${sessionId}/inbody`, { method: 'POST', body: form })
 }
 
+// ── 진단(F08·F09)·세그멘테이션(F06) 응답 타입 — 백엔드 app/schemas 와 1:1 ──
+
+export type GapLevel = 'NONE' | 'SLIGHT' | 'MODERATE' | 'SIGNIFICANT'
+export type Confidence = 'LOW' | 'MEDIUM' | 'HIGH'
+
+export interface AnalysisPart {
+  class_name: string
+  name_ko: string | null
+  part_group: string | null
+  color_hex: string | null
+  differences: string[]
+  assessment: string | null
+  gap_level: GapLevel | null
+  priority: number | null
+  confidence: Confidence | null
+  /** 판단 불가/보완 사유 — 있으면 배지 필수 (assessment 유무와 무관) */
+  blocked_reason: string | null
+  status: string
+}
+
+export interface AnalysisOverall {
+  similarity_score: number | null
+  score_source: string
+  score_rationale: string | null
+  summary: string | null
+  priority_parts: string[]
+  strengths: string[]
+  cautions: string[]
+  status: string
+}
+
+export interface AnalysisExcludedPart { class_name: string; name_ko: string | null; reason: string; side: string }
+
+export interface AnalysisResult {
+  overall: AnalysisOverall | null
+  parts: AnalysisPart[]
+  excluded: AnalysisExcludedPart[]
+  inbody_id: string | null
+  disclaimer: string
+}
+
+export interface AnalysisProgress {
+  part: { done: number; failed: number; total: number; status: string }
+  overall: { status: string }
+  completed: boolean
+}
+
+export interface SegPaletteEntry {
+  label_value: number
+  class_name: string
+  name_ko: string
+  color_hex: string | null
+  is_comparable: boolean
+  is_valid: boolean
+  invalid_reason: string | null
+  pixel_count: number
+  area_ratio: number
+  bbox: { x: number; y: number; w: number; h: number }
+  is_truncated: boolean
+}
+
+export interface SegmentationInfo {
+  segmentation_id: string
+  photo_id: string
+  kind: string
+  map_url: string
+  map_width: number
+  map_height: number
+  photo_url: string
+  photo_width: number | null
+  photo_height: number | null
+  person_area_ratio: number
+  palette: SegPaletteEntry[]
+  signed_url_expires_at: string
+}
+
+export interface SessionSegmentation {
+  reference: SegmentationInfo | null
+  user: SegmentationInfo | null
+  comparable: {
+    class_names: string[]
+    count: number
+    sufficient: boolean
+    min_required: number
+    reference_only: string[]
+    user_only: string[]
+    excluded: Array<{ class_name: string; name_ko: string; side: string; reason: string | null; message: string }>
+  }
+}
+
 export function getJob(jobId: string) { return request<Job>(`/jobs/${jobId}`) }
 export function getSessionJobs(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/jobs`) }
 export function getReferencePhoto(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/reference`) }
-export function getSessionSegmentation(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/segmentation`) }
+export function getSessionSegmentation(sessionId: string) { return request<SessionSegmentation>(`/sessions/${sessionId}/segmentation`) }
 export function getPhotoSegmentation(photoId: string) { return request<Record<string, unknown>>(`/photos/${photoId}/segmentation`) }
 export function getSignedUrls(items: Array<{ bucket: string; path: string }>, expiresIn?: number) {
   return request<Record<string, unknown>>('/storage/signed-urls', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items, expires_in: expiresIn }) })
@@ -203,8 +293,8 @@ export function patchInbody(inbodyId: string, body: { fields?: Record<string, un
 }
 export function deleteInbody(inbodyId: string) { return request<void>(`/inbody/${inbodyId}`, { method: 'DELETE' }) }
 export function startAnalysis(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis`, { method: 'POST' }) }
-export function getAnalysisProgress(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis/progress`) }
-export function getAnalysis(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis`) }
+export function getAnalysisProgress(sessionId: string) { return request<AnalysisProgress>(`/sessions/${sessionId}/analysis/progress`) }
+export function getAnalysis(sessionId: string) { return request<AnalysisResult>(`/sessions/${sessionId}/analysis`) }
 export function createRoutine(sessionId: string, exerciseDaysPerWeek: number) {
   return request<Record<string, unknown>>(`/sessions/${sessionId}/routines`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ exercise_days_per_week: exerciseDaysPerWeek }) })
 }

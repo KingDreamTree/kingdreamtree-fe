@@ -27,7 +27,7 @@ import poseFailLineTwo from './assets/pose-fail-line-2.svg'
 import { FixedStepFrame } from './components/FixedStepFrame'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { createRoutine, createWorkoutLog, getInbody, getJob, getPoseCriteria, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type Job } from './lib/api'
+import { createRoutine, createWorkoutLog, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type Job, type SessionSegmentation } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -288,6 +288,8 @@ function App() {
   const [inbodyId, setInbodyId] = useState<string | null>(null)
   const [inbodyJobId, setInbodyJobId] = useState<string | null>(null)
   const [todayRoutine, setTodayRoutine] = useState<Record<string, unknown> | null>(null)
+  const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null)
+  const [segmentationData, setSegmentationData] = useState<SessionSegmentation | null>(null)
 
   // 세션과 판정 기준(GET /pose-criteria)은 시작 시 한 번만. 모델·wasm도 미리 로드.
   const openReference = async () => {
@@ -399,10 +401,23 @@ function App() {
         }
       }
       if (!result) throw new Error('사진 분석이 예상보다 오래 걸리고 있어요. 잠시 후 다시 시도해주세요.')
-      const jobId = getJobId(result)
-      if (jobId) await waitForJob(jobId)
+      // 부위 진단(VLM)이 끝날 때까지 진행률 폴링 — reused=true(기존 결과)면 바로 완료로 나온다
+      for (let attempt = 0; attempt < 200; attempt += 1) {
+        const progress = await getAnalysisProgress(sessionId)
+        if (progress.completed) break
+        await new Promise(resolve => window.setTimeout(resolve, 2000))
+      }
+      const [analysis, segmentation] = await Promise.all([getAnalysis(sessionId), getSessionSegmentation(sessionId)])
+      setAnalysisData(analysis)
+      setSegmentationData(segmentation)
       setView('comparison')
     } catch (error) {
+      // 비교 가능한 부위가 부족하면 사진 문제 — 재촬영으로 유도한다
+      if (error instanceof RefitApiError && error.code === 'INSUFFICIENT_PARTS') {
+        window.alert(error.message)
+        setView('pose-capture')
+        return
+      }
       window.alert(userFacingMessage(error, '분석을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.'))
       setView('inbody-upload')
     }
@@ -517,7 +532,7 @@ function App() {
   if (view === 'inbody-fixed') return <InbodyAllErrorsFixedScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-warning')} />
   if (view === 'inbody-unreadable') return <InbodyUnreadableScreen onConfirm={() => setView('inbody-form')} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'inbody-loading') return <LoadingOneScreen onComplete={() => undefined} />
-  if (view === 'comparison') return <ComparisonAnalysisScreen onCreateRoutine={() => setView('exercise-days')} />
+  if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} />
   if (view === 'loading-two') return <LoadingTwoScreen onComplete={() => undefined} />
   if (view === 'custom-routine') return <CustomRoutineScreen workoutDays={workoutDays} onAdjustDays={() => setView('exercise-days')} onViewDayOne={() => setView('custom-routine-detail')} onNext={() => void openTodayRoutine()} />
