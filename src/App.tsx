@@ -28,7 +28,7 @@ import poseFailLineOne from './assets/pose-fail-line-1.svg'
 import poseFailLineTwo from './assets/pose-fail-line-2.svg'
 import { FixedStepFrame } from './components/FixedStepFrame'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { ensureActiveSession, getPoseCriteria, getStoredSessionId, RefitApiError, uploadReferencePhoto, uploadUserPhoto } from './lib/api'
+import { ensureActiveSession, getPoseCriteria, getStoredSessionId, RefitApiError, uploadReferencePhoto, uploadUserPhoto, userFacingMessage } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -304,7 +304,7 @@ function App() {
       })
     } catch (error) {
       URL.revokeObjectURL(url)
-      setRefError(error instanceof RefitApiError ? error.message : error instanceof Error ? error.message : '레퍼런스 사진을 확인하지 못했습니다.')
+      setRefError(userFacingMessage(error, '레퍼런스 사진을 확인하지 못했어요. 전신이 잘 나온 다른 사진으로 시도해주세요.'))
     } finally {
       setRefBusy(false)
     }
@@ -340,7 +340,7 @@ function App() {
       setView('pose-success')
     } catch (error) {
       const unavailable = error instanceof RefitApiError && error.status === 503
-      setPoseMessage(error instanceof RefitApiError ? error.message : error instanceof Error ? error.message : '사진을 분석하지 못했습니다.')
+      setPoseMessage(userFacingMessage(error, '사진을 분석하지 못했어요. 전신이 잘 나온 다른 사진으로 시도해주세요.'))
       setView(unavailable ? 'pose-unavailable' : 'pose-failure')
     } finally {
       URL.revokeObjectURL(url)

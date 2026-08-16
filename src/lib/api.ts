@@ -31,6 +31,22 @@ export class RefitApiError extends Error {
   }
 }
 
+/**
+ * 사용자에게 보여줄 에러 문구. 422 계열(message가 사용자용으로 쓰인 것)은 그대로,
+ * 400 INVALID_REQUEST 같은 개발자용 검증 문구는 fallback 으로 바꾼다.
+ */
+export function userFacingMessage(error: unknown, fallback: string): string {
+  if (error instanceof RefitApiError) {
+    if (error.status === 400 || error.code === 'INVALID_REQUEST') {
+      console.error('[api] developer-facing error shown as fallback:', error.code, error.message, error.detail)
+      return fallback
+    }
+    return error.message
+  }
+  if (error instanceof Error && error.message) return error.message
+  return fallback
+}
+
 export type User = { user_id: string; is_pro_user: boolean; created_at: string }
 export type Session = { session_id: string; status: string; reference_source: 'USER_UPLOAD' | 'PRESET'; contraindications?: unknown[]; created_at: string }
 export type ActiveSession = Session & { steps: Record<string, unknown> }
