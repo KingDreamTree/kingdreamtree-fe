@@ -27,7 +27,7 @@ import poseFailLineTwo from './assets/pose-fail-line-2.svg'
 import { FixedStepFrame } from './components/FixedStepFrame'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { ensureActiveSession, getPoseCriteria, getStoredSessionId, RefitApiError, uploadReferencePhoto, uploadUserPhoto, userFacingMessage } from './lib/api'
+import { createRoutine, createWorkoutLog, getInbody, getJob, getPoseCriteria, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type Job } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -257,6 +257,20 @@ function PoseScreen({ result, score, message, referenceUrl, onRetry, onBrowse, o
 
 type ReferenceData = { pose: DetectedPose; url: string; aspect: number }
 
+function getJobId(value: Record<string, unknown>): string | null {
+  return typeof value.job_id === 'string' ? value.job_id : null
+}
+
+async function waitForJob(jobId: string): Promise<Job> {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const job = await getJob(jobId)
+    if (job.status === 'DONE') return job
+    if (job.status === 'FAILED') throw new Error(job.error || 'The requested job failed.')
+    await new Promise(resolve => window.setTimeout(resolve, 1500))
+  }
+  throw new Error('The requested job timed out.')
+}
+
 function App() {
   const [view, setView] = useState<AppView>('onboarding')
   const [workoutDays, setWorkoutDays] = useState(1)
@@ -270,6 +284,10 @@ function App() {
   const [lastUserPhoto, setLastUserPhoto] = useState<File | null>(null)
   const [poseEvaluation, setPoseEvaluation] = useState<PoseEvaluation | null>(null)
   const [poseMessage, setPoseMessage] = useState<string>()
+  const inbodyFileInputRef = useRef<HTMLInputElement>(null)
+  const [inbodyId, setInbodyId] = useState<string | null>(null)
+  const [inbodyJobId, setInbodyJobId] = useState<string | null>(null)
+  const [todayRoutine, setTodayRoutine] = useState<Record<string, unknown> | null>(null)
 
   // 세션과 판정 기준(GET /pose-criteria)은 시작 시 한 번만. 모델·wasm도 미리 로드.
   const openReference = async () => {
@@ -358,6 +376,101 @@ function App() {
   }
 
   const retrySamePhoto = () => { if (lastUserPhoto) void uploadUser(lastUserPhoto) }
+
+  const beginAnalysis = async () => {
+    const sessionId = getStoredSessionId()
+    if (!sessionId) return
+    setView('inbody-loading')
+    try {
+      const result = await startAnalysis(sessionId)
+      const jobId = getJobId(result)
+      if (jobId) await waitForJob(jobId)
+      setView('comparison')
+    } catch (error) {
+      window.alert(userFacingMessage(error, '분석을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.'))
+      setView('inbody-upload')
+    }
+  }
+
+  const handleInbodyFile = async (file: File) => {
+    const sessionId = getStoredSessionId()
+    if (!sessionId) return
+    try {
+      const result = await uploadInbody(sessionId, file)
+      setInbodyId(result.inbody_id)
+      setInbodyJobId(result.job_id)
+      setView('inbody-uploaded')
+    } catch (error) {
+      window.alert(userFacingMessage(error, '인바디 결과지를 업로드하지 못했습니다. 다른 사진으로 다시 시도해주세요.'))
+    }
+  }
+
+  const openInbodyConfirmation = async () => {
+    if (!inbodyId) return
+    try {
+      if (inbodyJobId) await waitForJob(inbodyJobId)
+      await getInbody(inbodyId)
+      setView('inbody-form')
+    } catch (error) {
+      window.alert(userFacingMessage(error, '인바디 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'))
+    }
+  }
+
+  const verifyInbodyAndBeginAnalysis = async () => {
+    try {
+      if (inbodyId) await patchInbody(inbodyId, { verified: true })
+      await beginAnalysis()
+    } catch (error) {
+      window.alert(userFacingMessage(error, '인바디 정보를 확인하지 못했습니다. 입력값을 다시 확인해주세요.'))
+    }
+  }
+
+  const beginRoutine = async () => {
+    const sessionId = getStoredSessionId()
+    if (!sessionId) return
+    setView('loading-two')
+    try {
+      const result = await createRoutine(sessionId, workoutDays)
+      const jobId = getJobId(result)
+      if (jobId) await waitForJob(jobId)
+      setView('custom-routine')
+    } catch (error) {
+      window.alert(userFacingMessage(error, '맞춤 루틴을 생성하지 못했습니다. 잠시 후 다시 시도해주세요.'))
+      setView('exercise-days')
+    }
+  }
+
+  const openTodayRoutine = async () => {
+    const sessionId = getStoredSessionId()
+    if (!sessionId) return
+    try {
+      const routine = await getTodayRoutine(sessionId)
+      setTodayRoutine(routine)
+      setView('today-routine')
+    } catch (error) {
+      window.alert(userFacingMessage(error, '오늘의 루틴을 불러오지 못했습니다.'))
+    }
+  }
+
+  const completeWorkout = async (feedbackText?: string) => {
+    const sessionId = getStoredSessionId()
+    if (!sessionId) return
+    const progress = todayRoutine?.progress as Record<string, unknown> | undefined
+    const dayOrder = typeof progress?.next_day_order === 'number' ? progress.next_day_order : 1
+    const cycleNo = typeof progress?.cycle_no === 'number' ? progress.cycle_no : 1
+    try {
+      await createWorkoutLog(sessionId, { day_order: dayOrder, cycle_no: cycleNo, feedback_text: feedbackText || null })
+      if (feedbackText) {
+        setFeedbackMessage(feedbackText)
+        setView('feedback-loading')
+      } else {
+        setView('feedback-conversation-locked')
+      }
+    } catch (error) {
+      window.alert(userFacingMessage(error, '운동 완료를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.'))
+    }
+  }
+
   useEffect(() => {
     if (view !== 'feedback-applied' && view !== 'feedback-kept') return
     const timer = window.setTimeout(() => setView('feedback-conversation-locked'), 2000)
@@ -380,21 +493,21 @@ function App() {
   if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
   if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
   if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} />
-  if (view === 'inbody-upload') return <InbodyUploadBeforeScreen onUpload={() => setView('inbody-uploaded')} onComplete={() => undefined} />
-  if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => undefined} onStart={() => setView('inbody-form')} onSkip={() => setView('inbody-loading')} />
-  if (view === 'inbody-form') return <InbodyUploadAfterScreen onConfirm={() => setView('inbody-range-error')} onSkip={() => setView('inbody-loading')} onPrevious={() => setView('inbody-uploaded')} />
-  if (view === 'inbody-range-error') return <InbodyRangeErrorScreen onConfirm={() => setView('inbody-warning')} onSkip={() => setView('inbody-loading')} onPrevious={() => setView('inbody-form')} />
-  if (view === 'inbody-warning') return <InbodyValidationWarningScreen onConfirm={() => setView('inbody-fixed')} onSkip={() => setView('inbody-loading')} onPrevious={() => setView('inbody-range-error')} />
-  if (view === 'inbody-fixed') return <InbodyAllErrorsFixedScreen onConfirm={() => setView('inbody-loading')} onSkip={() => setView('inbody-loading')} onPrevious={() => setView('inbody-warning')} />
-  if (view === 'inbody-unreadable') return <InbodyUnreadableScreen onConfirm={() => setView('inbody-form')} onSkip={() => setView('inbody-loading')} onPrevious={() => setView('inbody-uploaded')} />
-  if (view === 'inbody-loading') return <LoadingOneScreen onComplete={() => setView('comparison')} />
+  if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} /></>
+  if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => setView('inbody-upload')} onStart={() => void openInbodyConfirmation()} onSkip={() => void beginAnalysis()} />
+  if (view === 'inbody-form') return <InbodyUploadAfterScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-uploaded')} />
+  if (view === 'inbody-range-error') return <InbodyRangeErrorScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-form')} />
+  if (view === 'inbody-warning') return <InbodyValidationWarningScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-range-error')} />
+  if (view === 'inbody-fixed') return <InbodyAllErrorsFixedScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-warning')} />
+  if (view === 'inbody-unreadable') return <InbodyUnreadableScreen onConfirm={() => setView('inbody-form')} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-uploaded')} />
+  if (view === 'inbody-loading') return <LoadingOneScreen onComplete={() => undefined} />
   if (view === 'comparison') return <ComparisonAnalysisScreen onCreateRoutine={() => setView('exercise-days')} />
-  if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => setView('loading-two')} />
-  if (view === 'loading-two') return <LoadingTwoScreen onComplete={() => setView('custom-routine')} />
-  if (view === 'custom-routine') return <CustomRoutineScreen workoutDays={workoutDays} onAdjustDays={() => setView('exercise-days')} onViewDayOne={() => setView('custom-routine-detail')} onNext={() => setView('today-routine')} />
+  if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} />
+  if (view === 'loading-two') return <LoadingTwoScreen onComplete={() => undefined} />
+  if (view === 'custom-routine') return <CustomRoutineScreen workoutDays={workoutDays} onAdjustDays={() => setView('exercise-days')} onViewDayOne={() => setView('custom-routine-detail')} onNext={() => void openTodayRoutine()} />
   if (view === 'custom-routine-detail') return <CustomRoutineDetailScreen onPrevious={() => setView('custom-routine')} />
   if (view === 'today-routine') return <TodayRoutineScreen onFinish={() => setView('feedback')} />
-  if (view === 'feedback') return <FeedbackScreen onSubmit={message => { setFeedbackMessage(message); setView('feedback-loading') }} onSkip={() => undefined} />
+  if (view === 'feedback') return <FeedbackScreen onSubmit={message => void completeWorkout(message)} onSkip={() => void completeWorkout()} />
   if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => setView('feedback-attention-area')} />
   if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen feedback={feedbackMessage} onSubmit={message => { setFollowupFeedbackMessage(message); setView('feedback-exercise-intensity') }} />
   if (view === 'feedback-exercise-intensity') return <FeedbackExerciseIntensityScreen feedback={followupFeedbackMessage} onNext={() => setView('feedback-reflection')} />
