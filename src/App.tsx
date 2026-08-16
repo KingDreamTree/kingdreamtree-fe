@@ -382,7 +382,23 @@ function App() {
     if (!sessionId) return
     setView('inbody-loading')
     try {
-      const result = await startAnalysis(sessionId)
+      // 사진 세그멘테이션(사피엔스)이 아직 도는 중이면 서버가 409를 준다.
+      // 에러가 아니라 "아직"이라는 뜻이므로, 로딩 화면을 유지한 채 기다렸다가
+      // 자동 재시도한다 — 사용자에게 "왜 안 넘어가지?"라는 순간을 만들지 않는다.
+      let result: Record<string, unknown> | null = null
+      for (let attempt = 0; attempt < 60; attempt += 1) {
+        try {
+          result = await startAnalysis(sessionId)
+          break
+        } catch (error) {
+          if (error instanceof RefitApiError && error.status === 409) {
+            await new Promise(resolve => window.setTimeout(resolve, 3000))
+            continue
+          }
+          throw error
+        }
+      }
+      if (!result) throw new Error('사진 분석이 예상보다 오래 걸리고 있어요. 잠시 후 다시 시도해주세요.')
       const jobId = getJobId(result)
       if (jobId) await waitForJob(jobId)
       setView('comparison')
