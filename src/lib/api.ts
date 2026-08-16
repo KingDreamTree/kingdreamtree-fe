@@ -32,14 +32,18 @@ export class RefitApiError extends Error {
 }
 
 /**
- * 사용자에게 보여줄 에러 문구. 422 계열(message가 사용자용으로 쓰인 것)은 그대로,
- * 400 INVALID_REQUEST 같은 개발자용 검증 문구는 fallback 으로 바꾼다.
+ * 사용자에게 보여줄 에러 문구.
+ *
+ * 400도 서버 문구가 있으면 그대로 보여준다 — 백엔드는 사용자 행동이 필요한
+ * 반려("결과지 이미지는 1~5장이어야 합니다" 등)에도 400을 쓰기 때문에, 일괄
+ * fallback으로 덮으면 원인을 알 수 없는 화면이 된다 (2026-08-17 실측: 인바디
+ * PATCH 반려 문구가 전부 숨겨져 디버깅이 막혔다). 서버 문구가 없을 때만 fallback.
  */
 export function userFacingMessage(error: unknown, fallback: string): string {
   if (error instanceof RefitApiError) {
     if (error.status === 400 || error.code === 'INVALID_REQUEST') {
-      console.error('[api] developer-facing error shown as fallback:', error.code, error.message, error.detail)
-      return fallback
+      console.error('[api] 400/INVALID_REQUEST:', error.code, error.message, error.detail)
+      return error.message || fallback
     }
     return error.message
   }
@@ -119,7 +123,16 @@ export async function ensureActiveSession(): Promise<Session | ActiveSession> {
     try {
       return await createSession()
     } catch (createError) {
-      if (!(createError instanceof RefitApiError) || createError.status !== 404) throw createError
+      if (!(createError instanceof RefitApiError)) throw createError
+      // 409 ACTIVE_SESSION_EXISTS: a session already exists server-side (race,
+      // or the earlier active lookup failed for an unrelated reason). The server
+      // tells us to continue with it — re-fetch instead of surfacing an error.
+      if (createError.status === 409) {
+        const active = await getActiveSession()
+        localStorage.setItem(ACTIVE_SESSION_KEY, active.session_id)
+        return active
+      }
+      if (createError.status !== 404) throw createError
       // A reset backend can invalidate the locally persisted anonymous id.
       clearStoredIdentity()
       await createUser()
