@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import heroBackground from './assets/onboarding-hero-background.png'
+import heroBackground from './assets/onboarding-hero-background-figma.png'
 import heroPhone from './assets/onboarding-hero-phone.png'
 import routineFigure from './assets/routine-figure.png'
 import routineMarker from './assets/routine-marker.svg'
