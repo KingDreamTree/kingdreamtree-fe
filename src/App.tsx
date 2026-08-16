@@ -339,10 +339,10 @@ function App() {
         userAspect: image.naturalWidth / image.naturalHeight,
       })
       setPoseEvaluation(result)
-      // reason이 NOT_ENOUGH_JOINTS면 업로드하지 않는다 — 서버는 숫자만 받아서
-      // "포즈를 맞춰주세요"라고 답하지만 실제 문제는 몸이 화면에 안 보이는 것.
-      if (result.blockReason === 'NOT_ENOUGH_JOINTS') {
-        setPoseMessage(MESSAGES.NOT_ENOUGH_JOINTS)
+      // NOT_ENOUGH_JOINTS·REF_PARTS_MISSING이면 업로드하지 않는다 — 서버는 숫자만
+      // 받아서 "포즈를 맞춰주세요"라고 답하지만 실제 문제는 부위가 안 보이는 것.
+      if (result.blockReason === 'NOT_ENOUGH_JOINTS' || result.blockReason === 'REF_PARTS_MISSING') {
+        setPoseMessage(MESSAGES[result.blockReason])
         setView('pose-failure')
         return
       }

@@ -15,12 +15,15 @@ export interface PoseCriteria {
   min_visibility: number
   min_visible_angles: number
   min_seg_ratio: number
+  /** 레퍼런스에서 보이는 세그먼트 중 사용자 쪽에서도 보여야 하는 비율 (2026-08-16 추가). */
+  min_ref_coverage: number
   [key: string]: unknown
 }
 
 export type GuideReason =
   | 'MULTI_PERSON'
   | 'NOT_ENOUGH_JOINTS'
+  | 'REF_PARTS_MISSING'
   | 'FRAMING'
   | 'TOO_CLOSE'
   | 'TOO_FAR'

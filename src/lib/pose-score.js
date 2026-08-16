@@ -75,9 +75,11 @@ const visibleIn = (frames, indexes, minVisibility) =>
   frames.every((lm) => indexes.every((i) => lm[i] && vis(lm[i]) >= minVisibility));
 
 function requireCriteria(c) {
-  // ⚠️ min_seg_ratio 까지 본다 — 2026-08-14 에 추가된 키라, 옛 서버가 내려준
-  //    criteria 를 그대로 쓰면 단축 컷이 조용히 꺼진다. 시끄럽게 죽는 게 낫다.
-  if (!c || typeof c.tol_deg !== "number" || typeof c.min_seg_ratio !== "number") {
+  // ⚠️ 새로 추가된 키까지 본다(min_seg_ratio 2026-08-14, min_ref_coverage 2026-08-16).
+  //    옛 서버가 내려준 criteria 를 그대로 쓰면 해당 컷이 조용히 꺼진다.
+  //    시끄럽게 죽는 게 낫다.
+  if (!c || typeof c.tol_deg !== "number" || typeof c.min_seg_ratio !== "number"
+      || typeof c.min_ref_coverage !== "number") {
     throw new Error(
       "criteria 가 필요합니다. GET /api/v1/pose-criteria 로 받아서 넘기세요. " +
         "(임계값을 프론트에 하드코딩하면 서버 조정 시 어긋납니다)"
@@ -95,6 +97,7 @@ function requireCriteria(c) {
  *
  * reason 이 null 이 아니면 score 는 0 이다.
  *   NOT_ENOUGH_JOINTS — 양쪽 모두에서 보이는 각도가 부족해 판정 자체가 불가
+ *   REF_PARTS_MISSING — 레퍼런스에 나온 부위가 사용자 사진에 충분히 없음
  *   JOINT_TOO_FAR     — 한 관절이라도 hard_tol_deg 를 넘음
  *
  * ⚠️ 평균만 쓰면 왼팔이 완전히 다른 방향인데 나머지가 맞아 통과한다 —
@@ -139,6 +142,25 @@ export function poseScore(ref, user, criteria) {
   if (usedAngles < c.min_visible_angles) {
     return { score: 0, reason: "NOT_ENOUGH_JOINTS", usedAngles, diffs };
   }
+
+  // ⚠️ 커버리지 — **레퍼런스에서 보이는 세그먼트는 사용자 사진에도 있어야 한다**
+  //    (2026-08-16, 실측 리포트: 전신 레퍼런스 대비 상반신만 잡힌 사진이 고득점
+  //    통과했다. 안 보이는 세그먼트는 "제외"만 되고, 남은 각도끼리 비슷하면
+  //    점수가 높게 나온다 — 비교 자체가 성립 안 하는 사진인데도).
+  //
+  //  ⚠️ 방향은 비대칭이다. 사용자가 레퍼런스를 덮어야 하고, 반대는 요구하지
+  //     않는다 — 상체 레퍼런스에 전신 사용자 사진은 정상이다.
+  //  ⚠️ visibility 만 본다. 단축(foreshortening) 세그먼트를 빠진 것으로 치면
+  //     카메라 쪽으로 팔을 뻗은 정상 사진이 반려된다 — 각도만 못 잴 뿐
+  //     부위는 사진에 있다. 단축 제외를 만든 이유를 그대로 되살리는 실수다.
+  const refVisible = SEGMENTS.filter(([, a, b]) => visibleIn([ref], [a, b], c.min_visibility));
+  if (refVisible.length > 0) {
+    const covered = refVisible.filter(([, a, b]) => visibleIn([user], [a, b], c.min_visibility));
+    if (covered.length / refVisible.length < c.min_ref_coverage) {
+      return { score: 0, reason: "REF_PARTS_MISSING", usedAngles, diffs };
+    }
+  }
+
   if (values.some((d) => d > c.hard_tol_deg)) {
     return { score: 0, reason: "JOINT_TOO_FAR", usedAngles, diffs };
   }
@@ -536,6 +558,7 @@ export function oksScore(
 export const MESSAGES = {
   MULTI_PERSON: "혼자 나오도록 촬영해주세요.",
   NOT_ENOUGH_JOINTS: "전신이 보이도록 서주세요.",
+  REF_PARTS_MISSING: "레퍼런스에 나온 부위가 모두 보이도록 서주세요.",
   FRAMING: "레퍼런스와 촬영 거리가 너무 다릅니다.",
   //: 유도용 — 셔터도 업로드도 막지 않는다. 문구만 띄운다.
   TOO_CLOSE: "조금 뒤로 물러나 주세요.",
@@ -597,6 +620,10 @@ export function evaluate(
   let blockReason = null;
   if (multiPerson) blockReason = "MULTI_PERSON";
   else if (pose.reason === "NOT_ENOUGH_JOINTS") blockReason = "NOT_ENOUGH_JOINTS";
+  // ⚠️ 커버리지 미달도 FRAMING 보다 먼저 — 부위가 화면 밖이면 거리 안내("물러나라")가
+  //    아니라 "그 부위가 나오게 서라"가 고칠 수 있는 안내다. 서버는 이 사유를
+  //    모른다(숫자만 받는다) — NOT_ENOUGH_JOINTS 처럼 이 상태로는 업로드하지 않는다.
+  else if (pose.reason === "REF_PARTS_MISSING") blockReason = "REF_PARTS_MISSING";
   else if (framing < c.f_hard) blockReason = "FRAMING";
   else if (pose.score < c.threshold) blockReason = "POSE";
 
