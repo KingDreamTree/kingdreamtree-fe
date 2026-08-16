@@ -19,6 +19,8 @@ type PoseCaptureScreenProps = {
   criteria: PoseCriteria
   refLm: PoseLandmarks
   refAspect: number
+  /** 레퍼런스의 크기 기준 — 사용자 사진도 같아야 서버가 받는다. */
+  refScaleBasis: 'TORSO' | 'HIP_KNEE'
   referenceUrl: string
   onNext: () => void
   /** 갤러리에서 사진을 골라 업로드 판정 경로로 전환한다. */
@@ -56,6 +58,61 @@ const CAPTURE_GUIDES = [
 
 const RETRY_MESSAGE = '일시적인 문제로 사진을 확인하지 못했어요. 잠시 후 다시 시도해주세요.'
 
+/**
+ * 관절 스켈레톤을 letterbox(contain) 보정해서 그린다 (web/pose-live.html 참고).
+ * 판정에 쓰는 8개 부위 선 + 몸통 중심선, 가려진 관절은 흐리고 작게.
+ */
+function drawSkeletonOn(canvas: HTMLCanvasElement | null, lm: PoseLandmarks | null, mediaW: number, mediaH: number, minVisibility: number) {
+  const box = canvas?.parentElement
+  if (!canvas || !box) return
+  const cw = box.clientWidth
+  const ch = box.clientHeight
+  if (!(cw > 0 && ch > 0)) return
+  if (canvas.width !== cw) canvas.width = cw
+  if (canvas.height !== ch) canvas.height = ch
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  ctx.clearRect(0, 0, cw, ch)
+  if (!lm || !(mediaW > 0 && mediaH > 0)) return
+
+  const scale = Math.min(cw / mediaW, ch / mediaH)
+  const dw = mediaW * scale
+  const dh = mediaH * scale
+  const ox = (cw - dw) / 2
+  const oy = (ch - dh) / 2
+  const X = (p: { x: number }) => ox + p.x * dw
+  const Y = (p: { y: number }) => oy + p.y * dh
+
+  ctx.strokeStyle = '#ffe250'
+  ctx.lineWidth = 3
+  ctx.lineCap = 'round'
+  for (const [, a, b] of SEGMENTS) {
+    if (!lm[a] || !lm[b]) continue
+    ctx.beginPath()
+    ctx.moveTo(X(lm[a]), Y(lm[a]))
+    ctx.lineTo(X(lm[b]), Y(lm[b]))
+    ctx.stroke()
+  }
+  const sl = lm[IDX.shoulderL], sr = lm[IDX.shoulderR], hl = lm[IDX.hipL], hr = lm[IDX.hipR]
+  if (sl && sr && hl && hr) {
+    ctx.beginPath()
+    ctx.moveTo((X(sl) + X(sr)) / 2, (Y(sl) + Y(sr)) / 2)
+    ctx.lineTo((X(hl) + X(hr)) / 2, (Y(hl) + Y(hr)) / 2)
+    ctx.stroke()
+  }
+  // 가려진 관절은 MediaPipe 추측값 — 흐리고 작게 그려서 추측임을 알 수 있게 한다.
+  for (const i of Object.values(IDX)) {
+    const p = lm[i]
+    if (!p) continue
+    const visibility = typeof p.visibility === 'number' ? p.visibility : 1
+    const weak = visibility < minVisibility
+    ctx.fillStyle = weak ? 'rgba(246, 246, 246, .3)' : '#f6f6f6'
+    ctx.beginPath()
+    ctx.arc(X(p), Y(p), weak ? 2.5 : 4, 0, Math.PI * 2)
+    ctx.fill()
+  }
+}
+
 /** 한 번 "차단"을 누른 브라우저는 다시 묻지 않으므로 원인별로 해결 방법을 안내한다. */
 function cameraErrorMessage(error: unknown) {
   const name = error instanceof DOMException ? error.name : ''
@@ -68,10 +125,11 @@ function cameraErrorMessage(error: unknown) {
   return '카메라를 열 수 없어요. 브라우저 카메라 권한을 확인해주세요.'
 }
 
-export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, referenceUrl, onNext, onBrowse }: PoseCaptureScreenProps) {
+export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refScaleBasis, referenceUrl, onNext, onBrowse }: PoseCaptureScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const refImageRef = useRef<HTMLImageElement>(null)
   const skeletonRef = useRef<HTMLCanvasElement>(null)
+  const liveSkeletonRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const capturedRef = useRef(false)
@@ -88,60 +146,10 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
     setPhaseState(next)
   }, [])
 
-  /**
-   * 레퍼런스 사진 위에 관절 스켈레톤을 그린다 (web/pose-live.html 참고).
-   * 사진은 letterbox(contain)로 들어가므로 실제 그려진 사각형에 좌표를 맞춘다.
-   */
   const drawReferenceSkeleton = useCallback(() => {
     const image = refImageRef.current
-    const canvas = skeletonRef.current
-    const box = canvas?.parentElement
-    if (!image || !canvas || !box || !image.naturalWidth) return
-    const cw = box.clientWidth
-    const ch = box.clientHeight
-    if (!(cw > 0 && ch > 0)) return
-    canvas.width = cw
-    canvas.height = ch
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.clearRect(0, 0, cw, ch)
-
-    const scale = Math.min(cw / image.naturalWidth, ch / image.naturalHeight)
-    const dw = image.naturalWidth * scale
-    const dh = image.naturalHeight * scale
-    const ox = (cw - dw) / 2
-    const oy = (ch - dh) / 2
-    const X = (p: { x: number }) => ox + p.x * dw
-    const Y = (p: { y: number }) => oy + p.y * dh
-
-    ctx.strokeStyle = '#ffe250'
-    ctx.lineWidth = 3
-    ctx.lineCap = 'round'
-    for (const [, a, b] of SEGMENTS) {
-      if (!refLm[a] || !refLm[b]) continue
-      ctx.beginPath()
-      ctx.moveTo(X(refLm[a]), Y(refLm[a]))
-      ctx.lineTo(X(refLm[b]), Y(refLm[b]))
-      ctx.stroke()
-    }
-    const sl = refLm[IDX.shoulderL], sr = refLm[IDX.shoulderR], hl = refLm[IDX.hipL], hr = refLm[IDX.hipR]
-    if (sl && sr && hl && hr) {
-      ctx.beginPath()
-      ctx.moveTo((X(sl) + X(sr)) / 2, (Y(sl) + Y(sr)) / 2)
-      ctx.lineTo((X(hl) + X(hr)) / 2, (Y(hl) + Y(hr)) / 2)
-      ctx.stroke()
-    }
-    // 가려진 관절은 MediaPipe 추측값 — 흐리고 작게 그려서 추측임을 알 수 있게 한다.
-    for (const i of Object.values(IDX)) {
-      const p = refLm[i]
-      if (!p) continue
-      const visibility = typeof p.visibility === 'number' ? p.visibility : 1
-      const weak = visibility < criteria.min_visibility
-      ctx.fillStyle = weak ? 'rgba(246, 246, 246, .3)' : '#f6f6f6'
-      ctx.beginPath()
-      ctx.arc(X(p), Y(p), weak ? 2.5 : 4, 0, Math.PI * 2)
-      ctx.fill()
-    }
+    if (!image) return
+    drawSkeletonOn(skeletonRef.current, refLm, image.naturalWidth, image.naturalHeight, criteria.min_visibility)
   }, [criteria.min_visibility, refLm])
 
   useEffect(() => {
@@ -206,10 +214,16 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
     const shutter = (lm: PoseLandmarks, result: EvaluateResult, multiPerson: boolean) => {
       const video = videoRef.current
       if (!video) return
-      // 서버가 400으로 거부할 좌표(화면 밖으로 잘린 부위)는 업로드 전에 걸러서 재촬영 유도
+      // 서버 ±10 검증과 같은 안전망 — 걸리면 좌표 단위 버그이므로 재촬영만 유도
       if (findOutOfRangeLandmark(lm) !== null) {
         capturedRef.current = false
-        setPhase({ kind: 'rejected', message: '몸 일부가 화면 밖으로 잘렸어요. 머리부터 발까지 다 나오게 서주세요.' })
+        setPhase({ kind: 'rejected', message: '사진을 처리하지 못했어요. 다시 촬영해주세요.' })
+        return
+      }
+      // 크기 기준(TORSO/HIP_KNEE)이 레퍼런스와 다르면 서버가 SCALE_BASIS_MISMATCH로 거부한다.
+      if (chooseScaleBasis(lm) !== refScaleBasis) {
+        capturedRef.current = false
+        setPhase({ kind: 'rejected', message: '레퍼런스와 같은 부위가 나오도록 서주세요.' })
         return
       }
       const canvas = document.createElement('canvas')
@@ -265,6 +279,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
           if (video.readyState >= 2 && phaseRef.current === 'live') {
             const res = videoLandmarker.detectForVideo(video, performance.now())
             const liveLm = (res.landmarks[0] as PoseLandmarks | undefined) ?? null
+            drawSkeletonOn(liveSkeletonRef.current, liveLm, video.videoWidth, video.videoHeight, criteria.min_visibility)
             if (liveLm) {
               const multiPerson = res.landmarks.length > 1
               const result = evaluate(refLm, liveLm, criteria, {
@@ -281,6 +296,9 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
               hold(false)
               updateHud(null)
             }
+          } else if (phaseRef.current !== 'live') {
+            // 촬영/업로드 상태에서는 마지막 프레임의 스켈레톤이 남지 않게 지운다
+            drawSkeletonOn(liveSkeletonRef.current, null, 0, 0, criteria.min_visibility)
           }
           raf = requestAnimationFrame(tick)
         }
@@ -298,7 +316,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
       streamRef.current?.getTracks().forEach((track) => track.stop())
       streamRef.current = null
     }
-  }, [criteria, refAspect, refLm, setPhase, uploadCapture, initNonce])
+  }, [criteria, refAspect, refLm, refScaleBasis, setPhase, uploadCapture, initNonce])
 
   useEffect(() => () => {
     if (payloadRef.current) URL.revokeObjectURL(payloadRef.current.url)
@@ -336,8 +354,9 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
     </ul>
 
     <div className="pose-live-area">
-      {/* 거울 미리보기는 CSS 반전만 — 좌표·캡처는 비반전 원본 */}
+      {/* 거울 미리보기는 CSS 반전만 — 좌표·캡처는 비반전 원본. 스켈레톤도 같은 반전을 받아 화면과 일치한다 */}
       <video ref={videoRef} className="pose-live-video" playsInline muted />
+      <canvas ref={liveSkeletonRef} className="pose-live-skeleton" aria-hidden="true" />
       {phase.kind === 'starting' && <p className="pose-live-starting">카메라를 준비하고 있어요…</p>}
       {phase.kind === 'live' && <>
         <p className="pose-live-message" aria-live="polite">{hud.message}</p>

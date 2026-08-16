@@ -32,19 +32,20 @@ export function areaRatio(landmarks: PosePoint[], width: number, height: number)
 }
 
 /**
- * 서버 검증(app/services/pose.py)과 같은 범위. MediaPipe는 화면 밖으로 잘린
- * 부위를 밖의 위치로 추정하는데, 크게 벗어나면 서버가 400으로 거부한다 —
- * 업로드 전에 여기서 걸러서 사용자 언어로 안내한다.
+ * 서버 검증(app/services/pose.py parse_landmarks)과 같은 범위 — ±10.
+ * 잘린 사진(상체/하체만)은 이제 정상 허용이다: MediaPipe가 화면 밖 관절을
+ * 추측한 좌표는 커봐야 한 자릿수라 통과하고, 픽셀 좌표를 실수로 보내는
+ * 개발 버그(수백~수천 단위)만 여기서 걸린다.
  */
 export function findOutOfRangeLandmark(landmarks: PosePoint[]): number | null {
   for (let i = 0; i < landmarks.length; i += 1) {
     const { x, y } = landmarks[i]
-    if (!(x >= -0.5 && x <= 1.5 && y >= -0.5 && y <= 1.5)) return i
+    if (!(x >= -10 && x <= 10 && y >= -10 && y <= 10)) return i
   }
   return null
 }
 
-export const OUT_OF_FRAME_MESSAGE = '몸 일부가 사진 밖으로 잘려 있어요. 머리부터 발까지 전신이 나온 사진으로 시도해주세요.'
+export const INVALID_LANDMARKS_MESSAGE = '사진을 분석하지 못했어요. 다른 사진으로 시도해주세요.'
 
 export function chooseScaleBasis(landmarks: PosePoint[]): 'TORSO' | 'HIP_KNEE' {
   const hasVisible = (indexes: number[]) => indexes.every(index => landmarks[index] && (landmarks[index].visibility ?? 1) >= .5)
@@ -57,7 +58,7 @@ export async function detectPoseFromImage(image: HTMLImageElement): Promise<Dete
   const result = landmarker.detect(image)
   const landmarks = result.landmarks[0] as PosePoint[] | undefined
   if (!landmarks?.length) throw new Error('사진에서 사람을 찾지 못했습니다. 전신이 잘 보이는 사진을 선택해주세요.')
-  if (findOutOfRangeLandmark(landmarks) !== null) throw new Error(OUT_OF_FRAME_MESSAGE)
+  if (findOutOfRangeLandmark(landmarks) !== null) throw new Error(INVALID_LANDMARKS_MESSAGE)
 
   return {
     landmarks,
