@@ -140,6 +140,8 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
   const [phase, setPhaseState] = useState<Phase>({ kind: 'starting' })
   const [hud, setHud] = useState<Hud>({ message: '카메라를 준비하고 있어요…', score: null, progress: 0 })
   const [initNonce, setInitNonce] = useState(0)
+  /** 자세 유지가 확인된 뒤 몇 초 남았는지 — 갑자기 찍히지 않게 예고한다. */
+  const [countdown, setCountdown] = useState<number | null>(null)
 
   // 프리뷰가 거울이므로 판정 기준 레퍼런스만 좌우반전 — 화면에 보이는 대로
   // 따라 하는 게 곧 정답이 된다. 한 번만 계산해서 재사용 (백엔드 최종 결정).
@@ -192,6 +194,13 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     let cancelled = false
     let raf = 0
     const hold = createHoldGate(criteria)
+    // 카운트다운 상태 — 게이지가 다 차면 바로 찍지 않고 3초 예고 후 촬영한다.
+    // 그 사이 자세가 흐트러지면(연속 실패) 취소하고 다시 게이지부터 쌓는다.
+    const COUNTDOWN_MS = 3000
+    const CANCEL_AFTER_FAILS = 8
+    let pending: { endsAt: number; failStreak: number } | null = null
+    let lastPass: { lm: PoseLandmarks; result: EvaluateResult; multiPerson: boolean } | null = null
+    setCountdown(null)
 
     // 점수·게이지는 프레임마다 튀므로 지수 이동 평균으로 부드럽게 따라가게 한다.
     const smooth = { score: 0, hasScore: false, progress: 0 }
@@ -293,14 +302,40 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
               // 크기 기준(TORSO/HIP_KNEE)이 레퍼런스와 다르면 서버가 거부하므로
               // 셔터 조건에서 빼고, 문구로 즉시 안내한다 (게이지가 차지 않는 이유가 보이게).
               const basisMismatch = chooseScaleBasis(liveLm) !== refScaleBasis
-              updateHud(result, basisMismatch && result.pass ? '레퍼런스와 같은 부위가 나오도록 서주세요.' : undefined)
-              if (hold(result.pass && !basisMismatch) && !capturedRef.current) {
-                capturedRef.current = true
-                shutter(liveLm, result, multiPerson)
+              const ok = result.pass && !basisMismatch
+              if (ok) lastPass = { lm: liveLm, result, multiPerson }
+
+              if (pending === null) {
+                updateHud(result, basisMismatch && result.pass ? '레퍼런스와 같은 부위가 나오도록 서주세요.' : undefined)
+                if (hold(ok) && !capturedRef.current) {
+                  pending = { endsAt: performance.now() + COUNTDOWN_MS, failStreak: 0 }
+                  setCountdown(Math.ceil(COUNTDOWN_MS / 1000))
+                }
+              } else {
+                updateHud(result, '곧 촬영됩니다 — 자세를 유지해주세요')
+                pending.failStreak = ok ? 0 : pending.failStreak + 1
+                if (pending.failStreak > CANCEL_AFTER_FAILS) {
+                  pending = null // 자세가 흐트러짐 — 취소하고 다시 게이지부터
+                  setCountdown(null)
+                } else if (performance.now() >= pending.endsAt) {
+                  pending = null
+                  setCountdown(null)
+                  if (lastPass && !capturedRef.current) {
+                    capturedRef.current = true
+                    shutter(lastPass.lm, lastPass.result, lastPass.multiPerson)
+                  }
+                } else {
+                  const remain = Math.ceil((pending.endsAt - performance.now()) / 1000)
+                  setCountdown(prev => (prev === remain ? prev : remain))
+                }
               }
             } else {
               hold(false)
               updateHud(null)
+              if (pending) {
+                pending = null // 사람이 사라짐 — 카운트다운 취소
+                setCountdown(null)
+              }
             }
           } else if (phaseRef.current !== 'live') {
             // 촬영/업로드 상태에서는 마지막 프레임의 스켈레톤이 남지 않게 지운다
@@ -367,6 +402,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       <canvas ref={liveSkeletonRef} className="pose-live-skeleton" aria-hidden="true" />
       {phase.kind === 'starting' && <p className="pose-live-starting">카메라를 준비하고 있어요…</p>}
       {phase.kind === 'live' && <>
+        {countdown !== null && <span className="pose-live-countdown" aria-live="assertive">{countdown}</span>}
         <p className="pose-live-message" aria-live="polite">{hud.message}</p>
         <div className="pose-live-hold" role="progressbar" aria-label="자동 촬영 진행" aria-valuemin={0} aria-valuemax={1} aria-valuenow={Math.round(hud.progress * 100) / 100}>
           <span style={{ width: `${Math.round(hud.progress * 100)}%` }} />
