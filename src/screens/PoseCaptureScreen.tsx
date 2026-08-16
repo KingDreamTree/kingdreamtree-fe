@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { PoseScore } from '../components/PoseScore'
-import { createHoldGate, evaluateEitherWay, IDX, MESSAGES, SEGMENTS, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
+import { createHoldGate, evaluate, IDX, MESSAGES, mirrorLandmarks, SEGMENTS, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
 import { loadVideoLandmarker } from '../lib/landmarkers'
 import { areaRatio, chooseScaleBasis, findOutOfRangeLandmark } from '../lib/pose-detector'
 import { RefitApiError, uploadUserPhoto, userFacingMessage } from '../lib/api'
@@ -141,6 +141,11 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
   const [hud, setHud] = useState<Hud>({ message: '카메라를 준비하고 있어요…', score: null, progress: 0 })
   const [initNonce, setInitNonce] = useState(0)
 
+  // 프리뷰가 거울이므로 판정 기준 레퍼런스만 좌우반전 — 화면에 보이는 대로
+  // 따라 하는 게 곧 정답이 된다. 한 번만 계산해서 재사용 (백엔드 최종 결정).
+  // 레퍼런스 화면 표시·사용자 좌표·업로드 사진은 전부 원본 그대로.
+  const mirroredRefLm = useMemo(() => mirrorLandmarks(refLm), [refLm])
+
   const setPhase = useCallback((next: Phase) => {
     phaseRef.current = next.kind
     setPhaseState(next)
@@ -276,9 +281,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
             drawSkeletonOn(liveSkeletonRef.current, liveLm, video.videoWidth, video.videoHeight, criteria.min_visibility)
             if (liveLm) {
               const multiPerson = res.landmarks.length > 1
-              // 정방향/거울 방향 중 잘 맞는 쪽 채택 — 화면에 보이는 대로 따라 해도 통과.
-              // 업로드하는 사진·좌표·점수는 카메라 원본 기준 그대로 (백엔드 결정).
-              const result = evaluateEitherWay(refLm, liveLm, criteria, {
+              const result = evaluate(mirroredRefLm, liveLm, criteria, {
                 multiPerson,
                 refAspect,
                 userAspect: video.videoWidth / video.videoHeight,
