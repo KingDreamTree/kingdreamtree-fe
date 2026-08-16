@@ -1,0 +1,264 @@
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import heroBackground from './assets/onboarding-hero-background.png'
+import heroPhone from './assets/onboarding-hero-phone.png'
+import routineFigure from './assets/routine-figure.png'
+import routineMarker from './assets/routine-marker.svg'
+import routinePlatform from './assets/routine-platform.svg'
+import wellnessScreen from './assets/onboarding-wellness-screen.png'
+import wellnessPlatform from './assets/onboarding-wellness-platform.svg'
+import wellnessShadow from './assets/onboarding-wellness-shadow.svg'
+import wellnessLaptop from './assets/onboarding-wellness-laptop.svg'
+import wellnessOrbit from './assets/onboarding-wellness-orbit.svg'
+import functionStepOne from './assets/onboarding-function-step-one.svg'
+import functionStep from './assets/onboarding-function-step.svg'
+import referenceInfo from './assets/reference-info.svg'
+import referenceUpload from './assets/reference-upload.svg'
+import referenceContrast from './assets/reference-contrast.svg'
+import referenceResolution from './assets/reference-resolution.svg'
+import referencePerson from './assets/reference-person.svg'
+import referenceUploaded from './assets/reference-uploaded.svg'
+import poseReference from './assets/pose-reference.png'
+import poseCornerTopLeft from './assets/pose-corner-top-left.svg'
+import poseCornerTopRight from './assets/pose-corner-top-right.svg'
+import poseCornerBottomLeft from './assets/pose-corner-bottom-left.svg'
+import poseCornerBottomRight from './assets/pose-corner-bottom-right.svg'
+import poseScoreRing from './assets/pose-score-ring.svg'
+import poseScoreArc from './assets/pose-score-arc.svg'
+import poseSuccessCheck from './assets/pose-success-check.svg'
+import poseFailLineOne from './assets/pose-fail-line-1.svg'
+import poseFailLineTwo from './assets/pose-fail-line-2.svg'
+import { FixedStepFrame } from './components/FixedStepFrame'
+import { InbodyUploadAfterScreen } from './screens/InbodyUploadAfterScreen'
+import { InbodyUploadBeforeScreen } from './screens/InbodyUploadBeforeScreen'
+import { InbodyUploadSuccessScreen } from './screens/InbodyUploadSuccessScreen'
+import { InbodyRangeErrorScreen } from './screens/InbodyRangeErrorScreen'
+import { InbodyValidationWarningScreen } from './screens/InbodyValidationWarningScreen'
+import { InbodyAllErrorsFixedScreen } from './screens/InbodyAllErrorsFixedScreen'
+import { InbodyUnreadableScreen } from './screens/InbodyUnreadableScreen'
+import { LoadingOneScreen } from './screens/LoadingOneScreen'
+import { ComparisonAnalysisScreen } from './screens/ComparisonAnalysisScreen'
+import { ExerciseDaysScreen } from './screens/ExerciseDaysScreen'
+import { LoadingTwoScreen } from './screens/LoadingTwoScreen'
+import { CustomRoutineScreen } from './screens/CustomRoutineScreen'
+import { CustomRoutineDetailScreen } from './screens/CustomRoutineDetailScreen'
+import { TodayRoutineScreen } from './screens/TodayRoutineScreen'
+import { FeedbackScreen } from './screens/FeedbackScreen'
+import { FeedbackLoadingScreen } from './screens/FeedbackLoadingScreen'
+import { FeedbackAttentionAreaScreen } from './screens/FeedbackAttentionAreaScreen'
+import { FeedbackExerciseIntensityScreen } from './screens/FeedbackExerciseIntensityScreen'
+import { FeedbackReflectionScreen } from './screens/FeedbackReflectionScreen'
+import { FeedbackAppliedScreen } from './screens/FeedbackAppliedScreen'
+import { FeedbackKeptScreen } from './screens/FeedbackKeptScreen'
+import { FeedbackConversationLockedScreen } from './screens/FeedbackConversationLockedScreen'
+import './App.css'
+
+type SectionProps = { children: ReactNode; className: string; label: string; scaleToViewport?: boolean; designHeight?: number }
+type AppView = 'onboarding' | 'reference-notice' | 'reference-ready' | 'pose-analyzing' | 'pose-failure' | 'pose-success' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-exercise-intensity' | 'feedback-reflection' | 'feedback-conversation-locked' | 'feedback-applied' | 'feedback-kept'
+
+/** Reveals a design section once it reaches the viewport. */
+function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
+  const sectionRef = useRef<HTMLElement>(null)
+  const [isVisible, setIsVisible] = useState(false)
+  const [scale, setScale] = useState(() => Math.max(1, document.documentElement.clientWidth / 1440))
+
+  useEffect(() => {
+    const section = sectionRef.current
+    if (!section) return
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return
+      setIsVisible(true)
+      observer.unobserve(entry.target)
+    }, { threshold: 0.18 })
+    observer.observe(section)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!scaleToViewport) return
+    const updateScale = () => setScale(Math.max(1, document.documentElement.clientWidth / 1440))
+    window.addEventListener('resize', updateScale)
+    return () => window.removeEventListener('resize', updateScale)
+  }, [scaleToViewport])
+
+  const stageStyle = scaleToViewport ? { height: `${designHeight * scale}px` } : undefined
+  const canvasStyle = scaleToViewport ? { transform: `scale(${scale})` } : undefined
+
+  return <section ref={sectionRef} aria-label={label} className={`page-stage ${className}-stage ${scaleToViewport ? 'page-stage--scaled' : ''}`} style={stageStyle}>
+    <div className={`page-section ${className} ${isVisible ? 'is-visible' : ''}`} style={canvasStyle}>{children}</div>
+  </section>
+}
+
+function RefitLogo({ small = false }: { small?: boolean }) {
+  return <p className={`logo ${small ? 'logo--small' : ''}`} aria-label="REFIT"><span>RE</span><span>:</span><strong>FIT</strong></p>
+}
+
+function StartButton({ wide = false, onStart }: { wide?: boolean; onStart: () => void }) {
+  return <button className={`ai-button ${wide ? 'ai-button--wide' : ''}`} type="button" onClick={onStart}>AI 분석 진단하기</button>
+}
+
+function OnboardingOne({ onStart }: { onStart: () => void }) {
+  return <RevealSection className="hero-section" label="REFIT 소개" scaleToViewport>
+    <img className="hero-section__texture motion motion--soft" src={heroBackground} alt="" />
+    <div className="hero-section__content">
+      <div className="motion motion--delay-1"><RefitLogo /></div>
+      <p className="hero-section__description motion motion--delay-2">원하는 체형의 사진을 선택하고, 나의 체형 정보를<br />입력하면 AI가 운동 루틴을 제공합니다.</p>
+      <div className="motion motion--delay-3"><StartButton onStart={onStart} /></div>
+    </div>
+    <div className="hero-section__character motion motion--from-right" aria-label="운동을 준비하는 인물">
+      <div className="hero-section__character-window"><img src={heroPhone} alt="" /></div>
+    </div>
+  </RevealSection>
+}
+
+function OnboardingTwo() {
+  return <RevealSection className="onboarding-wellness" label="온보딩 2: WELLNESS">
+    <p className="onboarding-wellness__subtitle motion">리핏이 선사하는 특별한 경험</p>
+    <h1 className="onboarding-wellness__title motion motion--delay-1">WELLNESS</h1>
+    <img className="onboarding-wellness__orbit motion motion--delay-1" src={wellnessOrbit} alt="" />
+    <div className="onboarding-wellness__computer motion motion--delay-2" aria-label="리핏 분석 화면이 표시된 노트북">
+      <img className="onboarding-wellness__laptop" src={wellnessLaptop} alt="" />
+      <img className="onboarding-wellness__screen" src={wellnessScreen} alt="" />
+    </div>
+    <img className="onboarding-wellness__platform motion motion--delay-3" src={wellnessPlatform} alt="" />
+    <img className="onboarding-wellness__shadow motion motion--delay-3" src={wellnessShadow} alt="" />
+  </RevealSection>
+}
+
+function OnboardingThree() {
+  const cards = [
+    { number: '1', icon: functionStepOne, title: 'AI 체형 분석', description: '체형과 목표 이미지 대조 및 차이 시각화' },
+    { number: '2', icon: functionStep, title: '맞춤형 루틴', description: '결과를 바탕으로 나에게 맞는 루틴 생성' },
+    { number: '3', icon: functionStep, title: '강도 조절', description: '날마다 피드백을 통해 바뀌는 루틴' },
+  ]
+  return <RevealSection className="onboarding-function" label="온보딩 3: 기능 소개">
+    <p className="onboarding-function__subtitle motion">리핏만이 제공하는 기능</p>
+    <h1 className="onboarding-function__title motion motion--delay-1">FUNCTION</h1>
+    <div className="onboarding-function__cards">{cards.map((card, index) => <article className={`onboarding-function__card motion motion--delay-${index + 1}`} key={card.number}>
+      <span className="onboarding-function__number"><img src={card.icon} alt="" /><b>{card.number}</b></span><h2>{card.title}</h2><p>{card.description}</p>
+    </article>)}</div>
+  </RevealSection>
+}
+
+function OnboardingFour({ onStart }: { onStart: () => void }) {
+  return <RevealSection className="closing-section" label="온보딩 4: REFIT 시작하기">
+    <RefitLogo small /><div className="closing-section__copy motion"><h1>AI가 만드는 <em>맞춤 루틴</em></h1><p>오늘부터 RE:FIT과 함께, 내가 바라는 건강함을 차곡차곡</p></div>
+    <div className="closing-section__illustration motion motion--delay-1" aria-hidden="true"><img className="closing-section__platform" src={routinePlatform} alt="" /><img className="closing-section__figure" src={routineFigure} alt="" /><img className="closing-section__marker" src={routineMarker} alt="" /></div>
+    <div className="closing-section__button motion motion--delay-2"><StartButton wide onStart={onStart} /></div>
+  </RevealSection>
+}
+
+function ReferenceHints() {
+  const hints = [
+    { icon: referenceContrast, text: <>배경과 인물이 잘 구분되는<br />사진을 권장드려요</> },
+    { icon: referenceResolution, text: <>저해상도 이미지는 분석<br />정확도가 낮아질 수 있어요</> },
+    { icon: referencePerson, text: <>여러 명이 함께 나온<br />사진은 피해주세요</> },
+  ]
+
+  return <div className="reference-hints">{hints.map(({ icon, text }) => <div className="reference-hint" key={icon}>
+    <span className="reference-hint__circle" aria-hidden="true" />
+    <img src={icon} alt="" />
+    <p>{text}</p>
+  </div>)}</div>
+}
+
+function ReferenceScreen({ ready, onConfirm, onStart }: { ready: boolean; onConfirm: () => void; onStart: () => void }) {
+  return <FixedStepFrame label="Step 1 목표 체형 레퍼런스"><div className="reference-page">
+      <p className="step-label">Step 1/3</p>
+      <h1>목표 체형 레퍼런스</h1>
+      <p className="step-description">원하는 체형의 사진을 등록하면 AI가 차이를 분석합니다</p>
+      <ReferenceHints />
+      <div className={`reference-dropzone ${ready ? 'is-ready' : ''}`}>
+        {ready ? <><img className="reference-dropzone__done" src={referenceUploaded} alt="" /><img className="reference-dropzone__check" src={poseSuccessCheck} alt="" /><strong>사진이 업로드 되었습니다!</strong><span>다른 사진으로 변경하려면 클릭하세요</span></> : <><img src={referenceUpload} alt="" /><p>파일을 선택하거나 여기로 끌어다 놓으세요.</p></>}
+      </div>
+      <button className={`reference-start ${ready ? 'is-ready' : ''}`} type="button" onClick={onStart}>AI 분석 비교 시작 →</button>
+      {!ready && <section className="reference-notice" role="dialog" aria-modal="true" aria-labelledby="reference-notice-title">
+        <span className="reference-notice__icon"><img src={referenceInfo} alt="" /></span>
+        <h2 id="reference-notice-title">레퍼런스 주의사항 안내</h2>
+        <p>해당 레퍼런스 이미지에 있는 부위에 대한 루틴만 제공되오니<br />신중하게 업로드해주시길 바랍니다.</p>
+        <button type="button" onClick={onConfirm}>확인</button>
+      </section>}
+  </div></FixedStepFrame>
+}
+
+function PoseCorners() {
+  return <><img className="pose-corner pose-corner--top-left" src={poseCornerTopLeft} alt="" /><img className="pose-corner pose-corner--top-right" src={poseCornerTopRight} alt="" /><img className="pose-corner pose-corner--bottom-left" src={poseCornerBottomLeft} alt="" /><img className="pose-corner pose-corner--bottom-right" src={poseCornerBottomRight} alt="" /></>
+}
+
+function PoseScore({ score }: { score: number }) {
+  return <div className="pose-score" aria-label={`일치도 ${score}점`}><img src={poseScoreRing} alt="" /><img src={poseScoreArc} alt="" /><strong>{score.toFixed(1)} <small>점</small></strong></div>
+}
+
+function PoseStatus({ result, onRetry }: { result: 'loading' | 'failure' | 'success'; onRetry: () => void }) {
+  if (result === 'loading') return <div className="pose-status pose-status--loading" aria-live="polite"><span className="loading-dot">•</span><span className="loading-dot">•</span><span className="loading-dot">•</span><p>AI가 일치도를 분석하고 있어요!</p><small>사진을 업로드하려면 클릭하세요</small><button type="button">Browse File</button></div>
+  const success = result === 'success'
+  return <div className={`pose-status pose-status--${result}`}>
+    <span className="pose-status__symbol">{success ? <img src={poseSuccessCheck} alt="" /> : <><img src={poseFailLineOne} alt="" /><img src={poseFailLineTwo} alt="" /></>}</span>
+    <strong>{success ? '사진이 업로드 되었습니다!' : '레퍼런스의 포즈와 일치하지 않아요!'}</strong>
+    <small>{success ? '다음 단계로 넘어가세요' : '다시 업로드 해주세요'}</small>
+    {success ? null : <button type="button" onClick={onRetry}>Browse File</button>}
+  </div>
+}
+
+function PoseScreen({ result, onRetry, onNext }: { result: 'loading' | 'failure' | 'success'; onRetry: () => void; onNext: () => void }) {
+  return <FixedStepFrame label={`Step 2 체형 사진 ${result}`}><div className="pose-page">
+      <p className="step-label">Step 2/3</p>
+      <h1>체형 사진 업로드</h1>
+      <p className="step-description">레퍼런스와 같은 포즈로 자신의 체형을 업로드 해주세요!</p>
+      <div className="pose-reference"><img src={poseReference} alt="레퍼런스 체형" /></div>
+      <PoseCorners />
+      <PoseScore score={result === 'failure' ? 82 : 98} />
+      {result === 'success' && <button className="pose-next" type="button" onClick={onNext}>다음 단계</button>}
+      <PoseStatus result={result} onRetry={onRetry} />
+  </div></FixedStepFrame>
+}
+
+function App() {
+  const [view, setView] = useState<AppView>('onboarding')
+  const [analysisAttempt, setAnalysisAttempt] = useState(0)
+  const [workoutDays, setWorkoutDays] = useState(1)
+  const [feedbackMessage, setFeedbackMessage] = useState('')
+  const [followupFeedbackMessage, setFollowupFeedbackMessage] = useState('')
+  const openReference = () => setView('reference-notice')
+  const startAnalysis = (attempt = 0) => { setAnalysisAttempt(attempt); setView('pose-analyzing') }
+  useEffect(() => {
+    if (view !== 'pose-analyzing') return
+    const timer = window.setTimeout(() => setView(analysisAttempt === 0 ? 'pose-failure' : 'pose-success'), 2200)
+    return () => window.clearTimeout(timer)
+  }, [analysisAttempt, view])
+  useEffect(() => {
+    if (view !== 'feedback-applied' && view !== 'feedback-kept') return
+    const timer = window.setTimeout(() => setView('feedback-conversation-locked'), 2000)
+    return () => window.clearTimeout(timer)
+  }, [view])
+
+  if (view === 'reference-notice') return <ReferenceScreen ready={false} onConfirm={() => setView('reference-ready')} onStart={() => startAnalysis()} />
+  if (view === 'reference-ready') return <ReferenceScreen ready onConfirm={() => undefined} onStart={() => startAnalysis()} />
+  if (view === 'pose-analyzing') return <PoseScreen result="loading" onRetry={() => startAnalysis(1)} onNext={() => undefined} />
+  if (view === 'pose-failure') return <PoseScreen result="failure" onRetry={() => startAnalysis(1)} onNext={() => undefined} />
+  if (view === 'pose-success') return <PoseScreen result="success" onRetry={() => undefined} onNext={() => setView('inbody-upload')} />
+  if (view === 'inbody-upload') return <InbodyUploadBeforeScreen onUpload={() => setView('inbody-uploaded')} onComplete={() => undefined} />
+  if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => undefined} onStart={() => setView('inbody-form')} onSkip={() => setView('inbody-loading')} />
+  if (view === 'inbody-form') return <InbodyUploadAfterScreen onConfirm={() => setView('inbody-range-error')} onSkip={() => setView('inbody-loading')} onPrevious={() => setView('inbody-uploaded')} />
+  if (view === 'inbody-range-error') return <InbodyRangeErrorScreen onConfirm={() => setView('inbody-warning')} onSkip={() => setView('inbody-loading')} onPrevious={() => setView('inbody-form')} />
+  if (view === 'inbody-warning') return <InbodyValidationWarningScreen onConfirm={() => setView('inbody-fixed')} onSkip={() => setView('inbody-loading')} onPrevious={() => setView('inbody-range-error')} />
+  if (view === 'inbody-fixed') return <InbodyAllErrorsFixedScreen onConfirm={() => setView('inbody-loading')} onSkip={() => setView('inbody-loading')} onPrevious={() => setView('inbody-warning')} />
+  if (view === 'inbody-unreadable') return <InbodyUnreadableScreen onConfirm={() => setView('inbody-form')} onSkip={() => setView('inbody-loading')} onPrevious={() => setView('inbody-uploaded')} />
+  if (view === 'inbody-loading') return <LoadingOneScreen onComplete={() => setView('comparison')} />
+  if (view === 'comparison') return <ComparisonAnalysisScreen onCreateRoutine={() => setView('exercise-days')} />
+  if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => setView('loading-two')} />
+  if (view === 'loading-two') return <LoadingTwoScreen onComplete={() => setView('custom-routine')} />
+  if (view === 'custom-routine') return <CustomRoutineScreen workoutDays={workoutDays} onAdjustDays={() => setView('exercise-days')} onViewDayOne={() => setView('custom-routine-detail')} onNext={() => setView('today-routine')} />
+  if (view === 'custom-routine-detail') return <CustomRoutineDetailScreen onPrevious={() => setView('custom-routine')} />
+  if (view === 'today-routine') return <TodayRoutineScreen onFinish={() => setView('feedback')} />
+  if (view === 'feedback') return <FeedbackScreen onSubmit={message => { setFeedbackMessage(message); setView('feedback-loading') }} onSkip={() => undefined} />
+  if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => setView('feedback-attention-area')} />
+  if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen feedback={feedbackMessage} onSubmit={message => { setFollowupFeedbackMessage(message); setView('feedback-exercise-intensity') }} />
+  if (view === 'feedback-exercise-intensity') return <FeedbackExerciseIntensityScreen feedback={followupFeedbackMessage} onNext={() => setView('feedback-reflection')} />
+  if (view === 'feedback-reflection') return <FeedbackReflectionScreen onApply={() => setView('feedback-applied')} onKeep={() => setView('feedback-kept')} />
+  if (view === 'feedback-conversation-locked') return <FeedbackConversationLockedScreen />
+  if (view === 'feedback-applied') return <FeedbackAppliedScreen />
+  if (view === 'feedback-kept') return <FeedbackKeptScreen />
+  return <main className="onboarding"><OnboardingOne onStart={openReference} /><OnboardingTwo /><OnboardingThree /><OnboardingFour onStart={openReference} /></main>
+}
+
+export default App
