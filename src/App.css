@@ -381,3 +381,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .pose-gallery { position: absolute; top: 198px; left: 1104px; width: 239px; height: 63px; border: 1px solid #3b3b3b; border-radius: 13px; background: rgba(59, 59, 59, .4); color: #f6f6f6; font: 500 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; cursor: pointer; }
 
 .loading-one-glow { position: absolute; top: 644px; left: 479px; width: 61px; height: 62px; pointer-events: none; transition: transform 35ms linear; }
+
+.hero-section__scroll-cue { display: flex; width: 240px; height: 60px; margin-left: 14px; align-items: center; gap: 13px; color: #f6f6f6; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; }.hero-section__scroll-cue i { position: relative; display: block; box-sizing: border-box; width: 18px; height: 29px; border: 1.5px solid #f6f6f6; border-radius: 10px; }.hero-section__scroll-cue i::after { position: absolute; top: 5px; left: 6px; width: 4px; height: 7px; border-radius: 999px; background: #ffe250; content: ''; animation: hero-scroll-indicator 1.5s ease-in-out infinite; } @keyframes hero-scroll-indicator { 0%, 100% { transform: translateY(0); opacity: .45; } 50% { transform: translateY(8px); opacity: 1; } }
+
+.hero-section__top-logo { z-index: 2; top: 43px; left: 53px; font-size: 32px; letter-spacing: -.96px; }
