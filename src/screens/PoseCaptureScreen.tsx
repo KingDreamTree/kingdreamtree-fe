@@ -234,6 +234,10 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
           capturedRef.current = false
           return
         }
+        // 촬영 성공 — 카메라를 끄고 찍힌 사진만 보여준다 (다시 찍기에서 재시작)
+        streamRef.current?.getTracks().forEach((track) => track.stop())
+        streamRef.current = null
+        if (videoRef.current) videoRef.current.srcObject = null
         if (payloadRef.current) URL.revokeObjectURL(payloadRef.current.url)
         const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' })
         const payload: CapturePayload = { file, url: URL.createObjectURL(file), lm, result, multiPerson }
@@ -330,8 +334,10 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
   }
 
   const retake = () => {
+    // 촬영 때 카메라를 껐으므로 처음부터 다시 연다
     capturedRef.current = false
-    setPhase({ kind: 'live' })
+    setPhase({ kind: 'starting' })
+    setInitNonce(nonce => nonce + 1)
   }
 
   const retrySamePhoto = () => {
