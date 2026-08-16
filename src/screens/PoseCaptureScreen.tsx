@@ -56,6 +56,18 @@ const CAPTURE_GUIDES = [
 
 const RETRY_MESSAGE = '일시적인 문제로 사진을 확인하지 못했어요. 잠시 후 다시 시도해주세요.'
 
+/** 한 번 "차단"을 누른 브라우저는 다시 묻지 않으므로 원인별로 해결 방법을 안내한다. */
+function cameraErrorMessage(error: unknown) {
+  const name = error instanceof DOMException ? error.name : ''
+  if (name === 'NotAllowedError' || name === 'SecurityError')
+    return '카메라 권한이 차단되어 있어요. 주소창 자물쇠 아이콘 → 카메라 허용 후 다시 시도를 눌러주세요.'
+  if (name === 'NotFoundError' || name === 'OverconstrainedError')
+    return '사용할 수 있는 카메라를 찾지 못했어요. 카메라가 있는 기기에서 열어주세요.'
+  if (name === 'NotReadableError')
+    return '다른 앱이 카메라를 사용하고 있어요. 해당 앱을 닫고 다시 시도해주세요.'
+  return '카메라를 열 수 없어요. 브라우저 카메라 권한을 확인해주세요.'
+}
+
 export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, referenceUrl, onNext, onBrowse }: PoseCaptureScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -67,6 +79,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
 
   const [phase, setPhaseState] = useState<Phase>({ kind: 'starting' })
   const [hud, setHud] = useState<Hud>({ message: '카메라를 준비하고 있어요…', score: null, progress: 0 })
+  const [initNonce, setInitNonce] = useState(0)
 
   const setPhase = useCallback((next: Phase) => {
     phaseRef.current = next.kind
@@ -138,16 +151,29 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
     }
 
     ;(async () => {
+      // 카메라 먼저 — 권한 프롬프트가 바로 뜨고, 실패 원인도 구분해 안내한다.
+      let stream: MediaStream
       try {
-        const [videoLandmarker, stream] = await Promise.all([
-          loadVideoLandmarker(),
-          navigator.mediaDevices.getUserMedia({ video: { width: 960, height: 1280, facingMode: 'user' } }),
-        ])
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop())
-          return
-        }
-        streamRef.current = stream
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 960, height: 1280, facingMode: 'user' } })
+      } catch (error) {
+        if (!cancelled) setPhase({ kind: 'camera-error', message: cameraErrorMessage(error) })
+        return
+      }
+      if (cancelled) {
+        stream.getTracks().forEach((track) => track.stop())
+        return
+      }
+      streamRef.current = stream
+
+      let videoLandmarker: Awaited<ReturnType<typeof loadVideoLandmarker>>
+      try {
+        videoLandmarker = await loadVideoLandmarker()
+      } catch {
+        if (!cancelled) setPhase({ kind: 'camera-error', message: '자세 인식 모듈을 불러오지 못했어요. 네트워크 연결을 확인하고 다시 시도해주세요.' })
+        return
+      }
+
+      try {
         const video = videoRef.current
         if (!video) return
         video.srcObject = stream
@@ -182,7 +208,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
         raf = requestAnimationFrame(tick)
       } catch {
         if (!cancelled) {
-          setPhase({ kind: 'camera-error', message: '카메라를 열 수 없어요. 브라우저 카메라 권한을 허용해주세요.' })
+          setPhase({ kind: 'camera-error', message: '카메라 화면을 시작하지 못했어요. 다시 시도해주세요.' })
         }
       }
     })()
@@ -191,9 +217,18 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
       cancelled = true
       cancelAnimationFrame(raf)
       streamRef.current?.getTracks().forEach((track) => track.stop())
-      if (payloadRef.current) URL.revokeObjectURL(payloadRef.current.url)
+      streamRef.current = null
     }
-  }, [criteria, refAspect, refLm, setPhase, uploadCapture])
+  }, [criteria, refAspect, refLm, setPhase, uploadCapture, initNonce])
+
+  useEffect(() => () => {
+    if (payloadRef.current) URL.revokeObjectURL(payloadRef.current.url)
+  }, [])
+
+  const retryCamera = () => {
+    setPhase({ kind: 'starting' })
+    setInitNonce(nonce => nonce + 1)
+  }
 
   const retake = () => {
     capturedRef.current = false
@@ -231,7 +266,10 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refer
       {showOverlay && <div className="pose-live-overlay">
         {capturedUrl && phase.kind !== 'camera-error' && <img className="pose-live-capture" src={capturedUrl} alt="촬영된 사진" />}
         {phase.kind === 'uploading' && <p className="pose-live-overlay__text">사진을 확인하고 있어요…</p>}
-        {phase.kind === 'camera-error' && <p className="pose-live-overlay__text">{phase.message}</p>}
+        {phase.kind === 'camera-error' && <>
+          <p className="pose-live-overlay__text">{phase.message}</p>
+          <button className="pose-live-overlay__retry" type="button" onClick={retryCamera}>다시 시도</button>
+        </>}
       </div>}
     </div>
     <img className="pose-corner pose-corner--top-left" src={poseCornerTopLeft} alt="" />
