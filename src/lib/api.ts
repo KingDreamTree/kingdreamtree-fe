@@ -268,6 +268,9 @@ export interface SegmentationInfo {
   photo_id: string
   kind: string
   map_url: string
+  /** 오버레이용 병합 맵 — 옷 픽셀이 인접 부위로 흡수돼 있어 옷 입은 사진도 매끈하게
+   *  칠해진다. 하이라이트는 이걸 우선 쓰고, 옛 세션(null)은 map_url 로 폴백. */
+  merged_map_url?: string | null
   map_width: number
   map_height: number
   photo_url: string

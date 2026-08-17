@@ -88,7 +88,9 @@ function PhotoWithOverlay({ seg, selected, label, mirrorHighlight = false, mirro
           // 스토리지 CORS 미허용 등으로 픽셀을 못 읽으면 색칠만 생략 (사진은 그대로 보임)
         }
       }
-      mapImage.src = seg.map_url
+      // 병합 맵 우선 — 원본 맵은 옷에 가려진 부위가 듬성듬성 칠해진다 (옷 입은
+      // 사용자 사진에서 "색칠이 안 보인다"로 나타났던 문제). 옛 세션은 null → 폴백.
+      mapImage.src = seg.merged_map_url ?? seg.map_url
     }
     photo.src = seg.photo_url
     return () => { cancelled = true }
@@ -174,6 +176,13 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
         <PhotoWithOverlay seg={segmentation?.reference ?? null} selected={selected} label="목표 레퍼런스"
           mirrorHighlight={segmentation?.comparable.cross_paired ?? false} />
       </section>
+      {(segmentation?.comparable.cross_paired ?? false) && (
+        /* 교차 색칠을 처음 본 사람은 "왜 반대쪽 팔이 칠해지지?"를 버그로 오해한다
+           (2026-08-17 내부 테스트에서 실제 발생) — 규칙을 화면이 직접 설명한다. */
+        <p className="comparison-analysis-help" style={{ marginTop: 4 }}>
+          * 거울을 보며 촬영한 사진이라, 레퍼런스에서는 같은 포즈를 취한 반대쪽 부위와 비교해요.
+        </p>
+      )}
 
       <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요.</p>
       <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
