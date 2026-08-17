@@ -7,7 +7,7 @@
 .onboarding-wellness-stage { background: #e2e2e2; }
 .page-section { position: relative; width: 1440px; margin: 0 auto; overflow: hidden; }
 .page-stage--scaled .page-section { margin: 0; transform-origin: top left; }
-.hero-section-stage, .hero-section { overflow: hidden; }
+.hero-section-stage, .hero-section { overflow: visible; }
 .hero-section-stage { z-index: 1; }
 .hero-section { height: 1024px; }
 .motion { opacity: 0; transform: translateY(42px); transition: opacity 750ms cubic-bezier(.2, .8, .2, 1), transform 750ms cubic-bezier(.2, .8, .2, 1); }
