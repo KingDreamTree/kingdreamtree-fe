@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type DragEvent } from 'react'
 import inbodyUpload from '../assets/inbody-upload.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { InbodyWimDialog } from '../components/InbodyWimDialog'
@@ -11,6 +11,27 @@ type InbodyUploadBeforeScreenProps = {
 
 export function InbodyUploadBeforeScreen({ onUpload, onComplete, onSkip }: InbodyUploadBeforeScreenProps) {
   const [isWimModalOpen, setIsWimModalOpen] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleDragOver = (event: DragEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+    setIsDragging(true)
+  }
+
+  const handleDrop = (event: DragEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    setIsDragging(false)
+    const file = event.dataTransfer.files[0]
+    if (!file || (!file.type.startsWith('image/') && !/\.(jpe?g|png|webp|heic)$/i.test(file.name))) return
+
+    const fileInput = document.querySelector<HTMLInputElement>('input.visually-hidden[type="file"]')
+    if (!fileInput) return
+    const dataTransfer = new DataTransfer()
+    dataTransfer.items.add(file)
+    fileInput.files = dataTransfer.files
+    fileInput.dispatchEvent(new Event('change', { bubbles: true }))
+  }
 
   const startMyDataConnection = () => {
     setIsWimModalOpen(false)
@@ -25,7 +46,7 @@ export function InbodyUploadBeforeScreen({ onUpload, onComplete, onSkip }: Inbod
         <p className="step-description">정확한 분석을 위해 최근 인바디 측정 결과를 입력해주세요</p>
 
         <button className="inbody-before-skip" type="button" onClick={onSkip}>건너뛰기</button>
-        <button className="inbody-before-dropzone" type="button" onClick={onUpload}>
+        <button className={`inbody-before-dropzone${isDragging ? ' is-dragging' : ''}`} type="button" onClick={onUpload} onDragOver={handleDragOver} onDragLeave={() => setIsDragging(false)} onDrop={handleDrop}>
           <img src={inbodyUpload} alt="" />
           <span>파일을 선택하거나 여기로 끌어다 놓으세요.</span>
         </button>
