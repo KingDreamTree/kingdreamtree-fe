@@ -10,7 +10,6 @@ type FeedbackExerciseIntensityScreenProps = {
   userMessage: string
   coach: CoachChatResponse | null
   onSubmit: (feedback: string) => void
-  onNext: () => void
   onExit: () => void
 }
 
@@ -25,7 +24,7 @@ function toolEventLabel(event: { name: string; args: Record<string, unknown> }):
 }
 
 /** Figma 782:1134 — 피드백 - 운동, 강도. 2턴째부터의 코치 응답을 이 레이아웃으로 보여준다. */
-export function FeedbackExerciseIntensityScreen({ userMessage, coach, onSubmit, onNext, onExit }: FeedbackExerciseIntensityScreenProps) {
+export function FeedbackExerciseIntensityScreen({ userMessage, coach, onSubmit, onExit }: FeedbackExerciseIntensityScreenProps) {
   const [nextFeedback, setNextFeedback] = useState('')
   const isReadyToSubmit = Boolean(nextFeedback.trim())
   const messages = coach?.messages?.length
