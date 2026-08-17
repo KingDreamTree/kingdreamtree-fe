@@ -402,9 +402,12 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       <img ref={refImageRef} src={referenceUrl} alt="레퍼런스 체형" onLoad={drawReferenceSkeleton} />
       <canvas ref={skeletonRef} className="pose-reference__skeleton" aria-hidden="true" />
     </div>
-    <ul className="pose-guide" aria-label="촬영 안내">
-      {CAPTURE_GUIDES.map((guide) => <li key={guide}>{guide}</li>)}
-    </ul>
+    <section className="pose-guide-card" aria-labelledby="pose-guide-title">
+      <h2 id="pose-guide-title">촬영 가이드</h2>
+      <ul className="pose-guide">
+        {CAPTURE_GUIDES.map((guide, index) => <li key={guide}><span>{index + 1}</span>{guide}</li>)}
+      </ul>
+    </section>
 
     <div className="pose-live-area">
       {/* 미리보기·스켈레톤은 CSS 반전으로 거울처럼 보여준다. 판정에 쓰는 좌표는 카메라 원본이고,
