@@ -116,6 +116,15 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
   const headline = priorityName ? `${priorityName} 중심 개선 필요` : '개선 포인트 요약'
 
   const excluded = analysis?.excluded ?? []
+  const disclaimer = analysis?.disclaimer
+  const disclaimerBoundary = '상담하세요.'
+  const disclaimerBoundaryIndex = disclaimer?.indexOf(disclaimerBoundary) ?? -1
+  const medicalDisclaimer = disclaimerBoundaryIndex >= 0
+    ? disclaimer?.slice(0, disclaimerBoundaryIndex + disclaimerBoundary.length)
+    : disclaimer
+  const dataDisclaimer = disclaimerBoundaryIndex >= 0
+    ? disclaimer?.slice(disclaimerBoundaryIndex + disclaimerBoundary.length).trim()
+    : null
 
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
     <section className="comparison-analysis-page">
@@ -189,7 +198,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
 
       <button className="comparison-analysis-routine" type="button" onClick={onCreateRoutine}>맞춤 루틴 생성 →</button>
 
-      {analysis?.disclaimer && <p className="comparison-analysis-disclaimer">{analysis.disclaimer}</p>}
+      {medicalDisclaimer && <p className="comparison-analysis-disclaimer"><span>{medicalDisclaimer}</span>{dataDisclaimer && <span>{dataDisclaimer}</span>}</p>}
     </section>
   </main>
 }

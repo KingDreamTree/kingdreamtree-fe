@@ -193,6 +193,8 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-diagnosis > div.is-low-confidence section { opacity: .65; }
 .comparison-analysis-differences { margin-top: 10px !important; color: #b0b0b0 !important; font-size: 18px !important; }
 .comparison-analysis-disclaimer { position: absolute; top: 2530px; left: 131px; width: 1178px; margin: 0; color: #707070; font: 500 14px/1.6 Pretendard, sans-serif; letter-spacing: -.42px; text-align: center; }
+.comparison-analysis-disclaimer span { display: block; }
+.comparison-analysis-disclaimer span + span { margin-top: 4px; }
 
 /* Figma 618:3197 — 운동일수 */
 .exercise-days-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; text-align: center; }
