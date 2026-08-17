@@ -322,6 +322,15 @@ function App() {
   const [selectedDay, setSelectedDay] = useState<RoutineDay | null>(null)
   const [coach, setCoach] = useState<CoachChatResponse | null>(null)
 
+  useEffect(() => {
+    const handleLogoClick = () => {
+      setView('onboarding')
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    }
+    window.addEventListener('refit-logo-click', handleLogoClick)
+    return () => window.removeEventListener('refit-logo-click', handleLogoClick)
+  }, [])
+
   // 세션과 판정 기준(GET /pose-criteria)은 시작 시 한 번만. 모델·wasm도 미리 로드.
   const openReference = async () => {
     if (isPreparingSession) return
