@@ -32,7 +32,7 @@ import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
 import { applyCoachChanges, createRoutine, createWorkoutLog, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
-import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
+import { evaluate, MESSAGES, mirrorLandmarks, mirrorSuspected, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
 
 // 부분 신체(상체/하체만) 레퍼런스를 허용하므로 "전신이 보이도록"은 부정확하다.
 // MESSAGES는 교체 가능하게 export되어 있고 evaluate()가 이 표를 그대로 읽는다.
@@ -189,7 +189,7 @@ function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFi
       <h1>목표 체형 레퍼런스</h1>
       <p className="step-description">원하는 체형의 사진을 등록하면 AI가 차이를 분석합니다</p>
       <ReferenceHints />
-      <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={event => { pick(event.currentTarget.files); event.currentTarget.value = '' }} />
+      <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { pick(event.currentTarget.files); event.currentTarget.value = '' }} />
       <button type="button" className={`reference-dropzone ${ready ? 'is-ready' : ''}`} disabled={busy}
         onClick={() => inputRef.current?.click()}
         onDragOver={event => event.preventDefault()}
@@ -233,13 +233,15 @@ type PoseScreenProps = {
   score: number
   message?: string
   referenceUrl: string | null
+  mirrorPhoto: boolean
+  onMirrorPhotoChange: (checked: boolean) => void
   onRetry: () => void
   onBrowse: (file: File) => void
   onLive: () => void
   onNext: () => void
 }
 
-function PoseScreen({ result, score, message, referenceUrl, onRetry, onBrowse, onLive, onNext }: PoseScreenProps) {
+function PoseScreen({ result, score, message, referenceUrl, mirrorPhoto, onMirrorPhotoChange, onRetry, onBrowse, onLive, onNext }: PoseScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   return <FixedStepFrame label={`Step 2 체형 사진 ${result}`}><div className="pose-page">
       <p className="step-label">Step 2/3</p>
@@ -247,11 +249,17 @@ function PoseScreen({ result, score, message, referenceUrl, onRetry, onBrowse, o
       <p className="step-description">레퍼런스와 같은 포즈로 자신의 체형을 업로드 해주세요!</p>
       {referenceUrl && <div className="pose-reference pose-reference--live"><img src={referenceUrl} alt="레퍼런스 체형" /></div>}
       <PoseCorners />
-      <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) onBrowse(file); event.currentTarget.value = '' }} />
+      <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) onBrowse(file); event.currentTarget.value = '' }} />
       <PoseScore score={score} />
       {result === 'success'
         ? <button className="pose-next" type="button" onClick={onNext}>다음 단계</button>
         : <button className="pose-gallery" type="button" onClick={onLive}>실시간 촬영으로</button>}
+      {/* 갤러리 사진은 거울 저장 여부를 알 수 없다 — 사용자 신고(기본 꺼짐)로만
+          방향을 바꾼다 (FRONTEND.md §7). 체크 시 판정도 거울 기준 + is_mirrored=true */}
+      {result !== 'success' && <label className="pose-mirror-check">
+        <input type="checkbox" checked={mirrorPhoto} onChange={event => onMirrorPhotoChange(event.currentTarget.checked)} />
+        거울로 찍은 사진(좌우 반전)이에요
+      </label>}
       <PoseStatus result={result} message={message} onRetry={onRetry} onBrowse={() => inputRef.current?.click()} />
   </div></FixedStepFrame>
 }
@@ -282,6 +290,8 @@ function App() {
   const [refBusy, setRefBusy] = useState(false)
   const [refError, setRefError] = useState<string | null>(null)
   const [lastUserPhoto, setLastUserPhoto] = useState<File | null>(null)
+  /** 갤러리 사진이 거울(좌우 반전) 저장본이라고 사용자가 신고했는가 — 기본 꺼짐 */
+  const [mirrorPhoto, setMirrorPhoto] = useState(false)
   const [poseEvaluation, setPoseEvaluation] = useState<PoseEvaluation | null>(null)
   const [poseMessage, setPoseMessage] = useState<string>()
   const inbodyFileInputRef = useRef<HTMLInputElement>(null)
@@ -357,12 +367,17 @@ function App() {
         setView('pose-failure')
         return
       }
-      // 갤러리 업로드는 프리뷰(거울)가 없으므로 정방향 판정 그대로 (백엔드 최종 결정).
-      const result = evaluate(refData.pose.landmarks, userPose.landmarks, criteria, {
+      // 판정 방향 = 사진 방향 (FRONTEND.md §7): 거울 사진이라고 체크하면 거울 기준으로
+      // 판정하고 is_mirrored=true로 보내 서버가 저장 직전에 되돌리게 한다.
+      const evaluateOpts = {
         multiPerson: userPose.multiPerson,
         refAspect: refData.aspect,
         userAspect: image.naturalWidth / image.naturalHeight,
-      })
+      }
+      const result = evaluate(
+        mirrorPhoto ? mirrorLandmarks(refData.pose.landmarks) : refData.pose.landmarks,
+        userPose.landmarks, criteria, evaluateOpts,
+      )
       setPoseEvaluation(result)
       // NOT_ENOUGH_JOINTS·REF_PARTS_MISSING이면 업로드하지 않는다 — 서버는 숫자만
       // 받아서 "포즈를 맞춰주세요"라고 답하지만 실제 문제는 부위가 안 보이는 것.
@@ -371,7 +386,15 @@ function App() {
         setView('pose-failure')
         return
       }
-      await uploadUserPhoto(sessionId, { file, captureSource: 'UPLOAD', poseLandmarks: userPose.landmarks, poseSimilarity: result.pose_similarity, framingScore: result.framing_score, poseScaleBasis: userPose.scaleBasis, facingDelta: result.facing_delta, poseOks: result.oks, posePersonAreaRatio: userPose.personAreaRatio, multiPerson: userPose.multiPerson })
+      // 거울 의심 힌트 — 정방향 판정이 자세 사유로 떨어졌는데 거울 기준이면 통과하는 경우.
+      // ⚠️ 판정을 몰래 거울로 바꾸지 않는다 — 체크박스 신고를 유도만 한다 (FRONTEND.md §7).
+      if (!mirrorPhoto && result.blockReason === 'POSE'
+        && mirrorSuspected(refData.pose.landmarks, userPose.landmarks, criteria, evaluateOpts)) {
+        setPoseMessage(MESSAGES.MIRROR_SUSPECTED)
+        setView('pose-failure')
+        return
+      }
+      await uploadUserPhoto(sessionId, { file, captureSource: 'UPLOAD', poseLandmarks: userPose.landmarks, poseSimilarity: result.pose_similarity, framingScore: result.framing_score, poseScaleBasis: userPose.scaleBasis, facingDelta: result.facing_delta, poseOks: result.oks, posePersonAreaRatio: userPose.personAreaRatio, multiPerson: userPose.multiPerson, isMirrored: mirrorPhoto })
       setView('pose-success')
     } catch (error) {
       const unavailable = error instanceof RefitApiError && error.status === 503
@@ -589,11 +612,11 @@ function App() {
         onNext={() => setView('inbody-upload')}
         onBrowse={file => void uploadUser(file)} />
     : null
-  if (view === 'pose-analyzing') return <PoseScreen result="loading" score={poseEvaluation?.pose_similarity ?? 0} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
-  if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
-  if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
-  if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} />
-  if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} onSkip={() => void beginAnalysis()} /></>
+  if (view === 'pose-analyzing') return <PoseScreen result="loading" score={poseEvaluation?.pose_similarity ?? 0} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
+  if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
+  if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
+  if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} />
+  if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} onSkip={() => void beginAnalysis()} /></>
   if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => setView('inbody-upload')} onStart={() => void openInbodyConfirmation()} onSkip={() => void beginAnalysis()} />
   if (view === 'inbody-form') return <InbodyUploadAfterScreen inbody={inbodyData} onConfirm={patch => void verifyInbodyAndBeginAnalysis(patch)} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'inbody-range-error') return <InbodyRangeErrorScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onPrevious={() => setView('inbody-form')} />

@@ -379,6 +379,8 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .pose-status--retry strong, .pose-status--failure strong { max-width: 700px; }
 .pose-status--retry strong { font-size: 18px; }
 .pose-gallery { position: absolute; top: 198px; left: 1104px; width: 239px; height: 63px; border: 1px solid #3b3b3b; border-radius: 13px; background: rgba(59, 59, 59, .4); color: #f6f6f6; font: 500 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; cursor: pointer; }
+.pose-mirror-check { position: absolute; top: 292px; left: 131px; display: flex; align-items: center; gap: 8px; color: #ccc; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; cursor: pointer; }
+.pose-mirror-check input { width: 16px; height: 16px; accent-color: #ffe250; cursor: pointer; }
 
 .loading-one-glow { position: absolute; top: 644px; left: 479px; width: 61px; height: 62px; pointer-events: none; transition: transform 35ms linear; }
 

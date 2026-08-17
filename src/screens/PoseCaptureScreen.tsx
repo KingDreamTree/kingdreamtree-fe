@@ -143,9 +143,9 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
   /** 자세 유지가 확인된 뒤 몇 초 남았는지 — 갑자기 찍히지 않게 예고한다. */
   const [countdown, setCountdown] = useState<number | null>(null)
 
-  // 로컬 실험 (2026-08-18) — 판정은 프로덕션과 같은 거울 기준으로 되돌림:
-  // 화면에 보이는 대로 따라 하면 통과한다. 실험으로 남는 것은 뒷단뿐 —
-  // 백엔드 교차 짝짓기 비활성(사피엔스 결과를 이름 그대로 사용) + 찍힌 사진 반전 표시.
+  // 판정 방향 = 사진 방향 (FRONTEND.md §7, 2026-08-18 개정): 프리뷰가 거울이고
+  // 촬영본도 거울 방향으로 저장하므로, 판정 기준 레퍼런스를 좌우반전해 채점한다 —
+  // 화면에 보이는 대로 따라 하면 통과하고, 저장 이후는 업로드와 완전히 같은 기준.
   const mirroredRefLm = useMemo(() => mirrorLandmarks(refLm), [refLm])
 
   const setPhase = useCallback((next: Phase) => {
@@ -430,7 +430,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     <img className="pose-corner pose-corner--bottom-left" src={poseCornerBottomLeft} alt="" />
     <img className="pose-corner pose-corner--bottom-right" src={poseCornerBottomRight} alt="" />
 
-    <input ref={fileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/heic"
+    <input ref={fileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp"
       onChange={event => { const file = event.currentTarget.files?.[0]; if (file) onBrowse(file); event.currentTarget.value = '' }} />
     {(phase.kind === 'live' || phase.kind === 'camera-error') && <button className="pose-gallery" type="button" onClick={() => fileInputRef.current?.click()}>갤러리에서 업로드</button>}
 
