@@ -169,7 +169,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-parts button:focus-visible, .comparison-analysis-routine:focus-visible { outline: 3px solid #f6f6f6; outline-offset: 5px; }
 .comparison-analysis-diagnosis { position: absolute; top: 2040px; left: 129px; }
 .comparison-analysis-diagnosis h2 { margin: 0; color: #f6f6f6; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }
-.comparison-analysis-diagnosis > div { position: relative; box-sizing: border-box; display: flex; width: 1182px; height: 205px; margin-top: 19px; padding: 39px 52px; overflow: hidden; border-radius: 20px; background: #3b3b3b; }
+.comparison-analysis-diagnosis > div { position: relative; box-sizing: border-box; display: flex; width: 1182px; height: 205px; margin-top: 19px; padding: 39px 52px; overflow: hidden; border-radius: 20px; background: rgb(59 59 59 / .4); }
 .comparison-analysis-diagnosis > div > span { position: relative; display: block; width: 127px; height: 127px; flex: none; }
 .comparison-analysis-diagnosis > div > span img:first-child { position: absolute; inset: 0; width: 127px; height: 127px; }
 .comparison-analysis-diagnosis > div > span img:last-child { position: absolute; top: 34px; left: 32px; width: 70px; height: 70px; }
@@ -193,6 +193,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-diagnosis > div.is-low-confidence section { opacity: .65; }
 .comparison-analysis-differences { margin-top: 10px !important; color: #b0b0b0 !important; font-size: 18px !important; }
 .comparison-analysis-disclaimer { position: absolute; top: 2530px; left: 131px; width: 1178px; margin: 0; color: #707070; font: 500 14px/1.6 Pretendard, sans-serif; letter-spacing: -.42px; text-align: center; }
+.inbody-after-smi, .comparison-analysis-summary > div, .comparison-analysis-diagnosis > div, .custom-routine-page__goal, .custom-routine-page__cards article { border: 1px solid rgb(246 246 246 / .12); box-shadow: inset 0 1px 0 rgb(246 246 246 / .08), 0 10px 28px rgb(0 0 0 / .1); backdrop-filter: blur(16px) saturate(120%); -webkit-backdrop-filter: blur(16px) saturate(120%); }
 .comparison-analysis-disclaimer span { display: block; }
 .comparison-analysis-disclaimer span + span { margin-top: 4px; }
 
