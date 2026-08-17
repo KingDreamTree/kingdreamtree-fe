@@ -450,3 +450,36 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .feedback-attention-page__header::after { content: '\B098\AC00\AE30 \2192'; position: absolute; top: 20px; right: 35px; color: #f6f6f6; font-size: 18px; }
 .feedback-exercise-page__header button { width: auto; font-size: 0; }
 .feedback-exercise-page__header button::after { content: '\B098\AC00\AE30 \2192'; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
+
+/* Keep the conversation in a chat-like viewport. Older messages remain available by scrolling. */
+.feedback-chat-history {
+  top: 124px;
+  bottom: 146px;
+  left: 131px;
+  right: 131px;
+  box-sizing: border-box;
+  gap: 14px;
+  padding: 12px 8px 24px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  pointer-events: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #707070 transparent;
+}
+.feedback-chat-history::-webkit-scrollbar { width: 6px; }
+.feedback-chat-history::-webkit-scrollbar-track { background: transparent; }
+.feedback-chat-history::-webkit-scrollbar-thumb { border-radius: 999px; background: #707070; }
+.feedback-chat-history__message {
+  flex: 0 0 auto;
+  width: fit-content;
+  min-width: 0;
+  max-width: min(70%, 650px);
+  padding: 14px 22px;
+  border-radius: 18px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+.feedback-chat-history__message.is-user { margin-left: auto; }
+.feedback-chat-history__message.is-assistant { margin-right: auto; }
