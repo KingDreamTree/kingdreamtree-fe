@@ -27,7 +27,7 @@ function mirrorClassName(name: string): string {
  * 겹치고, 한 캔버스이므로 CSS에서 cover/contain 무엇을 걸어도 같이 변형된다.
  * 선택 부위 bbox(맵 좌표계) 바깥은 칠하지 않는다 — 모델 오검출 노이즈 필터.
  */
-function PhotoWithOverlay({ seg, selected, label, mirrorHighlight = false }: { seg: SegmentationInfo | null; selected: AnalysisPart | null; label: string; mirrorHighlight?: boolean }) {
+function PhotoWithOverlay({ seg, selected, label, mirrorHighlight = false, mirrorDisplay = false }: { seg: SegmentationInfo | null; selected: AnalysisPart | null; label: string; mirrorHighlight?: boolean; mirrorDisplay?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -95,7 +95,13 @@ function PhotoWithOverlay({ seg, selected, label, mirrorHighlight = false }: { s
   }, [seg, selected, mirrorHighlight])
 
   return <div className="comparison-analysis-photo">
-    <canvas ref={canvasRef} className="comparison-analysis-photo__canvas" role="img" aria-label={label} />
+    {/* mirrorDisplay: 거울 매칭 촬영의 사용자 사진은 촬영 미리보기(거울)와 같은
+        방향으로 **표시만** 반전한다 — 저장본·세그 맵·진단은 전부 원본 기준이고,
+        사진+색칠을 한 캔버스에 합성한 뒤 통째로 뒤집으므로 정렬이 어긋날 수 없다.
+        이러면 선택 부위 색칠이 레퍼런스와 같은 편에 나타나고, "오른팔" 라벨도
+        사용자의 거울 감각과 일치한다. */}
+    <canvas ref={canvasRef} className="comparison-analysis-photo__canvas" role="img" aria-label={label}
+      style={mirrorDisplay ? { transform: 'scaleX(-1)' } : undefined} />
     <span className="comparison-analysis-photo__label">{label}</span>
   </div>
 }
@@ -158,8 +164,13 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
 
       <p className="comparison-analysis-count">총 <em>{parts.length}건</em>의 부위별 진단 결과</p>
 
+      {/* 거울 매칭 촬영(cross_paired)이면: 사용자 사진은 거울로 **표시**(저장은 원본),
+          레퍼런스는 원본 그대로 두되 색칠할 부위명만 좌우 교차. 이 조합이 두 사진의
+          색칠을 같은 편에 놓는다 — 근거는 백엔드 part_pairing.py 주석. */}
       <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
-        <PhotoWithOverlay seg={segmentation?.user ?? null} selected={selected} label="현재 체형" />
+        <PhotoWithOverlay seg={segmentation?.user ?? null} selected={selected}
+          label={(segmentation?.comparable.cross_paired ?? false) ? '현재 체형 · 거울 보기' : '현재 체형'}
+          mirrorDisplay={segmentation?.comparable.cross_paired ?? false} />
         <PhotoWithOverlay seg={segmentation?.reference ?? null} selected={selected} label="목표 레퍼런스"
           mirrorHighlight={segmentation?.comparable.cross_paired ?? false} />
       </section>
