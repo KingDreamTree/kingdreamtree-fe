@@ -446,10 +446,26 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .feedback-chat-history__message.is-user { align-self: flex-end; background: #ffe250; color: #222; }
 .feedback-chat-history__message.is-assistant { align-self: flex-start; background: #3b3b3b; color: #f6f6f6; }
 .feedback-attention-page__reply > p, .feedback-exercise-page__reply > p { display: none; }
-.feedback-attention-page__header > span:last-child { display: none; }
-.feedback-attention-page__header::after { content: '\B098\AC00\AE30 \2192'; position: absolute; top: 20px; right: 35px; color: #f6f6f6; font-size: 18px; }
-.feedback-exercise-page__header button { width: auto; font-size: 0; }
-.feedback-exercise-page__header button::after { content: '\B098\AC00\AE30 \2192'; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
+.feedback-attention-page__header > button,
+.feedback-exercise-page__header button {
+  position: absolute;
+  top: 28px;
+  right: 131px;
+  display: block;
+  width: auto;
+  height: 27px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f6f6f6;
+  font: 500 18px/1.5 Pretendard, sans-serif;
+  letter-spacing: -.54px;
+  text-align: right;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.feedback-attention-page__header > button:hover,
+.feedback-exercise-page__header button:hover { color: #ccc; }
 
 /* Keep the conversation in a chat-like viewport. Older messages remain available by scrolling. */
 .feedback-chat-history {

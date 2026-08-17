@@ -10,6 +10,7 @@ type FeedbackAttentionAreaScreenProps = {
   userMessage: string
   coach: CoachChatResponse | null
   onSubmit: (feedback: string) => void
+  onExit: () => void
 }
 
 /** tool_events를 사용자 언어 배지로 — 금기 등록은 [적용]을 기다리지 않고 즉시 반영된다. */
@@ -24,7 +25,7 @@ function toolEventLabel(event: { name: string; args: Record<string, unknown> }):
 }
 
 /** Figma 778:1065 — 피드백 대화 (코치 실응답). 대화가 이어지는 동안 이 화면을 반복 사용한다. */
-export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit }: FeedbackAttentionAreaScreenProps) {
+export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit, onExit }: FeedbackAttentionAreaScreenProps) {
   const [nextFeedback, setNextFeedback] = useState('')
   const isReadyToSubmit = Boolean(nextFeedback.trim())
   const messages = coach?.messages?.length
@@ -38,7 +39,7 @@ export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit }: Fe
   }
 
   return <FixedStepFrame label="피드백 대화"><div className="feedback-attention-page">
-    <header className="feedback-attention-page__header"><span>운동 완료{coach ? ` · 대화 ${coach.turn}/${coach.max_turns}` : ''}</span><span aria-hidden="true">→</span></header>
+    <header className="feedback-attention-page__header"><span>운동 완료{coach ? ` · 대화 ${coach.turn}/${coach.max_turns}` : ''}</span><button type="button" onClick={onExit}>나가기 →</button></header>
     <img className="feedback-attention-page__coach" src={feedbackIllustration} alt="피드백을 확인한 운동 코치" />
     <section className="feedback-chat-history" aria-label="피드백 대화">
       {messages.map((message, index) => <p className={`feedback-chat-history__message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`} key={`${message.role}-${index}`}>{message.content}</p>)}
