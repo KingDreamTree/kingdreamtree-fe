@@ -499,3 +499,10 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 }
 .feedback-chat-history__message.is-user { margin-left: auto; }
 .feedback-chat-history__message.is-assistant { margin-right: auto; }
+.feedback-chat-history__message.is-assistant {
+  margin-left: 84px;
+  max-width: calc(min(70%, 650px) - 84px);
+}
+.feedback-attention-page__coach,
+.feedback-exercise-page__coach { z-index: 1; }
+.feedback-chat-history { z-index: 2; }
