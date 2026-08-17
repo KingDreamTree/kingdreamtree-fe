@@ -439,3 +439,14 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 /* 레퍼런스와 현재 체형 사진은 원본 비율을 유지해 전체가 보이도록 표시합니다. */
 .comparison-analysis-photo__canvas { object-fit: contain; }
+
+/* Keep the complete feedback conversation visible between turns. */
+.feedback-chat-history { position: absolute; top: 218px; left: 131px; right: 131px; display: flex; flex-direction: column; gap: 18px; pointer-events: none; }
+.feedback-chat-history__message { box-sizing: border-box; max-width: 531px; margin: 0; padding: 18px 30px; border-radius: 20px; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.feedback-chat-history__message.is-user { align-self: flex-end; background: #ffe250; color: #222; }
+.feedback-chat-history__message.is-assistant { align-self: flex-start; background: #3b3b3b; color: #f6f6f6; }
+.feedback-attention-page__reply > p, .feedback-exercise-page__reply > p { display: none; }
+.feedback-attention-page__header > span:last-child { display: none; }
+.feedback-attention-page__header::after { content: '\B098\AC00\AE30 \2192'; position: absolute; top: 20px; right: 35px; color: #f6f6f6; font-size: 18px; }
+.feedback-exercise-page__header button { width: auto; font-size: 0; }
+.feedback-exercise-page__header button::after { content: '\B098\AC00\AE30 \2192'; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }

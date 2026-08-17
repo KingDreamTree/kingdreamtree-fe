@@ -27,6 +27,9 @@ function toolEventLabel(event: { name: string; args: Record<string, unknown> }):
 export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit }: FeedbackAttentionAreaScreenProps) {
   const [nextFeedback, setNextFeedback] = useState('')
   const isReadyToSubmit = Boolean(nextFeedback.trim())
+  const messages = coach?.messages?.length
+    ? coach.messages
+    : [{ role: 'user', content: userMessage }, { role: 'assistant', content: coach?.reply ?? '코치가 피드백을 확인하고 있어요.' }]
 
   const submitFeedback = () => {
     if (!isReadyToSubmit) return
@@ -37,7 +40,9 @@ export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit }: Fe
   return <FixedStepFrame label="피드백 대화"><div className="feedback-attention-page">
     <header className="feedback-attention-page__header"><span>운동 완료{coach ? ` · 대화 ${coach.turn}/${coach.max_turns}` : ''}</span><span aria-hidden="true">→</span></header>
     <img className="feedback-attention-page__coach" src={feedbackIllustration} alt="피드백을 확인한 운동 코치" />
-    <p className="feedback-attention-page__message">{userMessage}</p>
+    <section className="feedback-chat-history" aria-label="피드백 대화">
+      {messages.map((message, index) => <p className={`feedback-chat-history__message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`} key={`${message.role}-${index}`}>{message.content}</p>)}
+    </section>
     <section className="feedback-attention-page__reply" aria-label="코치 답변">
       <p>{coach?.reply ?? '코치가 피드백을 확인하고 있어요…'}</p>
       {coach?.tool_events?.map((event, index) => <div key={`${event.name}-${index}`}><span><img src={feedbackCheck} alt="" /></span><strong>{toolEventLabel(event)}</strong></div>)}
