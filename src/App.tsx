@@ -323,7 +323,6 @@ function App() {
   const [inbodyData, setInbodyData] = useState<InbodyDetail | null>(null)
   const [todayRoutine, setTodayRoutine] = useState<TodayRoutine | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null)
-  const [isAnalysisReady, setIsAnalysisReady] = useState(false)
   const [segmentationData, setSegmentationData] = useState<SessionSegmentation | null>(null)
   const [routineData, setRoutineData] = useState<RoutineDetail | null>(null)
   const [selectedDay, setSelectedDay] = useState<RoutineDay | null>(null)
@@ -433,7 +432,6 @@ function App() {
   const beginAnalysis = async () => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
-    setIsAnalysisReady(false)
     setView('inbody-loading')
     try {
       // 사진 세그멘테이션(사피엔스)이 아직 도는 중이면 서버가 409를 준다.
@@ -471,7 +469,6 @@ function App() {
       }
       setAnalysisData(analysis)
       setSegmentationData(segmentation)
-      setIsAnalysisReady(true)
       setView('comparison')
     } catch (error) {
       // 비교 가능한 부위가 부족하면 사진 문제 — 재촬영으로 유도한다
