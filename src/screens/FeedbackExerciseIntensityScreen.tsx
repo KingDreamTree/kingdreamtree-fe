@@ -27,6 +27,9 @@ function toolEventLabel(event: { name: string; args: Record<string, unknown> }):
 export function FeedbackExerciseIntensityScreen({ userMessage, coach, onSubmit, onNext }: FeedbackExerciseIntensityScreenProps) {
   const [nextFeedback, setNextFeedback] = useState('')
   const isReadyToSubmit = Boolean(nextFeedback.trim())
+  const messages = coach?.messages?.length
+    ? coach.messages
+    : [{ role: 'user', content: userMessage }, { role: 'assistant', content: coach?.reply ?? '코치가 피드백을 확인하고 있어요.' }]
 
   const submitFeedback = () => {
     if (!isReadyToSubmit) return
@@ -37,7 +40,9 @@ export function FeedbackExerciseIntensityScreen({ userMessage, coach, onSubmit, 
   return <FixedStepFrame label="피드백 운동 강도"><div className="feedback-exercise-page">
     <header className="feedback-exercise-page__header"><span>운동 완료{coach ? ` · 대화 ${coach.turn}/${coach.max_turns}` : ''}</span><button type="button" onClick={onNext} aria-label="피드백 반영 여부 보기">→</button></header>
     <img className="feedback-exercise-page__coach" src={feedbackIllustration} alt="운동과 강도를 조절하는 코치" />
-    <p className="feedback-exercise-page__message">{userMessage}</p>
+    <section className="feedback-chat-history" aria-label="피드백 대화">
+      {messages.map((message, index) => <p className={`feedback-chat-history__message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`} key={`${message.role}-${index}`}>{message.content}</p>)}
+    </section>
     <section className="feedback-exercise-page__reply" aria-label="운동 조절 결과">
       <p>{coach?.reply ?? '코치가 피드백을 확인하고 있어요…'}</p>
       {coach?.tool_events?.map((event, index) => <div key={`${event.name}-${index}`}><span><img src={feedbackCheck} alt="" /></span><strong>{toolEventLabel(event)}</strong></div>)}
