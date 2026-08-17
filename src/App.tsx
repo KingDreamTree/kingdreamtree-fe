@@ -433,10 +433,19 @@ function App() {
       // 부위 진단(VLM)이 끝날 때까지 진행률 폴링 — reused=true(기존 결과)면 바로 완료로 나온다
       for (let attempt = 0; attempt < 200; attempt += 1) {
         const progress = await getAnalysisProgress(sessionId)
-        if (progress.completed) break
+        if (progress.completed || progress.overall.status === 'DONE') break
         await new Promise(resolve => window.setTimeout(resolve, 750))
       }
-      const [analysis, segmentation] = await Promise.all([getAnalysis(sessionId), getSessionSegmentation(sessionId)])
+      const analysis = await getAnalysis(sessionId)
+      let segmentation: SessionSegmentation | null = null
+      try {
+        segmentation = await Promise.race([
+          getSessionSegmentation(sessionId),
+          new Promise<null>(resolve => window.setTimeout(() => resolve(null), 10000)),
+        ])
+      } catch {
+        segmentation = null
+      }
       setAnalysisData(analysis)
       setSegmentationData(segmentation)
       setIsAnalysisReady(true)
