@@ -12,7 +12,7 @@ import loadingTwoStepCheck from '../assets/loading2-step-check.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 
 const loadingSteps = ['체형 데이터를 불러오는 중...', '레퍼런스와 비교 분석 중...', 'AI가 체형을 분석 중...', '분석 결과를 정리하는 중...']
-const loadingDuration = 3500
+const loadingDuration = 1800
 
 type LoadingOneScreenProps = { isAnalysisReady: boolean; onComplete: () => void }
 
@@ -38,7 +38,7 @@ export function LoadingOneScreen({ isAnalysisReady, onComplete }: LoadingOneScre
 
   useEffect(() => {
     if (progress !== 100 || !isAnalysisReady) return
-    const transitionTimer = window.setTimeout(onComplete, 650)
+    const transitionTimer = window.setTimeout(onComplete, 250)
     return () => window.clearTimeout(transitionTimer)
   }, [isAnalysisReady, onComplete, progress])
 
