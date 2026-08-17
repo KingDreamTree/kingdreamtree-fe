@@ -462,7 +462,7 @@ const VIEW_STORAGE_KEY = 'refit.current-view'
       }
       if (!result) throw new Error('사진 분석이 예상보다 오래 걸리고 있어요. 잠시 후 다시 시도해주세요.')
       // 부위 진단(VLM)이 끝날 때까지 진행률 폴링 — reused=true(기존 결과)면 바로 완료로 나온다
-      for (let attempt = 0; attempt < 200; attempt += 1) {
+      for (let attempt = 0; attempt < 80; attempt += 1) {
         const progress = await getAnalysisProgress(sessionId)
         if (progress.completed || progress.overall.status === 'DONE') break
         await new Promise(resolve => window.setTimeout(resolve, 750))
@@ -480,6 +480,7 @@ const VIEW_STORAGE_KEY = 'refit.current-view'
       setAnalysisData(analysis)
       setSegmentationData(segmentation)
       setIsAnalysisReady(true)
+      setView('comparison')
     } catch (error) {
       // 비교 가능한 부위가 부족하면 사진 문제 — 재촬영으로 유도한다
       if (error instanceof RefitApiError && error.code === 'INSUFFICIENT_PARTS') {
