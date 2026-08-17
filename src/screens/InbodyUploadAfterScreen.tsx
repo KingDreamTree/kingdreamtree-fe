@@ -11,7 +11,6 @@ export type InbodyPatch = { fields: Record<string, unknown>; segments: InbodySeg
 type InbodyUploadAfterScreenProps = {
   inbody: InbodyDetail | null
   onConfirm: (patch: InbodyPatch) => void
-  onSkip: () => void
   onPrevious: () => void
 }
 
@@ -43,7 +42,7 @@ const asNumberOrNull = (text: string) => {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-export function InbodyUploadAfterScreen({ inbody, onConfirm, onSkip, onPrevious }: InbodyUploadAfterScreenProps) {
+export function InbodyUploadAfterScreen({ inbody, onConfirm, onPrevious }: InbodyUploadAfterScreenProps) {
   const initialFields = useMemo(() => {
     const source = inbody?.fields ?? {}
     const out: Record<string, string> = {}
@@ -108,6 +107,6 @@ export function InbodyUploadAfterScreen({ inbody, onConfirm, onSkip, onPrevious 
     <section className="inbody-after-column inbody-after-composition"><h2>2. 체성분</h2>{COMPOSITION_FIELDS.map(field => renderInput(field.key, field.label, field.unit))}</section>
     <section className="inbody-after-column inbody-after-muscle"><h2>3. 부위별 근육량</h2>{SEGMENT_ORDER.map(({ key, label }) => <label className="inbody-after-field" key={`lean-${key}`}><span>{label}</span><input aria-label={`${label} 근육량`} value={lean[key] ?? ''} onChange={event => setLean(prev => ({ ...prev, [key]: event.target.value }))} /></label>)}</section>
     <section className="inbody-after-column inbody-after-fat"><h2>4. 부위별 체지방량</h2>{SEGMENT_ORDER.map(({ key, label }) => <label className="inbody-after-field" key={`fat-${key}`}><span>{label}</span><input aria-label={`${label} 체지방량`} value={fat[key] ?? ''} onChange={event => setFat(prev => ({ ...prev, [key]: event.target.value }))} /></label>)}</section>
-    <button className="inbody-after-skip" type="button" onClick={onSkip}>건너뛰기</button><button className="inbody-after-confirm" type="button" onClick={submit}>확인 완료</button><button className="inbody-after-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button><p className="inbody-after-note">* 이 값으로 진행 및 확인 기록이 저장됩니다.</p>
+    <button className="inbody-after-confirm" type="button" onClick={submit}>확인 완료</button><button className="inbody-after-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button><p className="inbody-after-note">* 이 값으로 진행 및 확인 기록이 저장됩니다.</p>
   </div></FixedStepFrame>
 }

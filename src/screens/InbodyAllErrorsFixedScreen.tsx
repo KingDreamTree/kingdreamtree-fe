@@ -15,9 +15,9 @@ function FixedField({ field, required = false }: { field: Field; required?: bool
   return <label className="inbody-fixed-field"><span>{field.label}{field.unit && <small>({field.unit})</small>}{required && <img src={inbodyRequiredDot} alt="필수" />}</span><div><input aria-label={field.label} defaultValue={field.value} /></div></label>
 }
 
-type InbodyAllErrorsFixedScreenProps = { onConfirm: () => void; onSkip: () => void; onPrevious: () => void }
+type InbodyAllErrorsFixedScreenProps = { onConfirm: () => void; onPrevious: () => void }
 
-export function InbodyAllErrorsFixedScreen({ onConfirm, onSkip, onPrevious }: InbodyAllErrorsFixedScreenProps) {
+export function InbodyAllErrorsFixedScreen({ onConfirm, onPrevious }: InbodyAllErrorsFixedScreenProps) {
   return <FixedStepFrame label="인바디-모든오류수정"><div className="inbody-fixed-page">
     <p className="step-label">Step 3/3</p><h1>인바디 정보 입력</h1><p className="step-description">AI가 인식한 결과입니다. 틀린 부분이 있다면 터치하여 수정해 주세요.</p>
     <section className="inbody-fixed-guide" role="status"><span><img src={inbodySuccessCheck} alt="" /></span><div><strong>성공적으로 수정되었습니다!</strong><p>확인 완료 버튼을 눌러주세요.</p></div></section>
@@ -26,6 +26,6 @@ export function InbodyAllErrorsFixedScreen({ onConfirm, onSkip, onPrevious }: In
     <section className="inbody-fixed-column inbody-fixed-composition"><h2>2. 체성분</h2>{composition.map(field => <FixedField key={field.label} field={field} />)}</section>
     <section className="inbody-fixed-column inbody-fixed-muscle"><h2>3. 부위별 근육량</h2>{muscle.map(field => <FixedField key={field.label} field={field} />)}</section>
     <section className="inbody-fixed-column inbody-fixed-fat"><h2>4. 부위별 체지방량</h2>{fat.map(field => <FixedField key={field.label} field={field} />)}</section>
-    <button className="inbody-fixed-skip" type="button" onClick={onSkip}>건너뛰기</button><button className="inbody-fixed-confirm" type="button" onClick={onConfirm}>확인 완료</button><button className="inbody-fixed-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button>
+    <button className="inbody-fixed-confirm" type="button" onClick={onConfirm}>확인 완료</button><button className="inbody-fixed-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button>
   </div></FixedStepFrame>
 }

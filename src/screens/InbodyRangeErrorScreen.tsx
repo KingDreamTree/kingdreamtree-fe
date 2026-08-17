@@ -22,9 +22,9 @@ function RangeField({ field, invalid = false, onCorrect }: { field: Field; inval
   return <label className={`inbody-range-field ${invalid ? 'is-invalid' : ''}`}><span>{field.label}{field.unit && <small>({field.unit})</small>}{invalid && <em>허용범위: 25~250</em>}</span><div><input aria-label={field.label} defaultValue={field.value} onChange={invalid ? onCorrect : undefined} />{invalid && <ErrorGlyph compact />}</div></label>
 }
 
-type InbodyRangeErrorScreenProps = { onConfirm: () => void; onSkip: () => void; onPrevious: () => void }
+type InbodyRangeErrorScreenProps = { onConfirm: () => void; onPrevious: () => void }
 
-export function InbodyRangeErrorScreen({ onConfirm, onSkip, onPrevious }: InbodyRangeErrorScreenProps) {
+export function InbodyRangeErrorScreen({ onConfirm, onPrevious }: InbodyRangeErrorScreenProps) {
   const [isCorrected, setIsCorrected] = useState(false)
 
   return <FixedStepFrame label="인바디-입력범위오류"><div className="inbody-range-page">
@@ -35,6 +35,6 @@ export function InbodyRangeErrorScreen({ onConfirm, onSkip, onPrevious }: Inbody
     <section className="inbody-range-column inbody-range-composition"><h2>2. 체성분</h2>{composition.map((field, index) => <RangeField key={field.label} field={field} invalid={index === 0} onCorrect={() => setIsCorrected(true)} />)}</section>
     <section className="inbody-range-column inbody-range-muscle"><h2>3. 부위별 근육량</h2>{muscle.map(field => <RangeField key={field.label} field={field} />)}</section>
     <section className="inbody-range-column inbody-range-fat"><h2>4. 부위별 체지방량</h2>{fat.map(field => <RangeField key={field.label} field={field} />)}</section>
-    <button className="inbody-range-skip" type="button" onClick={onSkip}>건너뛰기</button><button className="inbody-range-confirm" type="button" disabled={!isCorrected} onClick={onConfirm}>{!isCorrected && <img src={inbodyErrorLock} alt="" />}확인 완료</button><button className="inbody-range-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button><p className="inbody-range-note">* 오류가 있는 경우 지정할 수 없습니다.</p><img className="inbody-range-required" src={inbodyRequiredDot} alt="필수" />
+    <button className="inbody-range-confirm" type="button" disabled={!isCorrected} onClick={onConfirm}>{!isCorrected && <img src={inbodyErrorLock} alt="" />}확인 완료</button><button className="inbody-range-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button><p className="inbody-range-note">* 오류가 있는 경우 지정할 수 없습니다.</p><img className="inbody-range-required" src={inbodyRequiredDot} alt="필수" />
   </div></FixedStepFrame>
 }
