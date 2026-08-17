@@ -630,7 +630,7 @@ function App() {
   if (view === 'inbody-unreadable') return <InbodyUnreadableScreen onConfirm={() => setView('inbody-form')} onPrevious={() => setView('inbody-uploaded')} />
   // 로딩 애니메이션이 100%가 되면 분석 화면으로 전환한다. 결과 API는 백그라운드에서
   // 이어서 받아 상태를 채우므로, 네트워크 응답 때문에 로딩 화면이 멈춰 있지 않는다.
-  if (view === 'inbody-loading') return <LoadingOneScreen isAnalysisReady onComplete={() => setView('comparison')} />
+    if (view === 'inbody-loading') return <LoadingOneScreen isAnalysisReady={false} onComplete={() => undefined} />
   if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
   if (view === 'loading-two') return <LoadingTwoScreen onComplete={() => undefined} />
