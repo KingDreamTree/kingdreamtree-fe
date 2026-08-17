@@ -385,3 +385,5 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 
 .hero-section__scroll-cue { position: absolute; z-index: 1; top: 784px; left: 659px; display: flex; width: 122px; height: auto; margin: 0; flex-direction: column; align-items: center; gap: 5px; color: #ccc; text-align: center; }.hero-section__scroll-cue img { width: 53.891px; height: 67.239px; }.hero-section__scroll-cue p { min-width: 122px; margin: 0; font: 500 17.608px/1.5 Pretendard, sans-serif; letter-spacing: -.528px; }
+
+.closing-section__button .ai-button:hover { background: #ffe250; color: #222; box-shadow: 0 0 22px rgba(255, 226, 80, .85), 0 0 42px rgba(255, 226, 80, .42); }
