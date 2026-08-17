@@ -396,13 +396,15 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .reference-start:disabled:hover { transform: none; }
 
 .pose-reference--live { background: #111; }
-.pose-reference--live img { position: static; width: 100%; height: 100%; object-fit: contain; }
+.pose-reference--live img { position: static; display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
 .pose-reference__skeleton { display: none; }
-.pose-guide-card { position: absolute; top: 838px; left: 131px; box-sizing: border-box; width: 433px; min-height: 158px; padding: 17px 20px 16px; border: 1px solid rgb(246 246 246 / .14); border-radius: 16px; background: rgb(59 59 59 / .4); box-shadow: inset 0 1px 0 rgb(246 246 246 / .08); }
-.pose-guide-card h2 { margin: 0 0 9px; color: #ffe250; font: 700 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
-.pose-guide { display: grid; gap: 3px; margin: 0; padding: 0; color: #d7d7d7; font: 500 15px/1.5 Pretendard, sans-serif; letter-spacing: -.45px; list-style: none; }
-.pose-guide li { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.pose-guide li span { display: grid; width: 17px; height: 17px; flex: none; place-items: center; border-radius: 50%; background: rgb(255 226 80 / .16); color: #ffe250; font: 700 11px/1 Pretendard, sans-serif; }
+.pose-corner { opacity: .72; }
+.pose-guide-card { position: absolute; top: 838px; left: 131px; width: 433px; margin: 0; }
+.pose-guide-card h2 { margin: 0 0 5px; color: #ffe250; font: 700 17px/1.5 Pretendard, sans-serif; letter-spacing: -.51px; }
+.pose-guide { display: grid; gap: 1px; margin: 0; padding: 0; color: #c8c8c8; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; list-style: none; }
+.pose-guide li { display: block; min-width: 0; }
+.pose-guide li span { display: none; }
+.pose-guide li::before { content: '•'; display: inline-block; width: 14px; color: #ffe250; font-weight: 700; }
 
 .pose-live-area { position: absolute; top: 348px; left: 593px; width: 711px; height: 471px; overflow: hidden; background: #111; }
 .pose-live-video { width: 100%; height: 100%; object-fit: contain; transform: scaleX(-1); } /* 미리보기를 거울로 — 판정 좌표는 카메라 원본, 저장은 셔터에서 반전 */
