@@ -280,6 +280,25 @@ async function waitForJob(jobId: string): Promise<Job> {
   throw new Error('The requested job timed out.')
 }
 
+async function waitForInbodyDetail(inbodyId: string, jobId: string | null): Promise<InbodyDetail> {
+  let lastReadError: unknown = null
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    try {
+      const detail = await getInbody(inbodyId)
+      if (detail.status === 'DONE' || Object.keys(detail.fields).length > 0 || detail.segments.length > 0) return detail
+    } catch (error) {
+      lastReadError = error
+    }
+    if (jobId) {
+      const job = await getJob(jobId)
+      if (job.status === 'FAILED') throw new Error(job.error || 'The requested job failed.')
+    }
+    await new Promise(resolve => window.setTimeout(resolve, 1500))
+  }
+  if (lastReadError instanceof Error) throw lastReadError
+  throw new Error('The InBody result was not ready in time.')
+}
+
 function App() {
   const [view, setView] = useState<AppView>('onboarding')
   const [workoutDays, setWorkoutDays] = useState(1)
@@ -468,8 +487,7 @@ function App() {
   const openInbodyConfirmation = async () => {
     if (!inbodyId) return
     try {
-      if (inbodyJobId) await waitForJob(inbodyJobId)
-      const detail = await getInbody(inbodyId)
+      const detail = await waitForInbodyDetail(inbodyId, inbodyJobId)
       setInbodyData(detail)
       setView('inbody-form')
     } catch (error) {
