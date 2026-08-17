@@ -18,6 +18,7 @@ import referenceContrast from './assets/reference-contrast.svg'
 import referenceResolution from './assets/reference-resolution.svg'
 import referencePerson from './assets/reference-person.svg'
 import referenceUploaded from './assets/reference-uploaded.svg'
+import referenceUploadSuccessCheck from './assets/reference-upload-success-check.svg'
 import poseCornerTopLeft from './assets/pose-corner-top-left.svg'
 import poseCornerTopRight from './assets/pose-corner-top-right.svg'
 import poseCornerBottomLeft from './assets/pose-corner-bottom-left.svg'
@@ -197,7 +198,7 @@ function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFi
         {busy
           ? <p>사진과 자세를 확인하고 있어요…</p>
           : ready
-            ? <><img className="reference-dropzone__done" src={referenceUploaded} alt="" /><img className="reference-dropzone__check" src={poseSuccessCheck} alt="" /><strong>사진이 업로드 되었습니다!</strong><span>다른 사진으로 변경하려면 클릭하세요</span></>
+            ? <><img className="reference-dropzone__done" src={referenceUploaded} alt="" /><img className="reference-dropzone__check" src={referenceUploadSuccessCheck} alt="" /><strong>사진이 업로드 되었습니다!</strong><span>다른 사진으로 변경하려면 클릭하세요</span></>
             : <><img src={referenceUpload} alt="" /><p>파일을 선택하거나 여기로 끌어다 놓으세요.</p></>}
       </button>
       {error && <p className="reference-error" role="alert">{error}</p>}
