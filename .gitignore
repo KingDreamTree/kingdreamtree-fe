@@ -27,3 +27,6 @@ dist-ssr
 # 백엔드 데모 로컬 사본 - 커밋하면 실서비스에 공개됨
 public/pose-live.html
 public/pose-score.js
+
+# 로컬 전용 환경설정 (VITE_API_BASE_URL 등) — 커밋하면 배포 API 주소가 덮인다
+.env

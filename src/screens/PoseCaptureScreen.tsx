@@ -143,9 +143,9 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
   /** 자세 유지가 확인된 뒤 몇 초 남았는지 — 갑자기 찍히지 않게 예고한다. */
   const [countdown, setCountdown] = useState<number | null>(null)
 
-  // 프리뷰가 거울이므로 판정 기준 레퍼런스만 좌우반전 — 화면에 보이는 대로
-  // 따라 하는 게 곧 정답이 된다. 한 번만 계산해서 재사용 (백엔드 최종 결정).
-  // 레퍼런스 화면 표시·사용자 좌표·업로드 사진은 전부 원본 그대로.
+  // 판정 방향 = 사진 방향 (FRONTEND.md §7, 2026-08-18 개정): 프리뷰가 거울이고
+  // 촬영본도 거울 방향으로 저장하므로, 판정 기준 레퍼런스를 좌우반전해 채점한다 —
+  // 화면에 보이는 대로 따라 하면 통과하고, 저장 이후는 업로드와 완전히 같은 기준.
   const mirroredRefLm = useMemo(() => mirrorLandmarks(refLm), [refLm])
 
   const setPhase = useCallback((next: Phase) => {
@@ -237,7 +237,15 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       const canvas = document.createElement('canvas')
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
-      canvas.getContext('2d')?.drawImage(video, 0, 0) // 비반전 원본 — 거울은 미리보기 CSS뿐
+      // 로컬 실험: 미리보기(거울) 방향 그대로 저장 — 사피엔스가 레퍼런스와 같은
+      // 방향의 사진을 분할하게 해서, 같은 이름끼리 비교해도 시각적으로 같은 쪽이
+      // 붙는다. 좌표도 아래에서 같이 반전해 사진과 세트를 맞춘다.
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        ctx.translate(canvas.width, 0)
+        ctx.scale(-1, 1)
+        ctx.drawImage(video, 0, 0)
+      }
       canvas.toBlob((blob) => {
         if (!blob || cancelled) {
           capturedRef.current = false
@@ -249,7 +257,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
         if (videoRef.current) videoRef.current.srcObject = null
         if (payloadRef.current) URL.revokeObjectURL(payloadRef.current.url)
         const file = new File([blob], 'capture.jpg', { type: 'image/jpeg' })
-        const payload: CapturePayload = { file, url: URL.createObjectURL(file), lm, result, multiPerson }
+        const payload: CapturePayload = { file, url: URL.createObjectURL(file), lm: mirrorLandmarks(lm), result, multiPerson }
         payloadRef.current = payload
         void uploadCapture(payload)
       }, 'image/jpeg', 0.9)
@@ -422,7 +430,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     <img className="pose-corner pose-corner--bottom-left" src={poseCornerBottomLeft} alt="" />
     <img className="pose-corner pose-corner--bottom-right" src={poseCornerBottomRight} alt="" />
 
-    <input ref={fileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp,image/heic"
+    <input ref={fileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp"
       onChange={event => { const file = event.currentTarget.files?.[0]; if (file) onBrowse(file); event.currentTarget.value = '' }} />
     {(phase.kind === 'live' || phase.kind === 'camera-error') && <button className="pose-gallery" type="button" onClick={() => fileInputRef.current?.click()}>갤러리에서 업로드</button>}
 

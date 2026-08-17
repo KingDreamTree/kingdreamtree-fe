@@ -293,7 +293,7 @@ export interface SessionSegmentation {
     reference_only: string[]
     user_only: string[]
     excluded: Array<{ class_name: string; name_ko: string; side: string; reason: string | null; message: string }>
-    /** true면 촬영(CAPTURE) 사진의 거울 매칭 — 레퍼런스 쪽 하이라이트만 Left↔Right 교차 */
+    /** 2026-08-18 교차 짝짓기 폐지로 항상 false — 하위 호환용으로만 내려옴. 사용하지 말 것 */
     cross_paired: boolean
   }
 }

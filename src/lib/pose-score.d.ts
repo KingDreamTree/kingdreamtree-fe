@@ -80,9 +80,22 @@ export declare const LR_PAIRS: Array<[number, number]>
 
 /**
  * 랜드마크 좌우반전 — x 반전 + 좌/우 이름표 스왑.
- * 실시간 촬영 화면의 판정 기준 레퍼런스에만 쓴다 (프리뷰가 거울이므로).
+ * 실시간 촬영의 거울 판정·거울 저장(사진과 세트 반전), 갤러리 거울 사진 판정에 쓴다.
  */
 export declare function mirrorLandmarks(lm: PoseLandmarks): PoseLandmarks
+
+/**
+ * 갤러리 업로드가 정방향 판정에서 자세(POSE) 사유로 떨어졌을 때, 거울 기준이면
+ * 통과하는지 검사 — true면 MESSAGES.MIRROR_SUSPECTED를 띄우고 거울 체크박스를
+ * 유도한다. ⚠️ 판정을 몰래 거울로 바꿔 통과시키지 말 것 (방향 전환은 사용자
+ * 신고 → is_mirrored=true 재업로드로만).
+ */
+export declare function mirrorSuspected(
+  ref: PoseLandmarks,
+  user: PoseLandmarks,
+  criteria: PoseCriteria,
+  opts?: { multiPerson?: boolean; refAspect?: number; userAspect?: number },
+): boolean
 
 export declare function createHoldGate(criteria: PoseCriteria): HoldGate
 

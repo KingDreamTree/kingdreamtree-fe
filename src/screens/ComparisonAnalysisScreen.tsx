@@ -14,20 +14,13 @@ const GAP_LABELS: Record<string, string> = {
 const SCORE_RING_RADIUS = (300 - 24.83) / 2
 const SCORE_RING_CIRCUMFERENCE = 2 * Math.PI * SCORE_RING_RADIUS
 
-/** 좌우쌍 부위명 교차 — Left_/Right_ 접두사만 스왑, Torso 등 중앙 부위는 그대로. */
-function mirrorClassName(name: string): string {
-  if (name.startsWith('Left_')) return `Right_${name.slice(5)}`
-  if (name.startsWith('Right_')) return `Left_${name.slice(6)}`
-  return name
-}
-
 /**
  * 사진 + 선택 부위 세그멘테이션 색칠을 **캔버스 한 장에 원본 해상도로 합성**한다.
  * 맵은 원본 사진 전체의 단순 스트레치(크롭·패딩 없음)라 배율만 맞추면 정확히
  * 겹치고, 한 캔버스이므로 CSS에서 cover/contain 무엇을 걸어도 같이 변형된다.
  * 선택 부위 bbox(맵 좌표계) 바깥은 칠하지 않는다 — 모델 오검출 노이즈 필터.
  */
-function PhotoWithOverlay({ seg, selected, label, mirrorHighlight = false, mirrorDisplay = false }: { seg: SegmentationInfo | null; selected: AnalysisPart | null; label: string; mirrorHighlight?: boolean; mirrorDisplay?: boolean }) {
+function PhotoWithOverlay({ seg, selected, label }: { seg: SegmentationInfo | null; selected: AnalysisPart | null; label: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -48,9 +41,8 @@ function PhotoWithOverlay({ seg, selected, label, mirrorHighlight = false, mirro
       if (!ctx) return
       ctx.drawImage(photo, 0, 0)
 
-      // 거울 매칭(cross_paired) 촬영이면 레퍼런스 쪽만 좌우쌍을 교차해 칠한다
-      const highlightClass = selected ? (mirrorHighlight ? mirrorClassName(selected.class_name) : selected.class_name) : null
-      const entry = highlightClass ? seg.palette.find(item => item.class_name === highlightClass) : null
+      // 촬영본이 거울 방향으로 저장되므로(업로드와 같은 기준) 부위명 그대로 칠한다
+      const entry = selected ? seg.palette.find(item => item.class_name === selected.class_name) : null
       if (!entry || !selected) return
       const mapImage = new Image()
       mapImage.crossOrigin = 'anonymous' // 픽셀을 읽어야 해서 필요 — 실패하면 색칠만 생략
@@ -94,16 +86,10 @@ function PhotoWithOverlay({ seg, selected, label, mirrorHighlight = false, mirro
     }
     photo.src = seg.photo_url
     return () => { cancelled = true }
-  }, [seg, selected, mirrorHighlight])
+  }, [seg, selected])
 
   return <div className="comparison-analysis-photo">
-    {/* mirrorDisplay: 거울 매칭 촬영의 사용자 사진은 촬영 미리보기(거울)와 같은
-        방향으로 **표시만** 반전한다 — 저장본·세그 맵·진단은 전부 원본 기준이고,
-        사진+색칠을 한 캔버스에 합성한 뒤 통째로 뒤집으므로 정렬이 어긋날 수 없다.
-        이러면 선택 부위 색칠이 레퍼런스와 같은 편에 나타나고, "오른팔" 라벨도
-        사용자의 거울 감각과 일치한다. */}
-    <canvas ref={canvasRef} className="comparison-analysis-photo__canvas" role="img" aria-label={label}
-      style={mirrorDisplay ? { transform: 'scaleX(-1)' } : undefined} />
+    <canvas ref={canvasRef} className="comparison-analysis-photo__canvas" role="img" aria-label={label} />
     <span className="comparison-analysis-photo__label">{label}</span>
   </div>
 }
@@ -166,25 +152,14 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
 
       <p className="comparison-analysis-count">총 <em>{parts.length}건</em>의 부위별 진단 결과</p>
 
-      {/* 거울 매칭 촬영(cross_paired)이면: 사용자 사진은 거울로 **표시**(저장은 원본),
-          레퍼런스는 원본 그대로 두되 색칠할 부위명만 좌우 교차. 이 조합이 두 사진의
-          색칠을 같은 편에 놓는다 — 근거는 백엔드 part_pairing.py 주석. */}
+      {/* 촬영본은 거울 방향으로 저장되므로(2026-08-18 개정) 두 사진 모두 부위명
+          그대로 칠하면 시각적으로 같은 편이 붙는다 — 교차·표시 반전 없음. */}
       <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
-        <PhotoWithOverlay seg={segmentation?.user ?? null} selected={selected}
-          label={(segmentation?.comparable.cross_paired ?? false) ? '현재 체형 · 거울 보기' : '현재 체형'}
-          mirrorDisplay={segmentation?.comparable.cross_paired ?? false} />
-        <PhotoWithOverlay seg={segmentation?.reference ?? null} selected={selected} label="목표 레퍼런스"
-          mirrorHighlight={segmentation?.comparable.cross_paired ?? false} />
+        <PhotoWithOverlay seg={segmentation?.user ?? null} selected={selected} label="현재 체형" />
+        <PhotoWithOverlay seg={segmentation?.reference ?? null} selected={selected} label="목표 레퍼런스" />
       </section>
-      {(segmentation?.comparable.cross_paired ?? false) && (
-        /* 교차 색칠을 처음 본 사람은 "왜 반대쪽 팔이 칠해지지?"를 버그로 오해한다
-           (2026-08-17 내부 테스트에서 실제 발생) — 규칙을 화면이 직접 설명한다. */
-        <p className="comparison-analysis-help" style={{ marginTop: 4 }}>
-          * 거울을 보며 촬영한 사진이라, 레퍼런스에서는 같은 포즈를 취한 반대쪽 부위와 비교해요.
-        </p>
-      )}
 
-      <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요.</p>
+      <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요. 왼팔/오른팔 구분은 사진에 보이는 방향 기준이에요.</p>
       <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
         {parts.map(part => <button
           className={part.class_name === selected?.class_name ? 'is-selected' : ''}
