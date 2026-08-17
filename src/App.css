@@ -181,12 +181,10 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 /* ── 비교 분석 실데이터 요소 ── */
 .comparison-analysis-score__fill { position: absolute; top: 20.5px; left: 9.63px; width: 300.21px; height: 300.21px; overflow: visible; }
 .comparison-analysis-score__fill circle { transition: stroke-dashoffset 600ms ease; }
-.comparison-analysis-score__rationale { position: absolute; top: 246px; left: 15px; width: 320px; margin: 0; color: #b0b0b0; font: 500 15px/1.5 Pretendard, sans-serif; letter-spacing: -.45px; text-align: center; }
 .comparison-analysis-summary > div { height: auto; min-height: 169px; }
 .comparison-analysis-notes { width: 832px; margin: 14px 0 0; padding: 0; list-style: none; color: #ccc; font: 500 18px/1.7 Pretendard, sans-serif; letter-spacing: -.54px; }
 .comparison-analysis-photo { position: relative; width: 573.124px; height: 797px; overflow: hidden; border-radius: 41.548px; background: #161616; }
-.comparison-analysis-photo__img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.comparison-analysis-photo__overlay { position: absolute; inset: 0; pointer-events: none; }
+.comparison-analysis-photo__canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; } /* 사진+색칠 합성 캔버스 — 함께 크롭돼 어긋나지 않는다 */
 .comparison-analysis-photo__label { position: absolute; top: 24px; left: 28px; padding: 6px 18px; border-radius: 24px; background: rgba(17, 17, 17, .65); color: #f6f6f6; font: 600 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; }
 .comparison-analysis-parts { max-width: 1182px; flex-wrap: wrap; }
 .comparison-analysis-gap { margin-left: 16px; padding: 4px 14px; border-radius: 20px; background: rgba(255, 226, 80, .15); color: #ffe250; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; vertical-align: middle; }
@@ -194,8 +192,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-badge--dim { background: rgba(176, 176, 176, .15); color: #b0b0b0; }
 .comparison-analysis-diagnosis > div.is-low-confidence section { opacity: .65; }
 .comparison-analysis-differences { margin-top: 10px !important; color: #b0b0b0 !important; font-size: 18px !important; }
-.comparison-analysis-excluded { position: absolute; top: 2280px; left: 131px; width: 1182px; }
-.comparison-analysis-excluded p { margin: 0 0 4px; color: #8e8e8e; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }
 .comparison-analysis-disclaimer { position: absolute; top: 2530px; left: 131px; width: 1178px; margin: 0; color: #707070; font: 500 14px/1.6 Pretendard, sans-serif; letter-spacing: -.42px; text-align: center; }
 
 /* Figma 618:3197 — 운동일수 */
@@ -345,6 +341,16 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 }
 
 .inbody-unreadable-gender .is-selected { border: 0; background: #f6f6f6; color: #222; }
+
+/* ── 실데이터 바인딩 요소 ── */
+.inbody-after-field.has-warning input { border: 1px solid #ffc646; }
+.inbody-after-warning { display: block; margin-top: 3px; color: #ffc646; font: 500 11px/1.4 Pretendard, sans-serif; letter-spacing: -.33px; font-style: normal; }
+.custom-routine-page__notice { margin-top: 10px !important; color: #ffc646 !important; font-size: 16px !important; }
+.custom-routine-page__progress { position: absolute; bottom: 64px; left: 131px; margin: 0; color: #b0b0b0; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }
+.custom-routine-page__disclaimer { position: absolute; bottom: 24px; left: 131px; width: 1178px; margin: 0; color: #707070; font: 500 12px/1.5 Pretendard, sans-serif; letter-spacing: -.36px; }
+.custom-routine-detail-page__note { margin-top: 4px !important; color: #b0b0b0 !important; font-size: 14px !important; }
+.custom-routine-detail-page__empty { color: #b0b0b0; font: 500 18px/1.5 Pretendard, sans-serif; }
+.today-routine-page__disclaimer { position: absolute; bottom: 18px; left: 0; width: 100%; margin: 0; color: #707070; font: 500 12px/1.5 Pretendard, sans-serif; letter-spacing: -.36px; text-align: center; }
 
 /* ── 실시간 자세 촬영 (Step 2) ─────────────────────────────────────────── */
 .reference-error { position: absolute; top: 818px; left: 273px; width: 893px; margin: 0; color: #e52f28; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; text-align: center; }

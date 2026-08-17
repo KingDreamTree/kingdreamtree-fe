@@ -15,73 +15,78 @@ const SCORE_RING_RADIUS = (300 - 24.83) / 2
 const SCORE_RING_CIRCUMFERENCE = 2 * Math.PI * SCORE_RING_RADIUS
 
 /**
- * 사진 + 선택 부위 세그멘테이션 오버레이.
- * 맵은 8-bit 그레이스케일 PNG(픽셀 값 = label_value)라서 원본 해상도에서 픽셀을
- * 읽어 색칠한 뒤, 사진이 cover로 그려지는 것과 같은 변환으로 얹는다 — bbox·좌표는
- * 맵 좌표계이므로 원본 배율(sx·sy)을 따로 곱해야 한다는 규칙을 여기서 지킨다.
+ * 사진 + 선택 부위 세그멘테이션 색칠을 **캔버스 한 장에 원본 해상도로 합성**한다.
+ * 맵은 원본 사진 전체의 단순 스트레치(크롭·패딩 없음)라 배율만 맞추면 정확히
+ * 겹치고, 한 캔버스이므로 CSS에서 cover/contain 무엇을 걸어도 같이 변형된다.
+ * 선택 부위 bbox(맵 좌표계) 바깥은 칠하지 않는다 — 모델 오검출 노이즈 필터.
  */
 function PhotoWithOverlay({ seg, selected, label }: { seg: SegmentationInfo | null; selected: AnalysisPart | null; label: string }) {
-  const boxRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
-    const box = boxRef.current
     const canvas = canvasRef.current
-    if (!box || !canvas) return
-    const cw = box.clientWidth
-    const ch = box.clientHeight
-    canvas.width = cw
-    canvas.height = ch
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    ctx.clearRect(0, 0, cw, ch)
-    if (!seg || !selected) return
-    const entry = seg.palette.find(item => item.class_name === selected.class_name)
-    if (!entry) return
+    if (!canvas) return
+    if (!seg) {
+      canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
+      return
+    }
 
     let cancelled = false
-    const mapImage = new Image()
-    mapImage.crossOrigin = 'anonymous' // 픽셀을 읽어야 해서 필요 — 실패하면 오버레이만 생략
-    mapImage.onload = () => {
+    const photo = new Image() // 표시 전용이라 crossOrigin 불필요 (픽셀은 맵에서만 읽는다)
+    photo.onload = () => {
       if (cancelled) return
-      try {
-        const off = document.createElement('canvas')
-        off.width = seg.map_width
-        off.height = seg.map_height
-        const offCtx = off.getContext('2d')
-        if (!offCtx) return
-        offCtx.drawImage(mapImage, 0, 0, seg.map_width, seg.map_height)
-        const labels = offCtx.getImageData(0, 0, seg.map_width, seg.map_height)
-        const colored = offCtx.createImageData(seg.map_width, seg.map_height)
-        const hex = entry.color_hex ?? selected.color_hex ?? '#E52F28'
-        const r = parseInt(hex.slice(1, 3), 16)
-        const g = parseInt(hex.slice(3, 5), 16)
-        const b = parseInt(hex.slice(5, 7), 16)
-        for (let i = 0; i < labels.data.length; i += 4) {
-          if (labels.data[i] === entry.label_value) {
-            colored.data[i] = r
-            colored.data[i + 1] = g
-            colored.data[i + 2] = b
-            colored.data[i + 3] = 150
+      canvas.width = photo.naturalWidth
+      canvas.height = photo.naturalHeight
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      ctx.drawImage(photo, 0, 0)
+
+      const entry = selected ? seg.palette.find(item => item.class_name === selected.class_name) : null
+      if (!entry || !selected) return
+      const mapImage = new Image()
+      mapImage.crossOrigin = 'anonymous' // 픽셀을 읽어야 해서 필요 — 실패하면 색칠만 생략
+      mapImage.onload = () => {
+        if (cancelled) return
+        try {
+          const off = document.createElement('canvas')
+          off.width = seg.map_width
+          off.height = seg.map_height
+          const offCtx = off.getContext('2d')
+          if (!offCtx) return
+          offCtx.drawImage(mapImage, 0, 0, seg.map_width, seg.map_height)
+          const labels = offCtx.getImageData(0, 0, seg.map_width, seg.map_height)
+          const colored = offCtx.createImageData(seg.map_width, seg.map_height)
+          const hex = entry.color_hex ?? selected.color_hex ?? '#E52F28'
+          const r = parseInt(hex.slice(1, 3), 16)
+          const g = parseInt(hex.slice(3, 5), 16)
+          const b = parseInt(hex.slice(5, 7), 16)
+          const { x: bx, y: by, w: bw, h: bh } = entry.bbox
+          for (let y = by; y < by + bh; y += 1) {
+            for (let x = bx; x < bx + bw; x += 1) {
+              const i = (y * seg.map_width + x) * 4
+              if (labels.data[i] === entry.label_value) {
+                colored.data[i] = r
+                colored.data[i + 1] = g
+                colored.data[i + 2] = b
+                colored.data[i + 3] = 150
+              }
+            }
           }
+          offCtx.putImageData(colored, 0, 0)
+          // 같은 캔버스에 원본 크기로 스트레치해 합성 — 맵과 사진의 배율(photoW/mapW·photoH/mapH)이 맞는다
+          ctx.drawImage(off, 0, 0, canvas.width, canvas.height)
+        } catch {
+          // 스토리지 CORS 미허용 등으로 픽셀을 못 읽으면 색칠만 생략 (사진은 그대로 보임)
         }
-        offCtx.putImageData(colored, 0, 0)
-        // 사진(object-fit: cover)과 같은 변환 — 맵과 사진은 같은 장면이므로 배율만 맞추면 된다
-        const pw = seg.photo_width ?? seg.map_width
-        const ph = seg.photo_height ?? seg.map_height
-        const scale = Math.max(cw / pw, ch / ph)
-        ctx.drawImage(off, (cw - pw * scale) / 2, (ch - ph * scale) / 2, pw * scale, ph * scale)
-      } catch {
-        // 스토리지 CORS 미허용 등으로 픽셀을 못 읽으면 색칠만 생략 (사진은 그대로 보임)
       }
+      mapImage.src = seg.map_url
     }
-    mapImage.src = seg.map_url
+    photo.src = seg.photo_url
     return () => { cancelled = true }
   }, [seg, selected])
 
-  return <div ref={boxRef} className="comparison-analysis-photo">
-    {seg && <img className="comparison-analysis-photo__img" src={seg.photo_url} alt={label} />}
-    <canvas ref={canvasRef} className="comparison-analysis-photo__overlay" aria-hidden="true" />
+  return <div className="comparison-analysis-photo">
+    <canvas ref={canvasRef} className="comparison-analysis-photo__canvas" role="img" aria-label={label} />
     <span className="comparison-analysis-photo__label">{label}</span>
   </div>
 }
@@ -117,7 +122,8 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
         <span>현재 체형 vs 목표 레퍼런스</span>
       </header>
 
-      <section className="comparison-analysis-score" aria-label={`유사도 점수 ${score ?? '미산출'}점`}>
+      {/* 산출 근거(score_rationale)는 본문에 그리면 링과 겹쳐서 툴팁으로만 제공 */}
+      <section className="comparison-analysis-score" aria-label={`유사도 점수 ${score ?? '미산출'}점`} title={overall?.score_rationale ?? undefined}>
         <img className="comparison-analysis-score__track" src={comparisonScoreTrack} alt="" />
         <svg className="comparison-analysis-score__fill" viewBox="0 0 300 300" aria-hidden="true">
           <circle cx="150" cy="150" r={SCORE_RING_RADIUS} fill="none" stroke="#FFE250" strokeWidth="24.83" strokeLinecap="round"
@@ -126,7 +132,6 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
         </svg>
         <span>유사도 점수</span>
         <strong>{score ?? '—'}점</strong>
-        {overall?.score_rationale && <p className="comparison-analysis-score__rationale">{overall.score_rationale}</p>}
       </section>
 
       <section className="comparison-analysis-summary" aria-labelledby="comparison-summary-title">
@@ -135,9 +140,10 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
           <strong>{headline}</strong>
           <p>{overall?.summary ?? '요약을 준비하고 있어요.'}</p>
         </div>
-        {(overall?.strengths?.length || overall?.cautions?.length) ? <ul className="comparison-analysis-notes">
+        {(overall?.strengths?.length || overall?.cautions?.length || excluded.length) ? <ul className="comparison-analysis-notes">
           {overall?.strengths?.map(item => <li key={item}>💪 {item}</li>)}
           {overall?.cautions?.map(item => <li key={item}>⚠️ {item}</li>)}
+          {excluded.length > 0 && <li>⚠️ {excluded.map(part => part.name_ko ?? part.class_name).join(', ')}은(는) 이번 사진에서 확인할 수 없었습니다.</li>}
         </ul> : null}
       </section>
 
@@ -175,10 +181,6 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
           </section>
         </div>
       </section>
-
-      {excluded.length > 0 && <section className="comparison-analysis-excluded" aria-label="비교에서 제외된 부위">
-        {excluded.map(part => <p key={part.class_name}>제외됨 — {part.name_ko ?? part.class_name}: {part.reason}</p>)}
-      </section>}
 
       <button className="comparison-analysis-routine" type="button" onClick={onCreateRoutine}>맞춤 루틴 생성 →</button>
 
