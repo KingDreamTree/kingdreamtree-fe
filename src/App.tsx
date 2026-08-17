@@ -243,7 +243,7 @@ type PoseScreenProps = {
   onPrevious: () => void
 }
 
-function PoseScreen({ result, score, message, referenceUrl, mirrorPhoto, onMirrorPhotoChange, onRetry, onBrowse, onLive, onNext, onPrevious }: PoseScreenProps) {
+function PoseScreen({ result, score, message, referenceUrl, onRetry, onBrowse, onLive, onNext, onPrevious }: PoseScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   return <FixedStepFrame label={`Step 2 체형 사진 ${result}`}><div className="pose-page">
       <p className="step-label">Step 2/3</p>
@@ -625,10 +625,10 @@ function App() {
         onPrevious={() => setView('reference')}
         onBrowse={file => void uploadUser(file)} />
     : null
-  if (view === 'pose-analyzing') return <PoseScreen result="loading" score={poseEvaluation?.pose_similarity ?? 0} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
-  if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
-  if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
-  if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} onPrevious={() => setView('reference')} />
+  if (view === 'pose-analyzing') return <PoseScreen result="loading" score={poseEvaluation?.pose_similarity ?? 0} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} onPrevious={() => setView('reference')} />
   if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('pose-success')} /></>
   if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => setView('inbody-upload')} onStart={openInbodyConfirmation} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-upload')} />
   if (view === 'inbody-form') return <InbodyUploadAfterScreen inbody={inbodyData} onConfirm={patch => void verifyInbodyAndBeginAnalysis(patch)} onPrevious={() => setView('inbody-uploaded')} />
