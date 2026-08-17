@@ -58,7 +58,7 @@ export function TodayRoutineScreen({ today, onFinish }: TodayRoutineScreenProps)
     <img className="today-routine-page__progress" src={todayRoutineProgressLine} alt={`운동 ${Math.min(step + 1, exercises.length)} / ${exercises.length} 단계`} />
     <button className="today-routine-page__finish" type="button" disabled={!isWorkoutComplete} onClick={onFinish}>운동마치기</button>
 
-    {current && <section className={`today-routine-page__current ${isTransitioning ? 'is-exiting' : ''}`} aria-label={`현재 운동 Step ${step + 1}`}>
+    {current && <section className={`today-routine-page__current ${isTransitioning ? 'is-exiting' : ''} ${isLastStep ? 'is-last-step' : ''}`} aria-label={`현재 운동 Step ${step + 1}`}>
       <span>Step {step + 1}/{exercises.length}</span><h2>{current.name}</h2><small>{exerciseDose(current)}</small>
       <p>{current.note ?? (current.muscle_group ? `${current.muscle_group} 자극에 집중해주세요.` : '정확한 자세에 집중해주세요.')}</p>
       <button type="button">자세가이드</button><img src={current.image_url ?? todayRoutineExercise} alt={`${current.name} 동작`} />
