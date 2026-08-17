@@ -282,6 +282,7 @@ export interface SessionSegmentation {
   reference: SegmentationInfo | null
   user: SegmentationInfo | null
   comparable: {
+    /** 사용자 기준 부위명 — 카드 목록·라벨·진단문 모두 이 기준 */
     class_names: string[]
     count: number
     sufficient: boolean
@@ -289,6 +290,8 @@ export interface SessionSegmentation {
     reference_only: string[]
     user_only: string[]
     excluded: Array<{ class_name: string; name_ko: string; side: string; reason: string | null; message: string }>
+    /** true면 촬영(CAPTURE) 사진의 거울 매칭 — 레퍼런스 쪽 하이라이트만 Left↔Right 교차 */
+    cross_paired: boolean
   }
 }
 

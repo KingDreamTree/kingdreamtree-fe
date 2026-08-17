@@ -14,13 +14,20 @@ const GAP_LABELS: Record<string, string> = {
 const SCORE_RING_RADIUS = (300 - 24.83) / 2
 const SCORE_RING_CIRCUMFERENCE = 2 * Math.PI * SCORE_RING_RADIUS
 
+/** 좌우쌍 부위명 교차 — Left_/Right_ 접두사만 스왑, Torso 등 중앙 부위는 그대로. */
+function mirrorClassName(name: string): string {
+  if (name.startsWith('Left_')) return `Right_${name.slice(5)}`
+  if (name.startsWith('Right_')) return `Left_${name.slice(6)}`
+  return name
+}
+
 /**
  * 사진 + 선택 부위 세그멘테이션 색칠을 **캔버스 한 장에 원본 해상도로 합성**한다.
  * 맵은 원본 사진 전체의 단순 스트레치(크롭·패딩 없음)라 배율만 맞추면 정확히
  * 겹치고, 한 캔버스이므로 CSS에서 cover/contain 무엇을 걸어도 같이 변형된다.
  * 선택 부위 bbox(맵 좌표계) 바깥은 칠하지 않는다 — 모델 오검출 노이즈 필터.
  */
-function PhotoWithOverlay({ seg, selected, label }: { seg: SegmentationInfo | null; selected: AnalysisPart | null; label: string }) {
+function PhotoWithOverlay({ seg, selected, label, mirrorHighlight = false }: { seg: SegmentationInfo | null; selected: AnalysisPart | null; label: string; mirrorHighlight?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -41,7 +48,9 @@ function PhotoWithOverlay({ seg, selected, label }: { seg: SegmentationInfo | nu
       if (!ctx) return
       ctx.drawImage(photo, 0, 0)
 
-      const entry = selected ? seg.palette.find(item => item.class_name === selected.class_name) : null
+      // 거울 매칭(cross_paired) 촬영이면 레퍼런스 쪽만 좌우쌍을 교차해 칠한다
+      const highlightClass = selected ? (mirrorHighlight ? mirrorClassName(selected.class_name) : selected.class_name) : null
+      const entry = highlightClass ? seg.palette.find(item => item.class_name === highlightClass) : null
       if (!entry || !selected) return
       const mapImage = new Image()
       mapImage.crossOrigin = 'anonymous' // 픽셀을 읽어야 해서 필요 — 실패하면 색칠만 생략
@@ -83,7 +92,7 @@ function PhotoWithOverlay({ seg, selected, label }: { seg: SegmentationInfo | nu
     }
     photo.src = seg.photo_url
     return () => { cancelled = true }
-  }, [seg, selected])
+  }, [seg, selected, mirrorHighlight])
 
   return <div className="comparison-analysis-photo">
     <canvas ref={canvasRef} className="comparison-analysis-photo__canvas" role="img" aria-label={label} />
@@ -151,7 +160,8 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
 
       <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
         <PhotoWithOverlay seg={segmentation?.user ?? null} selected={selected} label="현재 체형" />
-        <PhotoWithOverlay seg={segmentation?.reference ?? null} selected={selected} label="목표 레퍼런스" />
+        <PhotoWithOverlay seg={segmentation?.reference ?? null} selected={selected} label="목표 레퍼런스"
+          mirrorHighlight={segmentation?.comparable.cross_paired ?? false} />
       </section>
 
       <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요.</p>
