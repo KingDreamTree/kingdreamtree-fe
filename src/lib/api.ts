@@ -155,7 +155,6 @@ export function uploadReferencePhoto(sessionId: string, input: {
   poseScaleBasis: PoseScaleBasis
   posePersonAreaRatio?: number | null
   multiPerson?: boolean
-  isMirrored?: boolean
 }) {
   const form = new FormData()
   form.set('file', input.file)
@@ -163,7 +162,6 @@ export function uploadReferencePhoto(sessionId: string, input: {
   form.set('pose_scale_basis', input.poseScaleBasis)
   if (input.posePersonAreaRatio != null) form.set('pose_person_area_ratio', String(input.posePersonAreaRatio))
   form.set('multi_person', String(input.multiPerson ?? false))
-  form.set('is_mirrored', String(input.isMirrored ?? false))
   return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/reference`, { method: 'POST', body: form })
 }
 
@@ -178,7 +176,6 @@ export function uploadUserPhoto(sessionId: string, input: {
   poseOks?: number | null
   posePersonAreaRatio?: number | null
   multiPerson?: boolean
-  isMirrored?: boolean
 }) {
   const form = new FormData()
   form.set('file', input.file)
@@ -191,7 +188,6 @@ export function uploadUserPhoto(sessionId: string, input: {
   if (input.poseOks != null) form.set('pose_oks', String(input.poseOks))
   if (input.posePersonAreaRatio != null) form.set('pose_person_area_ratio', String(input.posePersonAreaRatio))
   form.set('multi_person', String(input.multiPerson ?? false))
-  form.set('is_mirrored', String(input.isMirrored ?? false))
   return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/user`, { method: 'POST', body: form })
 }
 
