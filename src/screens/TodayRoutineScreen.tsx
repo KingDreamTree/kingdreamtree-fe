@@ -3,6 +3,7 @@ import todayRoutineExercise from '../assets/today-routine-dumbbell-bench-press.p
 import todayRoutineNextExercise from '../assets/today-routine-next-exercise.png'
 import todayRoutineProgressLine from '../assets/today-routine-progress-line.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
+import { PreviousButton } from '../components/PreviousButton'
 import type { RoutineExercise, TodayRoutine } from '../lib/api'
 
 function exerciseDose(exercise: RoutineExercise | undefined): string {
@@ -15,10 +16,10 @@ function exerciseDose(exercise: RoutineExercise | undefined): string {
   return parts.join(' ') || '자유 진행'
 }
 
-type TodayRoutineScreenProps = { today: TodayRoutine | null; onFinish: () => void }
+type TodayRoutineScreenProps = { today: TodayRoutine | null; onFinish: () => void; onPrevious: () => void }
 
 /** Figma 657:4412 — 오늘 루틴. 운동 목록은 GET /routines/today의 Day 실데이터로 진행한다. */
-export function TodayRoutineScreen({ today, onFinish }: TodayRoutineScreenProps) {
+export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutineScreenProps) {
   const exercises = today?.day.exercises ?? []
   const [step, setStep] = useState(0)
   const [isFinalSetComplete, setIsFinalSetComplete] = useState(false)
@@ -53,6 +54,7 @@ export function TodayRoutineScreen({ today, onFinish }: TodayRoutineScreenProps)
   }
 
   return <FixedStepFrame label="오늘 루틴"><div className="today-routine-page">
+    <PreviousButton onClick={onPrevious} />
     <p className="today-routine-page__eyebrow">오늘의 루틴 {today ? `· ${today.progress.cycle_no}주차 Day ${today.day.day_order}` : ''}</p>
     <h1>{today?.day.title ?? '오늘 해야 하는 루틴이에요'}</h1>
     <p className="today-routine-page__notice">완료 버튼을 눌러야 다음 스텝으로 이동할 수 있어요!</p>

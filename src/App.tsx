@@ -27,6 +27,7 @@ import poseSuccessCheck from './assets/pose-success-check.svg'
 import poseFailLineOne from './assets/pose-fail-line-1.svg'
 import poseFailLineTwo from './assets/pose-fail-line-2.svg'
 import { FixedStepFrame } from './components/FixedStepFrame'
+import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
 import { applyCoachChanges, createRoutine, createWorkoutLog, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
@@ -179,15 +180,17 @@ type ReferenceScreenProps = {
   onConfirm: () => void
   onSelectFile: (file: File) => void
   onStart: () => void
+  onPrevious: () => void
 }
 
-function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFile, onStart }: ReferenceScreenProps) {
+function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFile, onStart, onPrevious }: ReferenceScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const pick = (files: FileList | null) => { const file = files?.[0]; if (file) onSelectFile(file) }
   return <FixedStepFrame label="Step 1 목표 체형 레퍼런스"><div className="reference-page">
       <p className="step-label">Step 1/3</p>
       <h1>목표 체형 레퍼런스</h1>
       <p className="step-description">원하는 체형의 사진을 등록하면 AI가 차이를 분석합니다</p>
+      <PreviousButton onClick={onPrevious} />
       <ReferenceHints />
       <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { pick(event.currentTarget.files); event.currentTarget.value = '' }} />
       <button type="button" className={`reference-dropzone ${ready ? 'is-ready' : ''}`} disabled={busy}
@@ -239,14 +242,15 @@ type PoseScreenProps = {
   onBrowse: (file: File) => void
   onLive: () => void
   onNext: () => void
+  onPrevious: () => void
 }
 
-function PoseScreen({ result, score, message, referenceUrl, mirrorPhoto, onMirrorPhotoChange, onRetry, onBrowse, onLive, onNext }: PoseScreenProps) {
+function PoseScreen({ result, score, message, referenceUrl, mirrorPhoto, onMirrorPhotoChange, onRetry, onBrowse, onLive, onNext, onPrevious }: PoseScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   return <FixedStepFrame label={`Step 2 체형 사진 ${result}`}><div className="pose-page">
       <p className="step-label">Step 2/3</p>
       <h1>체형 사진 업로드</h1>
-      <p className="step-description">레퍼런스와 같은 포즈로 자신의 체형을 업로드 해주세요!</p>
+      <p className="step-description">레퍼런스와 같은 포즈로 자신의 체형을 업로드 해주세요!</p><PreviousButton onClick={onPrevious} />
       {referenceUrl && <div className="pose-reference pose-reference--live"><img src={referenceUrl} alt="레퍼런스 체형" /></div>}
       <PoseCorners />
       <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) onBrowse(file); event.currentTarget.value = '' }} />
@@ -634,20 +638,22 @@ function App() {
     ready={Boolean(refData)} busy={refBusy} error={refError}
     showNotice={view === 'reference-notice'}
     onConfirm={() => setView('reference')}
+    onPrevious={() => setView('onboarding')}
     onSelectFile={file => void handleReferenceFile(file)}
     onStart={() => setView('pose-capture')} />
   if (view === 'pose-capture') return refData && criteria
     ? <PoseCaptureScreen sessionId={getStoredSessionId() ?? ''} criteria={criteria}
         refLm={refData.pose.landmarks as PoseLandmarks} refAspect={refData.aspect} refScaleBasis={refData.pose.scaleBasis} referenceUrl={refData.url}
         onNext={() => setView('inbody-upload')}
+        onPrevious={() => setView('reference')}
         onBrowse={file => void uploadUser(file)} />
     : null
-  if (view === 'pose-analyzing') return <PoseScreen result="loading" score={poseEvaluation?.pose_similarity ?? 0} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
-  if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
-  if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} />
-  if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} />
-  if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} onSkip={() => void beginAnalysis()} /></>
-  if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => setView('inbody-upload')} onStart={openInbodyConfirmation} onSkip={() => void beginAnalysis()} />
+  if (view === 'pose-analyzing') return <PoseScreen result="loading" score={poseEvaluation?.pose_similarity ?? 0} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} mirrorPhoto={mirrorPhoto} onMirrorPhotoChange={setMirrorPhoto} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} onPrevious={() => setView('reference')} />
+  if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('pose-success')} /></>
+  if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => setView('inbody-upload')} onStart={openInbodyConfirmation} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-upload')} />
   if (view === 'inbody-form') return <InbodyUploadAfterScreen inbody={inbodyData} onConfirm={patch => void verifyInbodyAndBeginAnalysis(patch)} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'inbody-range-error') return <InbodyRangeErrorScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onPrevious={() => setView('inbody-form')} />
   if (view === 'inbody-warning') return <InbodyValidationWarningScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onPrevious={() => setView('inbody-range-error')} />
@@ -656,12 +662,12 @@ function App() {
   // 로딩 애니메이션이 100%가 되면 분석 화면으로 전환한다. 결과 API는 백그라운드에서
   // 이어서 받아 상태를 채우므로, 네트워크 응답 때문에 로딩 화면이 멈춰 있지 않는다.
   if (view === 'inbody-loading') return <LoadingOneScreen isAnalysisReady onComplete={() => setView('comparison')} />
-  if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} />
-  if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} />
+  if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
+  if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
   if (view === 'loading-two') return <LoadingTwoScreen onComplete={() => undefined} />
-  if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setSelectedDay(day); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />
+  if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setSelectedDay(day); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} onPrevious={() => setView('exercise-days')} />
   if (view === 'custom-routine-detail') return <CustomRoutineDetailScreen day={selectedDay} onPrevious={() => setView('custom-routine')} />
-  if (view === 'today-routine') return <TodayRoutineScreen today={todayRoutine} onFinish={() => setView('feedback')} />
+  if (view === 'today-routine') return <TodayRoutineScreen today={todayRoutine} onFinish={() => setView('feedback')} onPrevious={() => setView('custom-routine')} />
   if (view === 'feedback') return <FeedbackScreen onSubmit={message => void completeWorkout(message)} onSkip={() => void completeWorkout()} />
   if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => undefined} />
   if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => void continueCoach(message)} />

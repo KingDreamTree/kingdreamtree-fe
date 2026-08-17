@@ -2,6 +2,7 @@ import customRoutineDetailTime from '../assets/custom-routine-detail-time.svg'
 import customRoutineDetailWarmup from '../assets/custom-routine-detail-warmup.png'
 import { useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
+import { PreviousButton } from '../components/PreviousButton'
 import type { RoutineDay } from '../lib/api'
 
 function exerciseDurationMin(exercise: RoutineDay['exercises'][number]): number {
@@ -41,7 +42,7 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
   return <FixedStepFrame label="맞춤 루틴 상세보기"><div className="custom-routine-detail-page">
     <p className="custom-routine-detail-page__eyebrow">상세보기</p>
     <h1>DAY {day?.day_order ?? 1}</h1>
-    <button className="custom-routine-detail-page__previous" type="button" onClick={onPrevious}>이전 단계</button>
+    <PreviousButton className="custom-routine-detail-page__previous" onClick={onPrevious} />
     <p className="custom-routine-detail-page__duration"><img src={customRoutineDetailTime} alt="" />예상 운동시간 <strong>{duration ?? '-'}분</strong></p>
     <section className="custom-routine-detail-page__groups" aria-label={`DAY ${day?.day_order ?? 1} 운동 목록`}>
       {exercises.map((exercise, index) => <article className={selected?.order_index === exercise.order_index ? 'is-selected' : ''} key={exercise.order_index} tabIndex={0} onMouseEnter={() => setSelectedIndex(index)} onFocus={() => setSelectedIndex(index)} onClick={() => setSelectedIndex(index)}>

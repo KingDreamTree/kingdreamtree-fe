@@ -2,14 +2,16 @@ import { useState, type DragEvent } from 'react'
 import inbodyUpload from '../assets/inbody-upload.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { InbodyWimDialog } from '../components/InbodyWimDialog'
+import { PreviousButton } from '../components/PreviousButton'
 
 type InbodyUploadBeforeScreenProps = {
   onUpload: () => void
   onComplete: () => void
   onSkip: () => void
+  onPrevious: () => void
 }
 
-export function InbodyUploadBeforeScreen({ onUpload, onComplete, onSkip }: InbodyUploadBeforeScreenProps) {
+export function InbodyUploadBeforeScreen({ onUpload, onComplete, onSkip, onPrevious }: InbodyUploadBeforeScreenProps) {
   const [isWimModalOpen, setIsWimModalOpen] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 
@@ -44,6 +46,7 @@ export function InbodyUploadBeforeScreen({ onUpload, onComplete, onSkip }: Inbod
         <p className="step-label">Step 3/3</p>
         <h1>인바디 정보 입력</h1>
         <p className="step-description">정확한 분석을 위해 최근 인바디 측정 결과를 입력해주세요</p>
+        <PreviousButton onClick={onPrevious} />
 
         <button className="inbody-before-skip" type="button" onClick={onSkip}>건너뛰기</button>
         <button className={`inbody-before-dropzone${isDragging ? ' is-dragging' : ''}`} type="button" onClick={onUpload} onDragOver={handleDragOver} onDragLeave={() => setIsDragging(false)} onDrop={handleDrop}>

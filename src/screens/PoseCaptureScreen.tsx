@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
+import { PreviousButton } from '../components/PreviousButton'
 import { PoseScore } from '../components/PoseScore'
 import { createHoldGate, evaluate, IDX, MESSAGES, mirrorLandmarks, SEGMENTS, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
 import { loadVideoLandmarker } from '../lib/landmarkers'
@@ -22,6 +23,7 @@ type PoseCaptureScreenProps = {
   refScaleBasis: 'TORSO' | 'HIP_KNEE'
   referenceUrl: string
   onNext: () => void
+  onPrevious: () => void
   /** 갤러리에서 사진을 골라 업로드 판정 경로로 전환한다. */
   onBrowse: (file: File) => void
 }
@@ -125,7 +127,7 @@ function cameraErrorMessage(error: unknown) {
   return '카메라를 열 수 없어요. 브라우저 카메라 권한을 확인해주세요.'
 }
 
-export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refScaleBasis, referenceUrl, onNext, onBrowse }: PoseCaptureScreenProps) {
+export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refScaleBasis, referenceUrl, onNext, onPrevious, onBrowse }: PoseCaptureScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const refImageRef = useRef<HTMLImageElement>(null)
   const skeletonRef = useRef<HTMLCanvasElement>(null)
@@ -392,6 +394,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
   const showOverlay = phase.kind !== 'live' && phase.kind !== 'starting'
 
   return <FixedStepFrame label="Step 2 실시간 자세 촬영"><div className="pose-page">
+    <PreviousButton onClick={onPrevious} />
     <p className="step-label">Step 2/3</p>
     <h1>실시간 자세 촬영</h1>
     <p className="step-description">레퍼런스와 같은 포즈를 유지하면 자동으로 촬영됩니다</p>
