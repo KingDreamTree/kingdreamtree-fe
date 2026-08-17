@@ -237,9 +237,11 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       const canvas = document.createElement('canvas')
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
-      // 로컬 실험: 미리보기(거울) 방향 그대로 저장 — 사피엔스가 레퍼런스와 같은
-      // 방향의 사진을 분할하게 해서, 같은 이름끼리 비교해도 시각적으로 같은 쪽이
-      // 붙는다. 좌표도 아래에서 같이 반전해 사진과 세트를 맞춘다.
+      // 미리보기(거울) 방향 그대로 저장한다 (FRONTEND.md §7, 2026-08-18 개정).
+      // 저장본이 레퍼런스와 같은 방향이 되므로 저장 이후 처리가 갤러리 업로드와
+      // 완전히 같아진다 — 서버의 교차 짝짓기·표시 반전이 필요 없다.
+      // ⚠️ 좌표도 아래에서 함께 반전한다. 사진과 좌표는 반드시 세트로 움직여야
+      //    하고, 한쪽만 뒤집으면 에러 없이 좌우 진단이 통째로 어긋난다.
       const ctx = canvas.getContext('2d')
       if (ctx) {
         ctx.translate(canvas.width, 0)
@@ -405,7 +407,8 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     </ul>
 
     <div className="pose-live-area">
-      {/* 거울 미리보기는 CSS 반전만 — 좌표·캡처는 비반전 원본. 스켈레톤도 같은 반전을 받아 화면과 일치한다 */}
+      {/* 미리보기·스켈레톤은 CSS 반전으로 거울처럼 보여준다. 판정에 쓰는 좌표는 카메라 원본이고,
+          저장은 셔터에서 사진·좌표를 함께 반전해 화면에서 본 방향으로 남긴다 (shutter 주석 참고) */}
       <video ref={videoRef} className="pose-live-video" playsInline muted />
       <canvas ref={liveSkeletonRef} className="pose-live-skeleton" aria-hidden="true" />
       {phase.kind === 'starting' && <p className="pose-live-starting">카메라를 준비하고 있어요…</p>}

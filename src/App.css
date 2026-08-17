@@ -402,7 +402,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .pose-guide li { margin: 0; }
 
 .pose-live-area { position: absolute; top: 348px; left: 593px; width: 711px; height: 471px; overflow: hidden; background: #111; }
-.pose-live-video { width: 100%; height: 100%; object-fit: contain; transform: scaleX(-1); } /* 거울은 미리보기 CSS만 — 좌표·캡처는 비반전 원본 */
+.pose-live-video { width: 100%; height: 100%; object-fit: contain; transform: scaleX(-1); } /* 미리보기를 거울로 — 판정 좌표는 카메라 원본, 저장은 셔터에서 반전 */
 .pose-live-skeleton { position: absolute; inset: 0; transform: scaleX(-1); pointer-events: none; } /* 비반전 좌표로 그리고 미리보기와 같이 CSS로 반전 */
 .pose-live-starting { position: absolute; top: 50%; left: 0; width: 100%; margin: 0; transform: translateY(-50%); color: #ccc; font: 500 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; text-align: center; }
 .pose-live-message { position: absolute; bottom: 26px; left: 50%; margin: 0; padding: 8px 22px; transform: translateX(-50%); border-radius: 30px; background: rgba(34, 34, 34, .78); color: #f6f6f6; font: 600 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; white-space: nowrap; }
@@ -410,17 +410,14 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .pose-live-hold { position: absolute; bottom: 0; left: 0; width: 100%; height: 7px; background: rgba(246, 246, 246, .18); }
 .pose-live-hold span { display: block; height: 100%; background: #ffe250; transition: width 120ms linear; }
 .pose-live-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(17, 17, 17, .55); }
-.pose-live-capture { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; } /* 로컬 실험: 사진 자체가 거울 방향으로 저장되므로 표시 반전 불필요 (CSS 반전 제거) */
+.pose-live-capture { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; } /* 사진 자체가 거울 방향으로 저장되므로 표시 반전이 필요 없다 */
 .pose-live-overlay__text { position: relative; margin: 0; padding: 8px 24px; border-radius: 12px; background: rgba(17, 17, 17, .68); color: #f6f6f6; font: 600 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; text-align: center; }
 .pose-live-overlay__retry { position: relative; margin-top: 18px; padding: 8px 26px; border: 1px solid #f6f6f6; border-radius: 30px; background: transparent; color: #f6f6f6; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; cursor: pointer; }
 
 .pose-status--retry strong, .pose-status--failure strong { max-width: 700px; }
 .pose-status--retry strong { font-size: 18px; }
 .pose-gallery { position: absolute; top: 198px; left: 1104px; width: 239px; height: 63px; border: 1px solid #3b3b3b; border-radius: 13px; background: rgba(59, 59, 59, .4); color: #f6f6f6; font: 500 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; cursor: pointer; }
-.pose-mirror-check { position: absolute; top: 292px; left: 131px; display: flex; align-items: center; gap: 8px; color: #ccc; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; cursor: pointer; }
-.pose-mirror-check input { width: 16px; height: 16px; accent-color: #ffe250; cursor: pointer; }
 .pose-page h1 { line-height: 1.25; }
-.pose-page .pose-mirror-check { top: 314px; }
 
 .loading-one-glow { position: absolute; top: 644px; left: 479px; width: 61px; height: 62px; pointer-events: none; transition: transform 35ms linear; }
 
