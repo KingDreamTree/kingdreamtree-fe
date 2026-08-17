@@ -467,6 +467,7 @@ function App() {
 
   const openInbodyConfirmation = async () => {
     if (!inbodyId) return
+    setView('inbody-form')
     try {
       if (inbodyJobId) await waitForJob(inbodyJobId)
       const detail = await getInbody(inbodyId)
@@ -479,6 +480,7 @@ function App() {
 
   const verifyInbodyAndBeginAnalysis = async (patch?: InbodyPatch) => {
     try {
+      if (inbodyJobId) await waitForJob(inbodyJobId)
       if (inbodyId) await patchInbody(inbodyId, { ...(patch ?? {}), verified: true })
       await beginAnalysis()
     } catch (error) {
