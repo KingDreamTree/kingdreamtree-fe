@@ -288,7 +288,11 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .inbody-upload-success-dropzone { position: absolute; top: 452px; left: 274px; width: 893px; height: 298px; overflow: hidden; border: 2px dashed #ffe250; border-radius: 11.544px; background: #3b3b3b; cursor: pointer; }
 .inbody-upload-success-ring { position: absolute; top: 76px; left: 409px; width: 72px; height: 72px; }.inbody-upload-success-check { position: absolute; top: 104px; left: 433px; width: 24px; height: 24px; }
 .inbody-upload-success-dropzone strong { position: absolute; top: 171px; left: 0; width: 100%; color: #ffe250; font: 700 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; text-align: center; }.inbody-upload-success-dropzone small { position: absolute; top: 201px; left: 0; width: 100%; color: #ccc; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; text-align: center; }
-.inbody-upload-success-start { position: absolute; top: 861px; left: 573px; width: 293px; height: 63px; border: 0; border-radius: 41px; background: #ffe250; color: #222; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; }
+.inbody-upload-success-start { position: absolute; top: 861px; left: 573px; width: 293px; height: 63px; border: 0; border-radius: 41px; background: rgba(255, 226, 80, .2); color: #222; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: default; transition: background-color 180ms ease, transform 180ms ease; }
+.inbody-upload-success-start.is-ready { background: #ffe250; cursor: pointer; animation: inbody-upload-success-start-ready 360ms cubic-bezier(.2, .8, .2, 1); }
+.inbody-upload-success-start:disabled { cursor: wait; opacity: .72; }
+.inbody-upload-success-start:not(:disabled):hover { transform: translateY(-2px); }
+@keyframes inbody-upload-success-start-ready { 0% { transform: translateY(8px); opacity: .7; } 65% { transform: translateY(-8px); opacity: 1; } 100% { transform: translateY(0); } }
 
 /* Figma 586:886 — 인바디-업로드 후 */
 .inbody-after-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; }
