@@ -197,6 +197,16 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-disclaimer span { display: block; }
 .comparison-analysis-disclaimer span + span { margin-top: 4px; }
 
+/* Dynamic analysis copy can wrap without colliding with the controls below it. */
+.comparison-analysis-help { box-sizing: border-box; width: 1182px; min-height: 66px; padding-right: 24px; line-height: 33px; white-space: normal; overflow-wrap: anywhere; word-break: keep-all; }
+.comparison-analysis-parts { top: 1953px; }
+.comparison-analysis-diagnosis { top: 2070px; }
+.comparison-analysis-diagnosis h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.comparison-analysis-gap, .comparison-analysis-badge { margin-left: 0; }
+.comparison-analysis-diagnosis > div { height: auto; min-height: 205px; }
+.comparison-analysis-diagnosis section { min-width: 0; }
+.comparison-analysis-diagnosis section p { white-space: normal; overflow-wrap: anywhere; word-break: keep-all; }
+
 /* Figma 618:3197 — 운동일수 */
 .exercise-days-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; text-align: center; }
 .exercise-days-page__eyebrow { position: absolute; top: 275px; left: 0; width: 100%; margin: 0; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }
