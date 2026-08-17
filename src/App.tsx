@@ -467,7 +467,6 @@ function App() {
 
   const openInbodyConfirmation = async () => {
     if (!inbodyId) return
-    setView('inbody-form')
     try {
       if (inbodyJobId) await waitForJob(inbodyJobId)
       const detail = await getInbody(inbodyId)
