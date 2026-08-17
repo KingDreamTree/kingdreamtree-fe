@@ -304,15 +304,7 @@ async function waitForInbodyDetail(inbodyId: string, jobId: string | null): Prom
 }
 
 function App() {
-const VIEW_STORAGE_KEY = 'refit.current-view'
-
-  const [view, setView] = useState<AppView>(() => {
-    const storedView = sessionStorage.getItem(VIEW_STORAGE_KEY)
-    return (storedView as AppView | null) ?? 'onboarding'
-  })
-  useEffect(() => {
-    sessionStorage.setItem(VIEW_STORAGE_KEY, view)
-  }, [view])
+  const [view, setView] = useState<AppView>('onboarding')
   const [workoutDays, setWorkoutDays] = useState(1)
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [isPreparingSession, setIsPreparingSession] = useState(false)
