@@ -38,8 +38,7 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
     {/* 주기 모델: Day 1..N을 4주기 반복 — 주차가 달라도 Day 구성은 같고, 진행 중인 주기만 표시가 다르다 */}
     <nav className="custom-routine-page__weeks" aria-label="루틴 주차 선택">{Array.from({ length: routine?.total_cycles ?? 4 }, (_, index) => index + 1).map(item => <button className={week === item ? 'is-selected' : ''} type="button" key={item} onClick={() => setWeek(item)}>{item}주차</button>)}</nav>
     <section className="custom-routine-page__cards" aria-label={`${week}주차 운동 루틴`}>{days.map(day => {
-      const isNext = progress ? week === progress.cycle_no && day.day_order === progress.next_day_order : day.day_order === 1
-      return <article className={isNext ? 'is-highlighted' : ''} key={day.day_order}>
+      return <article key={day.day_order}>
         <h2>DAY {day.day_order}</h2><p>{dayFocus(day)}</p><button type="button" onClick={() => onViewDay(day)}>+상세보기</button>
       </article>
     })}</section>
