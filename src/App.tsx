@@ -603,14 +603,6 @@ function App() {
     setView('custom-routine')
   }
 
-  useEffect(() => {
-    if (view !== 'feedback-applied' && view !== 'feedback-kept') return
-    // 결과 카드를 잠시 보여준 뒤 갱신된 오늘 루틴으로 복귀 (대화잠금 화면은 흐름에서 제외)
-    const timer = window.setTimeout(() => { void openTodayRoutine() }, 2500)
-    return () => window.clearTimeout(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view])
-
   if (view === 'reference-notice' || view === 'reference') return <ReferenceScreen
     ready={Boolean(refData)} busy={refBusy} error={refError}
     showNotice={view === 'reference-notice'}
