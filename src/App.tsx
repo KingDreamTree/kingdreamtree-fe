@@ -400,7 +400,7 @@ function App() {
           break
         } catch (error) {
           if (error instanceof RefitApiError && error.status === 409) {
-            await new Promise(resolve => window.setTimeout(resolve, 3000))
+            await new Promise(resolve => window.setTimeout(resolve, 1000))
             continue
           }
           throw error
@@ -411,7 +411,7 @@ function App() {
       for (let attempt = 0; attempt < 200; attempt += 1) {
         const progress = await getAnalysisProgress(sessionId)
         if (progress.completed) break
-        await new Promise(resolve => window.setTimeout(resolve, 2000))
+        await new Promise(resolve => window.setTimeout(resolve, 750))
       }
       const [analysis, segmentation] = await Promise.all([getAnalysis(sessionId), getSessionSegmentation(sessionId)])
       setAnalysisData(analysis)
