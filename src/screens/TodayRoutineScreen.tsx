@@ -21,13 +21,14 @@ type TodayRoutineScreenProps = { today: TodayRoutine | null; onFinish: () => voi
 export function TodayRoutineScreen({ today, onFinish }: TodayRoutineScreenProps) {
   const exercises = today?.day.exercises ?? []
   const [step, setStep] = useState(0)
+  const [isFinalSetComplete, setIsFinalSetComplete] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   const current = exercises[step]
   const next = exercises[step + 1]
   const isLastStep = step >= exercises.length - 1
-  const isWorkoutComplete = exercises.length === 0 ? false : step >= exercises.length
+  const isWorkoutComplete = exercises.length > 0 && isFinalSetComplete
 
   useEffect(() => {
     if (!isTransitioning) return
@@ -41,7 +42,7 @@ export function TodayRoutineScreen({ today, onFinish }: TodayRoutineScreenProps)
   const completeSet = () => {
     if (isTransitioning || isWorkoutComplete) return
     if (isLastStep) {
-      setStep(value => value + 1)
+      setIsFinalSetComplete(true)
       return
     }
     if (prefersReducedMotion) {
@@ -62,11 +63,6 @@ export function TodayRoutineScreen({ today, onFinish }: TodayRoutineScreenProps)
       <span>Step {step + 1}/{exercises.length}</span><h2>{current.name}</h2><small>{exerciseDose(current)}</small>
       <p>{current.note ?? (current.muscle_group ? `${current.muscle_group} 자극에 집중해주세요.` : '정확한 자세에 집중해주세요.')}</p>
       <button type="button">자세가이드</button><img src={current.image_url ?? todayRoutineExercise} alt={`${current.name} 동작`} />
-    </section>}
-
-    {isWorkoutComplete && <section className="today-routine-page__current" aria-label="운동 완료">
-      <span>완료</span><h2>오늘 운동을 모두 마쳤어요!</h2><small>{exercises.length}개 운동 완료</small>
-      <p>운동마치기를 눌러 피드백을 남겨주세요.</p>
     </section>}
 
     {next && !isWorkoutComplete && <aside className={`today-routine-page__next ${isTransitioning ? 'is-promoting' : ''}`} aria-label="다음 운동">
