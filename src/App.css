@@ -36,9 +36,9 @@
 .reference-hints { position: absolute; top: 354px; left: 131px; display: grid; grid-template-columns: 426px 448px 1fr; }
 .reference-hint { position: relative; width: 340px; height: 109.301px; }
 .reference-hint__circle { position: absolute; inset: 0 auto auto 0; width: 109.301px; height: 109.301px; border-radius: 50%; background: rgba(246, 246, 246, .06); }
-.reference-hint img { position: absolute; z-index: 1; top: 19px; left: 22px; width: 66px; height: 66px; object-fit: contain; }
-.reference-hint:nth-child(2) img { top: 19px; left: 19px; width: 72px; height: 72px; }.reference-hint:nth-child(3) img { top: 20px; left: 21px; width: 68px; height: 68px; }
-.reference-hint p { position: absolute; top: 17px; left: 137px; margin: 0; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; white-space: nowrap; }
+.reference-hint img { position: absolute; z-index: 1; top: 30px; left: 30px; width: 50.5px; height: 50.5px; object-fit: contain; }
+.reference-hint:nth-child(2) img { top: 31px; left: 31px; width: 54.03px; height: 54.03px; }.reference-hint:nth-child(3) img { top: 35.17px; left: 26.67px; width: 56.667px; height: 39.667px; }
+.reference-hint p { position: absolute; top: 22px; left: 137px; margin: 0; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; white-space: nowrap; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 .reference-dropzone { position: absolute; top: 513px; left: 273px; width: 893px; height: 298px; padding: 0; overflow: hidden; border: 2px dashed #b0b0b0; border-radius: 11.544px; background: #3b3b3b; color: #f6f6f6; text-align: center; cursor: pointer; }.reference-dropzone:disabled { cursor: wait; opacity: .8; }
 .reference-dropzone > img { position: absolute; top: 97px; left: 409px; width: 72px; height: 72px; aspect-ratio: 1 / 1; object-fit: contain; }.reference-dropzone p { position: absolute; top: 171px; left: 0; width: 100%; margin: 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; text-align: center; }
