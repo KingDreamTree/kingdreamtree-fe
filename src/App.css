@@ -397,9 +397,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 .pose-reference--live { background: #111; }
 .pose-reference--live img { position: static; width: 100%; height: 100%; object-fit: contain; }
-.pose-reference__skeleton { position: absolute; inset: 0; pointer-events: none; }
-.pose-guide { position: absolute; top: 838px; left: 131px; width: 433px; margin: 0; padding: 0 0 0 18px; color: #ccc; font: 500 15px/1.7 Pretendard, sans-serif; letter-spacing: -.45px; }
-.pose-guide li { margin: 0; }
+.pose-reference__skeleton { display: none; }
+.pose-guide-card { position: absolute; top: 838px; left: 131px; box-sizing: border-box; width: 433px; min-height: 158px; padding: 17px 20px 16px; border: 1px solid rgb(246 246 246 / .14); border-radius: 16px; background: rgb(59 59 59 / .4); box-shadow: inset 0 1px 0 rgb(246 246 246 / .08); }
+.pose-guide-card h2 { margin: 0 0 9px; color: #ffe250; font: 700 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
+.pose-guide { display: grid; gap: 3px; margin: 0; padding: 0; color: #d7d7d7; font: 500 15px/1.5 Pretendard, sans-serif; letter-spacing: -.45px; list-style: none; }
+.pose-guide li { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pose-guide li span { display: grid; width: 17px; height: 17px; flex: none; place-items: center; border-radius: 50%; background: rgb(255 226 80 / .16); color: #ffe250; font: 700 11px/1 Pretendard, sans-serif; }
 
 .pose-live-area { position: absolute; top: 348px; left: 593px; width: 711px; height: 471px; overflow: hidden; background: #111; }
 .pose-live-video { width: 100%; height: 100%; object-fit: contain; transform: scaleX(-1); } /* 거울은 미리보기 CSS만 — 좌표·캡처는 비반전 원본 */

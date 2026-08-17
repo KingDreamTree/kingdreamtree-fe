@@ -400,9 +400,12 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       <img ref={refImageRef} src={referenceUrl} alt="레퍼런스 체형" onLoad={drawReferenceSkeleton} />
       <canvas ref={skeletonRef} className="pose-reference__skeleton" aria-hidden="true" />
     </div>
-    <ul className="pose-guide" aria-label="촬영 안내">
-      {CAPTURE_GUIDES.map((guide) => <li key={guide}>{guide}</li>)}
-    </ul>
+    <section className="pose-guide-card" aria-labelledby="pose-guide-title">
+      <h2 id="pose-guide-title">촬영 가이드</h2>
+      <ul className="pose-guide">
+        {CAPTURE_GUIDES.map((guide, index) => <li key={guide}><span>{index + 1}</span>{guide}</li>)}
+      </ul>
+    </section>
 
     <div className="pose-live-area">
       {/* 거울 미리보기는 CSS 반전만 — 좌표·캡처는 비반전 원본. 스켈레톤도 같은 반전을 받아 화면과 일치한다 */}
