@@ -10,7 +10,7 @@ type FeedbackExerciseIntensityScreenProps = {
   userMessage: string
   coach: CoachChatResponse | null
   onSubmit: (feedback: string) => void
-  onNext: () => void
+  onExit: () => void
 }
 
 function toolEventLabel(event: { name: string; args: Record<string, unknown> }): string {
@@ -24,7 +24,7 @@ function toolEventLabel(event: { name: string; args: Record<string, unknown> }):
 }
 
 /** Figma 782:1134 — 피드백 - 운동, 강도. 2턴째부터의 코치 응답을 이 레이아웃으로 보여준다. */
-export function FeedbackExerciseIntensityScreen({ userMessage, coach, onSubmit, onNext }: FeedbackExerciseIntensityScreenProps) {
+export function FeedbackExerciseIntensityScreen({ userMessage, coach, onSubmit, onExit }: FeedbackExerciseIntensityScreenProps) {
   const [nextFeedback, setNextFeedback] = useState('')
   const isReadyToSubmit = Boolean(nextFeedback.trim())
   const messages = coach?.messages?.length
@@ -38,7 +38,7 @@ export function FeedbackExerciseIntensityScreen({ userMessage, coach, onSubmit, 
   }
 
   return <FixedStepFrame label="피드백 운동 강도"><div className="feedback-exercise-page">
-    <header className="feedback-exercise-page__header"><span>운동 완료{coach ? ` · 대화 ${coach.turn}/${coach.max_turns}` : ''}</span><button type="button" onClick={onNext} aria-label="피드백 반영 여부 보기">→</button></header>
+    <header className="feedback-exercise-page__header"><span>운동 완료{coach ? ` · 대화 ${coach.turn}/${coach.max_turns}` : ''}</span><button type="button" onClick={onExit}>나가기 →</button></header>
     <img className="feedback-exercise-page__coach" src={feedbackIllustration} alt="운동과 강도를 조절하는 코치" />
     <section className="feedback-chat-history" aria-label="피드백 대화">
       {messages.map((message, index) => <p className={`feedback-chat-history__message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`} key={`${message.role}-${index}`}>{message.content}</p>)}
