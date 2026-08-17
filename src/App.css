@@ -63,6 +63,8 @@
 .step-page { position: fixed; inset: 0; display: flex; width: 100vw; min-width: 0; height: 100dvh; min-height: 0; align-items: center; justify-content: center; overflow: hidden; }
 .step-frame { position: relative; flex: none; overflow: hidden; }
 .step-canvas { margin: 0; transform-origin: top left; }
+.refit-logo { position: absolute; top: 28px; left: 131px; z-index: 20; margin: 0; color: #f6f6f6; font: 700 25px/1 esamanru, Pretendard, sans-serif; letter-spacing: -.75px; white-space: nowrap; }
+.refit-logo strong { color: #ffe250; font: inherit; }
 
 /* Figma 586:1760 — 인바디-검증경고 */
 .inbody-warning-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; }.inbody-warning-page h1 { position: absolute; top: 198px; left: 131px; margin: 0; font: 700 50px/1.5 Pretendard, sans-serif; letter-spacing: -1.5px; }.inbody-warning-page h2 { margin: 0; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }

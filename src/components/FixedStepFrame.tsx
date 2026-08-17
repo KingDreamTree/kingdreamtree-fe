@@ -21,5 +21,5 @@ export function FixedStepFrame({ children, label }: FixedStepFrameProps) {
   }, [])
 
   const canvasStyle = { transform: `scale(${scale})` } as CSSProperties
-  return <main className="step-page" aria-label={label}><div className="step-frame" style={{ width: 1440 * scale, height: 1024 * scale }}><div className="step-canvas" style={canvasStyle}>{children}</div></div></main>
+  return <main className="step-page" aria-label={label}><div className="step-frame" style={{ width: 1440 * scale, height: 1024 * scale }}><div className="step-canvas" style={canvasStyle}><p className="refit-logo" aria-label="RE:FIT"><span>RE:</span><strong>FIT</strong></p>{children}</div></div></main>
 }
