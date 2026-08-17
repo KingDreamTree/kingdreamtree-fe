@@ -151,7 +151,7 @@ function OnboardingThree() {
 
 function OnboardingFour({ onStart }: { onStart: () => void }) {
   return <RevealSection className="closing-section" label="온보딩 4: REFIT 시작하기">
-    <RefitLogo small /><div className="closing-section__copy motion"><h1>AI가 만드는 <em>맞춤 루틴</em></h1><p>오늘부터 RE:FIT과 함께, 내가 바라는 건강함을 차곡차곡</p></div>
+    <RefitLogo small /><div className="closing-section__copy motion"><h1>AI가 만드는 <em>맞춤 루틴</em></h1><p>오늘부터 REFIT과 함께, 내가 바라는 건강함을 차곡차곡</p></div>
     <div className="closing-section__illustration motion motion--delay-1" aria-hidden="true"><img className="closing-section__platform" src={routinePlatform} alt="" /><img className="closing-section__figure" src={routineFigure} alt="" /><img className="closing-section__marker" src={routineMarker} alt="" /></div>
     <div className="closing-section__button motion motion--delay-2"><StartButton wide onStart={onStart} /></div>
   </RevealSection>
