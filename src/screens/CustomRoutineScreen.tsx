@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import customRoutinePreviousArrow from '../assets/custom-routine-previous-arrow.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
-import { PreviousButton } from '../components/PreviousButton'
 import type { RoutineDay, RoutineDetail } from '../lib/api'
 
 /** Day 카드의 포커스 문구 — 운동들의 근육군을 요약한다. */
@@ -16,18 +15,17 @@ type CustomRoutineScreenProps = {
   onAdjustDays: () => void
   onViewDay: (day: RoutineDay) => void
   onNext: () => void
-  onPrevious: () => void
 }
 
 /** Figma 641:3901 — 맞춤 루틴. 카드·목표·주차는 GET /routines/active 응답에서 온다. */
-export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext, onPrevious }: CustomRoutineScreenProps) {
+export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }: CustomRoutineScreenProps) {
   const progress = routine?.progress ?? null
   const [week, setWeek] = useState(progress?.cycle_no ?? 1)
   const days = routine?.days ?? []
 
   return <FixedStepFrame label="맞춤 루틴"><div className="custom-routine-page">
     <p className="custom-routine-page__eyebrow">맞춤루틴 제공</p>
-    <h1>목표 체형 레퍼런스</h1><PreviousButton onClick={onPrevious} />
+      <h1>목표 체형 레퍼런스</h1>
     <button className="custom-routine-page__adjust" type="button" onClick={onAdjustDays}><img src={customRoutinePreviousArrow} alt="" />운동 일수 조정</button>
     <button className="custom-routine-page__next" type="button" onClick={onNext}>다음 단계</button>
 
