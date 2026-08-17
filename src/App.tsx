@@ -280,12 +280,16 @@ async function waitForJob(jobId: string): Promise<Job> {
   throw new Error('The requested job timed out.')
 }
 
+function hasInbodyExtraction(detail: InbodyDetail): boolean {
+  return Object.values(detail.fields).some(value => value !== null && value !== undefined && value !== '') || detail.smi !== null || detail.segments.some(segment => segment.lean_mass !== null || segment.fat_mass !== null)
+}
+
 async function waitForInbodyDetail(inbodyId: string, jobId: string | null): Promise<InbodyDetail> {
   let lastReadError: unknown = null
   for (let attempt = 0; attempt < 120; attempt += 1) {
     try {
       const detail = await getInbody(inbodyId)
-      if (detail.status === 'DONE' || Object.keys(detail.fields).length > 0 || detail.segments.length > 0) return detail
+      if (hasInbodyExtraction(detail)) return detail
     } catch (error) {
       lastReadError = error
     }
