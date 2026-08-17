@@ -432,5 +432,10 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 .closing-section__button .ai-button:hover { background: #ffe250; color: #222; box-shadow: 0 0 22px rgba(255, 226, 80, .85), 0 0 42px rgba(255, 226, 80, .42); }
 
+.previous-button { position: absolute; top: 150px; left: 131px; z-index: 5; display: inline-flex; height: 27px; align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: #f6f6f6; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; cursor: pointer; white-space: nowrap; }
+.previous-button img { width: 18px; height: 16px; transform: rotate(-90deg); }
+.previous-button:hover { color: #ccc; }
+.previous-button:focus-visible { outline: 2px solid #ffe250; outline-offset: 4px; }
+
 /* 레퍼런스와 현재 체형 사진은 원본 비율을 유지해 전체가 보이도록 표시합니다. */
 .comparison-analysis-photo__canvas { object-fit: contain; }

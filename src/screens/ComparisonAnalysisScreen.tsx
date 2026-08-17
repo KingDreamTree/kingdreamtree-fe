@@ -3,6 +3,7 @@ import comparisonCommentCircle from '../assets/comparison-analysis-comment-circl
 import comparisonCommentIcon from '../assets/comparison-analysis-comment-icon.svg'
 import comparisonScoreTrack from '../assets/comparison-analysis-score-track.svg'
 import type { AnalysisPart, AnalysisResult, SegmentationInfo, SessionSegmentation } from '../lib/api'
+import { PreviousButton } from '../components/PreviousButton'
 
 const GAP_LABELS: Record<string, string> = {
   NONE: '차이 거의 없음',
@@ -98,10 +99,11 @@ type ComparisonAnalysisScreenProps = {
   analysis: AnalysisResult | null
   segmentation: SessionSegmentation | null
   onCreateRoutine: () => void
+  onPrevious: () => void
 }
 
 /** Figma 41:189 — 비교 분석. 모든 수치·문구는 GET /analysis · /segmentation 응답에서 온다. */
-export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRoutine }: ComparisonAnalysisScreenProps) {
+export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRoutine, onPrevious }: ComparisonAnalysisScreenProps) {
   const parts = analysis?.parts ?? []
   const [selectedClass, setSelectedClass] = useState<string | null>(null)
   const selected = parts.find(part => part.class_name === selectedClass) ?? parts[0] ?? null
@@ -129,6 +131,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
     <section className="comparison-analysis-page">
       <header className="comparison-analysis-header">
+        <PreviousButton onClick={onPrevious} />
         <p>분석이 완료되었어요</p>
         <h1>레퍼런스 비교 분석 결과</h1>
         <span>현재 체형 vs 목표 레퍼런스</span>
