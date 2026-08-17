@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import heroBackground from './assets/onboarding-hero-background-figma.png'
 import heroPhone from './assets/onboarding-hero-phone.png'
+import onboardingScrollCue from './assets/onboarding-scroll-cue.svg'
 import routineFigure from './assets/routine-figure.png'
 import routineMarker from './assets/routine-marker.svg'
 import routinePlatform from './assets/routine-platform.svg'
@@ -108,12 +109,11 @@ function StartButton({ wide = false, onStart }: { wide?: boolean; onStart: () =>
 function OnboardingOne() {
   return <RevealSection className="hero-section" label="REFIT 소개" scaleToViewport>
     <img className="hero-section__texture motion motion--soft" src={heroBackground} alt="" />
-    <RefitLogo small className="hero-section__top-logo" />
     <div className="hero-section__content">
       <div className="motion motion--delay-1"><RefitLogo /></div>
       <p className="hero-section__description motion motion--delay-2">원하는 체형의 사진을 선택하고, 나의 체형 정보를<br />입력하면 AI가 운동 루틴을 제공합니다.</p>
-      <div className="hero-section__scroll-cue motion motion--delay-3" aria-hidden="true"><span>SCROLL TO EXPLORE</span><i /></div>
     </div>
+    <div className="hero-section__scroll-cue motion motion--delay-3" aria-hidden="true"><img src={onboardingScrollCue} alt="" /><p>아래로 내려보세요</p></div>
     <div className="hero-section__character motion motion--from-right" aria-label="운동을 준비하는 인물">
       <div className="hero-section__character-window"><img src={heroPhone} alt="" /></div>
     </div>

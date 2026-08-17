@@ -16,7 +16,7 @@
 .hero-section, .closing-section { background: #222; color: #f6f6f6; }
 .hero-section__texture { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }.hero-section__content { position: absolute; top: 281px; left: 53px; z-index: 1; }
 .logo { margin: 0; font-family: "Isamanru", Pretendard, sans-serif; font-size: 190.242px; font-weight: 700; font-synthesis: none; line-height: 1; letter-spacing: -5.707px; color: #f6f6f6; }.logo strong { color: #ffe250; font: inherit; }
-.hero-section__description { margin: 42px 0 43px 14px; font-size: 28px; font-weight: 500; line-height: 1.5; letter-spacing: -0.84px; }
+.hero-section__description { margin: 31px 0 0 14px; font-size: 28px; font-weight: 500; line-height: 1.5; letter-spacing: -0.84px; }
 .ai-button { display: grid; width: 240px; height: 60px; margin-left: 14px; place-items: center; border: 1px solid #f6f6f6; border-radius: 41px; background: transparent; color: #f6f6f6; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -0.66px; cursor: pointer; transition: background-color 180ms ease, color 180ms ease, transform 180ms ease; }.ai-button:hover { background: #f6f6f6; color: #222; transform: translateY(-2px); }.ai-button:focus-visible { outline: 3px solid #ffe250; outline-offset: 5px; }
 .hero-section__character { position: absolute; top: 304px; left: 585px; width: 927px; height: 914.143px; filter: drop-shadow(0 0 2px rgba(0, 0, 0, .25)); }
 .hero-section__character-window { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
@@ -376,6 +376,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 .loading-one-glow { position: absolute; top: 644px; left: 479px; width: 61px; height: 62px; pointer-events: none; transition: transform 35ms linear; }
 
-.hero-section__scroll-cue { display: flex; width: 240px; height: 60px; margin-left: 14px; align-items: center; gap: 13px; color: #f6f6f6; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; }.hero-section__scroll-cue i { position: relative; display: block; box-sizing: border-box; width: 18px; height: 29px; border: 1.5px solid #f6f6f6; border-radius: 10px; }.hero-section__scroll-cue i::after { position: absolute; top: 5px; left: 6px; width: 4px; height: 7px; border-radius: 999px; background: #ffe250; content: ''; animation: hero-scroll-indicator 1.5s ease-in-out infinite; } @keyframes hero-scroll-indicator { 0%, 100% { transform: translateY(0); opacity: .45; } 50% { transform: translateY(8px); opacity: 1; } }
 
-.hero-section__top-logo { z-index: 2; top: 43px; left: 53px; font-size: 32px; letter-spacing: -.96px; }
+
+.hero-section__scroll-cue { position: absolute; z-index: 1; top: 784px; left: 659px; display: flex; width: 122px; height: auto; margin: 0; flex-direction: column; align-items: center; gap: 5px; color: #ccc; text-align: center; }.hero-section__scroll-cue img { width: 53.891px; height: 67.239px; }.hero-section__scroll-cue p { min-width: 122px; margin: 0; font: 500 17.608px/1.5 Pretendard, sans-serif; letter-spacing: -.528px; }
