@@ -388,6 +388,30 @@ async function waitForInbodyDetail(inbodyId: string, jobId: string | null): Prom
   throw new Error('The InBody result was not ready in time.')
 }
 
+/**
+ * 결과 화면이 «비어 보이지 않을» 최소 조건.
+ *
+ * ⚠️ 점수와 요약은 종합 진단(VLM_OVERALL)에서 온다. 부위 진단만 끝난 응답에는
+ *    overall 이 비어 있어서 «-점 / 요약을 준비하고 있어요»가 뜬다. 로딩을 다 보고
+ *    넘어온 사용자에게 그 화면을 보이지 않는 것이 로딩 화면의 존재 이유다.
+ */
+function isAnalysisRenderable(analysis: AnalysisResult | null): boolean {
+  if (!analysis || analysis.parts.length === 0) return false
+  return analysis.overall !== null && analysis.overall.similarity_score !== null
+}
+
+/** 세그멘테이션 조회 — 오래 걸리면 포기한다. 사진이 없어도 수치·문구는 읽을 수 있다. */
+async function fetchSegmentation(sessionId: string): Promise<SessionSegmentation | null> {
+  try {
+    return await Promise.race([
+      getSessionSegmentation(sessionId),
+      new Promise<null>(resolve => window.setTimeout(() => resolve(null), 10000)),
+    ])
+  } catch {
+    return null
+  }
+}
+
 function App() {
   // 복원 대상은 **첫 렌더에 한 번** 정한다. 값이 바뀌지 않으므로 아래 복원 효과의
   // 의존성에 그대로 넣을 수 있다 — 억지로 비운 의존성 배열보다 안전하다.
@@ -616,29 +640,38 @@ function App() {
       if (!result) throw new Error('사진 분석이 예상보다 오래 걸리고 있어요. 잠시 후 다시 시도해주세요.')
       // 세그멘테이션 대기(409 루프)가 끝났다 — 이제부터 부위 진단이다.
       setAnalysisPhase(1)
-      // 부위 진단(VLM)이 끝날 때까지 진행률 폴링 — reused=true(기존 결과)면 바로 완료로 나온다
-      for (let attempt = 0; attempt < 80; attempt += 1) {
+      // ⚠️ **종합 진단까지 기다린다.** 종전에는 부위 진단 행이 써지면(partComplete)
+      //    바로 빠져나왔는데, 백엔드는 그 행을 다 쓴 **뒤에야** VLM_OVERALL 을 등록한다
+      //    (worker/handlers/vlm.py). 그래서 점수·요약이 아직 없는 응답을 받아 결과
+      //    화면에 «-점 / 요약을 준비하고 있어요»가 떴다. 로딩이 100% 를 지나 결과가
+      //    나올 차례에 빈 화면이 뜨는 게 이 화면의 최악이다.
+      //    progress.completed 가 종합까지 본 신호다 — 그것만 믿는다.
+      let overallFailed = false
+      for (let attempt = 0; attempt < 160; attempt += 1) {
         const progress = await getAnalysisProgress(sessionId)
-        const status = String(progress.overall?.status ?? '').toUpperCase()
-        const partComplete = progress.part.total > 0 && progress.part.done + progress.part.failed >= progress.part.total
-        // ⚠️ part.total 은 **진단 행 수**이고 백엔드가 전 부위를 한 번에 써넣는다.
-        //    그래서 0 → 9 로 한 번에 뛴다 (비율이 아니라 신호로만 쓸 수 있다).
-        //    0보다 커졌다 = 부위 진단이 끝나고 종합 진단으로 넘어갔다는 뜻.
+        // part.total 은 진단 행 수이고 백엔드가 전 부위를 한 번에 써넣는다 (0 → 9).
+        // 비율이 아니라 «부위 진단이 끝났다»는 신호로만 쓴다.
         if (progress.part.total > 0) setAnalysisPhase(2)
-        if (progress.completed || ['DONE', 'COMPLETED', 'SUCCESS', 'SUCCEEDED'].includes(status) || partComplete) break
+        const status = String(progress.overall?.status ?? '').toUpperCase()
+        if (status === 'FAILED' || String(progress.part.status ?? '').toUpperCase() === 'FAILED') overallFailed = true
+        if (progress.completed || status === 'DONE' || overallFailed) break
         await new Promise(resolve => window.setTimeout(resolve, 750))
       }
       setAnalysisPhase(3)
-      const analysis = await getAnalysis(sessionId)
-      let segmentation: SessionSegmentation | null = null
-      try {
-        segmentation = await Promise.race([
-          getSessionSegmentation(sessionId),
-          new Promise<null>(resolve => window.setTimeout(() => resolve(null), 10000)),
-        ])
-      } catch {
-        segmentation = null
+
+      // ⚠️ 진행률이 끝났다고 응답이 곧바로 채워져 있지는 않다 (행 쓰기와 조회 사이의 틈).
+      //    **실제로 그릴 수 있는지 확인하고 넘긴다** — 이게 이 화면의 약속이다.
+      let analysis = await getAnalysis(sessionId)
+      for (let attempt = 0; attempt < 12 && !overallFailed && !isAnalysisRenderable(analysis); attempt += 1) {
+        await new Promise(resolve => window.setTimeout(resolve, 1000))
+        analysis = await getAnalysis(sessionId)
       }
+
+      // 사진·세그멘테이션도 같이 있어야 결과 화면이 채워진다. 한 번은 다시 시도한다 —
+      // 실패해도 진행은 막지 않는다 (사진 없이도 수치·문구는 읽을 수 있다).
+      let segmentation: SessionSegmentation | null = await fetchSegmentation(sessionId)
+      if (!segmentation) segmentation = await fetchSegmentation(sessionId)
+
       setAnalysisData(analysis)
       setSegmentationData(segmentation)
       // 화면 전환은 여기서 하지 않는다 — 막대가 100% 를 찍은 뒤 로딩 화면이 부른다.
@@ -729,6 +762,20 @@ function App() {
    * workout-log의 feedback_text(방법 A)는 쓰지 않는다 — 코치 대화 [적용]과
    * 이중으로 루틴이 패치되는 것을 막기 위해 완료 기록만 남긴다.
    */
+  /**
+   * 활성 루틴을 다시 받아 진행률을 최신으로 만든다.
+   *
+   * ⚠️ 운동 완료를 기록한 뒤 **반드시** 불러야 한다. 진행률(0/16회, %)은
+   *    routineData 에서 오는데 완료 기록은 «오늘 루틴»만 갱신했다. 그래서 운동을
+   *    마쳐도 맞춤 루틴 화면의 숫자가 그대로 0/16 에 머물렀다.
+   * ⚠️ 조회가 실패해도 화면을 막지 않는다 — 옛 숫자가 잠깐 남을 뿐이다.
+   */
+  const refreshRoutine = async () => {
+    const sessionId = getStoredSessionId()
+    if (!sessionId) return
+    try { setRoutineData(await getActiveRoutine(sessionId)) } catch { /* 옛 값 유지 */ }
+  }
+
   const completeWorkout = async (feedbackText?: string) => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
@@ -740,6 +787,8 @@ function App() {
       window.alert(userFacingMessage(error, '운동 완료를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.'))
       return
     }
+    // 기록이 남았으니 진행률도 같이 올린다 (위 주석 참고)
+    await refreshRoutine()
     if (feedbackText) {
       setFeedbackMessage(feedbackText)
       setView('feedback-loading')
@@ -834,7 +883,7 @@ function App() {
   if (view === 'loading-two') return <LoadingTwoScreen phase={routinePhase} isComplete={isRoutineReady} onComplete={() => setView('custom-routine')} />
   if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setSelectedDay(day); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />
   if (view === 'custom-routine-detail') return <CustomRoutineDetailScreen day={selectedDay} onPrevious={() => setView('custom-routine')} />
-  if (view === 'today-routine') return <TodayRoutineScreen today={todayRoutine} onFinish={() => setView('feedback')} onPrevious={() => setView('custom-routine')} />
+  if (view === 'today-routine') return <TodayRoutineScreen today={todayRoutine} onFinish={() => setView('feedback')} onPrevious={() => { void refreshRoutine(); setView('custom-routine') }} />
   if (view === 'feedback') return <FeedbackScreen onSubmit={message => void completeWorkout(message)} onSkip={() => void completeWorkout()} />
   if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => undefined} />
     if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => void continueCoach(message)} onExit={() => setView('today-routine')} />
