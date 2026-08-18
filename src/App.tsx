@@ -353,9 +353,11 @@ function getJobId(value: Record<string, unknown>): string | null {
   return typeof value.job_id === 'string' ? value.job_id : null
 }
 
-async function waitForJob(jobId: string): Promise<Job> {
+/** onStatus: 폴링할 때마다 현재 잡 상태를 알려준다 — 로딩 화면 진행률의 유일한 근거다. */
+async function waitForJob(jobId: string, onStatus?: (status: Job['status']) => void): Promise<Job> {
   for (let attempt = 0; attempt < 120; attempt += 1) {
     const job = await getJob(jobId)
+    onStatus?.(job.status)
     if (job.status === 'DONE') return job
     if (job.status === 'FAILED') throw new Error(job.error || 'The requested job failed.')
     await new Promise(resolve => window.setTimeout(resolve, 1500))
@@ -441,6 +443,13 @@ function App() {
   const [routineData, setRoutineData] = useState<RoutineDetail | null>(null)
   const [selectedDay, setSelectedDay] = useState<RoutineDay | null>(null)
   const [coach, setCoach] = useState<CoachChatResponse | null>(null)
+  // 로딩 화면 진행률 — 화면이 스스로 시간을 재지 않고 **여기서 실제 단계를 받아 간다.**
+  // ⚠️ ...Ready 는 결과까지 다 받은 뒤에만 true 로 만든다. 이걸 먼저 켜면 진행률이
+  //    다시 거짓말을 하게 되고, 그게 이 화면들을 고친 이유였다.
+  const [analysisPhase, setAnalysisPhase] = useState(0)
+  const [isAnalysisReady, setIsAnalysisReady] = useState(false)
+  const [routinePhase, setRoutinePhase] = useState(0)
+  const [isRoutineReady, setIsRoutineReady] = useState(false)
 
   /**
    * 복원된 화면의 내용을 서버에서 다시 채운다.
@@ -584,6 +593,8 @@ function App() {
   const beginAnalysis = async () => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
+    setAnalysisPhase(0)
+    setIsAnalysisReady(false)
     setView('inbody-loading')
     try {
       // 사진 세그멘테이션(사피엔스)이 아직 도는 중이면 서버가 409를 준다.
@@ -603,14 +614,21 @@ function App() {
         }
       }
       if (!result) throw new Error('사진 분석이 예상보다 오래 걸리고 있어요. 잠시 후 다시 시도해주세요.')
+      // 세그멘테이션 대기(409 루프)가 끝났다 — 이제부터 부위 진단이다.
+      setAnalysisPhase(1)
       // 부위 진단(VLM)이 끝날 때까지 진행률 폴링 — reused=true(기존 결과)면 바로 완료로 나온다
       for (let attempt = 0; attempt < 80; attempt += 1) {
         const progress = await getAnalysisProgress(sessionId)
         const status = String(progress.overall?.status ?? '').toUpperCase()
         const partComplete = progress.part.total > 0 && progress.part.done + progress.part.failed >= progress.part.total
+        // ⚠️ part.total 은 **진단 행 수**이고 백엔드가 전 부위를 한 번에 써넣는다.
+        //    그래서 0 → 9 로 한 번에 뛴다 (비율이 아니라 신호로만 쓸 수 있다).
+        //    0보다 커졌다 = 부위 진단이 끝나고 종합 진단으로 넘어갔다는 뜻.
+        if (progress.part.total > 0) setAnalysisPhase(2)
         if (progress.completed || ['DONE', 'COMPLETED', 'SUCCESS', 'SUCCEEDED'].includes(status) || partComplete) break
         await new Promise(resolve => window.setTimeout(resolve, 750))
       }
+      setAnalysisPhase(3)
       const analysis = await getAnalysis(sessionId)
       let segmentation: SessionSegmentation | null = null
       try {
@@ -623,7 +641,8 @@ function App() {
       }
       setAnalysisData(analysis)
       setSegmentationData(segmentation)
-      setView('comparison')
+      // 화면 전환은 여기서 하지 않는다 — 막대가 100% 를 찍은 뒤 로딩 화면이 부른다.
+      setIsAnalysisReady(true)
     } catch (error) {
       // 비교 가능한 부위가 부족하면 사진 문제 — 재촬영으로 유도한다
       if (error instanceof RefitApiError && error.code === 'INSUFFICIENT_PARTS') {
@@ -673,14 +692,20 @@ function App() {
   const beginRoutine = async () => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
+    setRoutinePhase(0)
+    setIsRoutineReady(false)
     setView('loading-two')
     try {
       const result = await createRoutine(sessionId, workoutDays)
       const jobId = getJobId(result)
-      if (jobId) await waitForJob(jobId)
+      // ⚠️ 루틴 생성 잡은 PENDING/PROCESSING/DONE 셋뿐이다 — 한 번의 LLM 호출이라
+      //    쪼갤 중간 지점이 서버에도 없다. 있는 신호를 그대로 단계로 옮긴다.
+      if (jobId) await waitForJob(jobId, status => setRoutinePhase(status === 'PROCESSING' ? 2 : 1))
+      setRoutinePhase(3)
       const routine = await getActiveRoutine(sessionId)
       setRoutineData(routine)
-      setView('custom-routine')
+      // 전환은 막대가 100% 를 찍은 뒤 로딩 화면이 시작한다.
+      setIsRoutineReady(true)
     } catch (error) {
       window.alert(userFacingMessage(error, '맞춤 루틴을 생성하지 못했습니다. 잠시 후 다시 시도해주세요.'))
       setView('exercise-days')
@@ -803,10 +828,10 @@ function App() {
   if (view === 'inbody-unreadable') return <InbodyUnreadableScreen onConfirm={() => setView('inbody-form')} onPrevious={() => setView('inbody-uploaded')} />
   // 로딩 애니메이션이 100%가 되면 분석 화면으로 전환한다. 결과 API는 백그라운드에서
   // 이어서 받아 상태를 채우므로, 네트워크 응답 때문에 로딩 화면이 멈춰 있지 않는다.
-    if (view === 'inbody-loading') return <LoadingOneScreen isAnalysisReady={false} onComplete={() => undefined} />
+    if (view === 'inbody-loading') return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady} onComplete={() => setView('comparison')} />
   if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
-  if (view === 'loading-two') return <LoadingTwoScreen onComplete={() => undefined} />
+  if (view === 'loading-two') return <LoadingTwoScreen phase={routinePhase} isComplete={isRoutineReady} onComplete={() => setView('custom-routine')} />
   if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setSelectedDay(day); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />
   if (view === 'custom-routine-detail') return <CustomRoutineDetailScreen day={selectedDay} onPrevious={() => setView('custom-routine')} />
   if (view === 'today-routine') return <TodayRoutineScreen today={todayRoutine} onFinish={() => setView('feedback')} onPrevious={() => setView('custom-routine')} />
