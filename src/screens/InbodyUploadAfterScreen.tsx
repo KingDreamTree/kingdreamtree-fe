@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import inbodyPreviousArrow from '../assets/inbody-previous-arrow.svg'
+import previousArrow from '../assets/previous-arrow.svg'
 import inbodyRequiredDot from '../assets/inbody-required-dot.svg'
 import { InbodyDateField } from '../components/InbodyDateField'
 import { InbodyGenderSelector } from '../components/InbodyGenderSelector'
@@ -114,6 +114,6 @@ export function InbodyUploadAfterScreen({ inbody, onConfirm, onPrevious }: Inbod
     <section className="inbody-after-column inbody-after-composition"><h2>2. 체성분</h2>{COMPOSITION_FIELDS.map(field => renderInput(field.key, field.label, field.unit))}</section>
     <section className="inbody-after-column inbody-after-muscle"><h2>3. 부위별 근육량</h2>{SEGMENT_ORDER.map(({ key, label }) => <label className="inbody-after-field" key={`lean-${key}`}><span>{label}</span><input aria-label={`${label} 근육량`} value={lean[key] ?? ''} onChange={event => setLean(prev => ({ ...prev, [key]: event.target.value }))} /></label>)}</section>
     <section className="inbody-after-column inbody-after-fat"><h2>4. 부위별 체지방량</h2>{SEGMENT_ORDER.map(({ key, label }) => <label className="inbody-after-field" key={`fat-${key}`}><span>{label}</span><input aria-label={`${label} 체지방량`} value={fat[key] ?? ''} onChange={event => setFat(prev => ({ ...prev, [key]: event.target.value }))} /></label>)}</section>
-    <button className="inbody-after-confirm" type="button" onClick={submit}>확인 완료</button><button className="inbody-after-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button>
+    <button className="inbody-after-confirm" type="button" onClick={submit}>확인 완료</button><button className="inbody-after-previous" type="button" onClick={onPrevious}><img src={previousArrow} alt="" />이전 단계</button>
   </div></FixedStepFrame>
 }

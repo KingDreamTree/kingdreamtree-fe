@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import customRoutinePreviousArrow from '../assets/custom-routine-previous-arrow.svg'
+import previousArrow from '../assets/previous-arrow.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import type { RoutineDay, RoutineDetail } from '../lib/api'
 
@@ -26,7 +26,7 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
   return <FixedStepFrame label="맞춤 루틴"><div className="custom-routine-page">
     <p className="custom-routine-page__eyebrow">맞춤루틴 제공</p>
       <h1>목표 체형 레퍼런스</h1>
-    <button className="custom-routine-page__adjust" type="button" onClick={onAdjustDays}><img src={customRoutinePreviousArrow} alt="" />운동 일수 조정</button>
+    <button className="custom-routine-page__adjust" type="button" onClick={onAdjustDays}><img src={previousArrow} alt="" />운동 일수 조정</button>
     <button className="custom-routine-page__next" type="button" onClick={onNext}>다음 단계</button>
 
     <section className="custom-routine-page__goal">

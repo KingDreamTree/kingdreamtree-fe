@@ -1,5 +1,5 @@
 import inbodyCalendar from '../assets/inbody-calendar.svg'
-import inbodyPreviousArrow from '../assets/inbody-previous-arrow.svg'
+import previousArrow from '../assets/previous-arrow.svg'
 import inbodyRequiredDot from '../assets/inbody-required-dot.svg'
 import inbodyWarningGuideIcon from '../assets/inbody-warning-guide-icon.svg'
 import inbodyWarningInputIcon from '../assets/inbody-warning-input-icon.svg'
@@ -44,6 +44,6 @@ export function InbodyValidationWarningScreen({ onConfirm, onPrevious }: InbodyV
     <section className="inbody-warning-column inbody-warning-composition"><h2>2. 체성분</h2>{composition.map(field => <WarningField key={field.label} field={field} warning={warnedFields.has(field.label)} />)}</section>
     <section className="inbody-warning-column inbody-warning-muscle"><h2>3. 부위별 근육량</h2>{muscle.map(field => <WarningField key={field.label} field={field} />)}</section>
     <section className="inbody-warning-column inbody-warning-fat"><h2>4. 부위별 체지방량</h2>{fat.map(field => <WarningField key={field.label} field={field} />)}</section>
-    <button className="inbody-warning-confirm" type="button" onClick={onConfirm}>확인 완료</button><button className="inbody-warning-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button><p className="inbody-warning-note">* 이 값으로 진행 및 확인 기록이 저장됩니다.</p>
+    <button className="inbody-warning-confirm" type="button" onClick={onConfirm}>확인 완료</button><button className="inbody-warning-previous" type="button" onClick={onPrevious}><img src={previousArrow} alt="" />이전 단계</button><p className="inbody-warning-note">* 이 값으로 진행 및 확인 기록이 저장됩니다.</p>
   </div></FixedStepFrame>
 }

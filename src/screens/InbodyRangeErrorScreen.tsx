@@ -3,7 +3,7 @@ import inbodyCalendar from '../assets/inbody-calendar.svg'
 import inbodyErrorLineOne from '../assets/inbody-error-line-one.svg'
 import inbodyErrorLineTwo from '../assets/inbody-error-line-two.svg'
 import inbodyErrorLock from '../assets/inbody-error-lock.svg'
-import inbodyPreviousArrow from '../assets/inbody-previous-arrow.svg'
+import previousArrow from '../assets/previous-arrow.svg'
 import inbodyRequiredDot from '../assets/inbody-required-dot.svg'
 import { InbodyGenderSelector } from '../components/InbodyGenderSelector'
 import { FixedStepFrame } from '../components/FixedStepFrame'
@@ -35,6 +35,6 @@ export function InbodyRangeErrorScreen({ onConfirm, onPrevious }: InbodyRangeErr
     <section className="inbody-range-column inbody-range-composition"><h2>2. 체성분</h2>{composition.map((field, index) => <RangeField key={field.label} field={field} invalid={index === 0} onCorrect={() => setIsCorrected(true)} />)}</section>
     <section className="inbody-range-column inbody-range-muscle"><h2>3. 부위별 근육량</h2>{muscle.map(field => <RangeField key={field.label} field={field} />)}</section>
     <section className="inbody-range-column inbody-range-fat"><h2>4. 부위별 체지방량</h2>{fat.map(field => <RangeField key={field.label} field={field} />)}</section>
-    <button className="inbody-range-confirm" type="button" disabled={!isCorrected} onClick={onConfirm}>{!isCorrected && <img src={inbodyErrorLock} alt="" />}확인 완료</button><button className="inbody-range-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button><p className="inbody-range-note">* 오류가 있는 경우 지정할 수 없습니다.</p><img className="inbody-range-required" src={inbodyRequiredDot} alt="필수" />
+    <button className="inbody-range-confirm" type="button" disabled={!isCorrected} onClick={onConfirm}>{!isCorrected && <img src={inbodyErrorLock} alt="" />}확인 완료</button><button className="inbody-range-previous" type="button" onClick={onPrevious}><img src={previousArrow} alt="" />이전 단계</button><p className="inbody-range-note">* 오류가 있는 경우 지정할 수 없습니다.</p><img className="inbody-range-required" src={inbodyRequiredDot} alt="필수" />
   </div></FixedStepFrame>
 }
