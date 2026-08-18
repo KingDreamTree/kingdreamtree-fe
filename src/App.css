@@ -478,7 +478,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 .pose-reference--live { background: #222; }
 .pose-reference--live img { position: static; display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
-.pose-reference__skeleton { display: none; }
+.pose-reference__skeleton { position: absolute; inset: 0; pointer-events: none; }
 .pose-corner { opacity: .72; }
 .pose-guide-card { position: absolute; top: 838px; left: 131px; width: 433px; margin: 0; }
 .pose-guide-card h2 { margin: 0 0 5px; color: #ffe250; font: 700 17px/1.5 Pretendard, sans-serif; letter-spacing: -.51px; }
