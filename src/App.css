@@ -527,6 +527,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .inbody-after-previous, .inbody-range-previous, .inbody-warning-previous, .inbody-fixed-previous, .inbody-unreadable-previous { width: auto; white-space: nowrap; }
 .previous-button { position: absolute; top: 150px; left: 1220px; z-index: 5; display: inline-flex; height: 27px; align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: #f6f6f6; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; cursor: pointer; white-space: nowrap; }
 .previous-button img { width: 18px; height: 16px; transform: rotate(-90deg); }
+.previous-button img { transform: none; }
 .previous-button:hover { color: #ccc; }
 .previous-button:focus-visible { outline: 2px solid #ffe250; outline-offset: 4px; }
 .comparison-analysis-header .previous-button { top: -48px; left: 1087px; }
