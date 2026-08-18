@@ -782,3 +782,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   width: 100%; height: auto; max-width: 194px; min-height: 0; flex: 1 1 auto;
   margin-top: 30px; object-fit: contain; object-position: left center;
 }
+
+/* 카드 수에 따라 카드 사이 간격만 균등 분배하고 목표 박스 끝에 맞춥니다. */
+.custom-routine-page__cards { width: 1178px; justify-content: space-between; gap: 0; }
