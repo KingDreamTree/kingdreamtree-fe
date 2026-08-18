@@ -785,3 +785,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 /* 카드 수에 따라 카드 사이 간격만 균등 분배하고 목표 박스 끝에 맞춥니다. */
 .custom-routine-page__cards { width: 1178px; justify-content: space-between; gap: 0; }
+
+/* 카드 간격을 기본 고정값으로 되돌립니다. */
+.custom-routine-page__cards { width: auto; justify-content: flex-start; gap: 14px; }
