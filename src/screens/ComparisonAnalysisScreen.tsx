@@ -142,6 +142,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
 
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
     <section className="comparison-analysis-page">
+      <div className="comparison-analysis-top-rule" aria-hidden="true" />
       {/* 이 화면은 FixedStepFrame 을 쓰지 않아 로고가 빠져 있었다 — 여기서만
           온보딩으로 돌아갈 길이 없었다. */}
       <RefitHomeLogo />
