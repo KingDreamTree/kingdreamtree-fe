@@ -454,3 +454,10 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   justify-content: center;
   gap: 14px;
 }
+
+/* 목표 박스와 같은 폭을 사용하고 카드 수에 따라 남는 공간을 카드 사이에만 분배합니다. */
+.custom-routine-page__cards {
+  width: 1178px;
+  justify-content: space-between;
+  gap: 0;
+}
