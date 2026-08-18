@@ -274,7 +274,7 @@ function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFi
             : <><img src={referenceUpload} alt="" /><p>파일을 선택하거나 여기로 끌어다 놓으세요.</p></>}
       </button>
       {error && <p className="reference-error" role="alert">{error}</p>}
-      <button className={`reference-start ${ready ? 'is-ready' : ''}`} type="button" disabled={!ready || busy} onClick={onStart}>AI 분석 비교 시작 →</button>
+      <button className={`reference-start ${ready ? 'is-ready' : ''}`} type="button" disabled={!ready || busy} onClick={onStart}>다음으로</button>
       {showNotice && <>
         {/* 막이 뒤를 덮어 시선을 모으고, 확인을 누르기 전에는 업로드가 눌리지 않게 한다 */}
         <div className="reference-notice-veil" aria-hidden="true" />
