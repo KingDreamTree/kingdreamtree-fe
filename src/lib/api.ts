@@ -303,6 +303,9 @@ export interface RoutineExercise {
   name: string
   exercise_ref: string | null
   image_url: string | null
+  /** 시연 영상(mp4). ⚠️ null 가능 — 없으면 image_url 로 폴백한다.
+   *  저장값이 아니라 조회 시 카탈로그에서 붙으므로 옛 루틴에도 나온다. */
+  video_url: string | null
   exercise_kind: string
   muscle_group: string | null
   sets: number | null

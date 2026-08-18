@@ -3,6 +3,7 @@ import todayRoutineExercise from '../assets/today-routine-dumbbell-bench-press.p
 import todayRoutineNextExercise from '../assets/today-routine-next-exercise.png'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { PreviousButton } from '../components/PreviousButton'
+import { ExerciseMedia } from '../components/ExerciseMedia'
 import type { RoutineExercise, TodayRoutine } from '../lib/api'
 import { displayProgress } from '../lib/routine-progress'
 
@@ -81,14 +82,14 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
     {current && <section key={`current-${step}`} className={`today-routine-page__current ${isTransitioning ? 'is-exiting' : ''} ${isLastStep ? 'is-last-step' : ''}`} aria-label={`현재 운동 Step ${step + 1}`}>
       <span>Step {step + 1}/{exercises.length}</span><h2>{current.name}</h2><small>{exerciseDose(current)}</small>
       <p>{current.note ?? (current.muscle_group ? `${current.muscle_group} 자극에 집중해주세요.` : '정확한 자세에 집중해주세요.')}</p>
-      <button type="button">자세 가이드</button><img src={current.image_url ?? todayRoutineExercise} alt={`${current.name} 동작`} />
+      <button type="button">자세 가이드</button><ExerciseMedia videoUrl={current.video_url} imageUrl={current.image_url} fallback={todayRoutineExercise} label={`${current.name} 동작`} />
     </section>}
 
     {/* data-next-step: 승격 중 Step 배지에 들어갈 문구. 종전에는 CSS 가 'Step 2' 를
         박아두고 있어서 3스텝 이후에도 매번 "Step 2" 가 스쳐 지나갔다. */}
     {next && !isLastStep && <aside key={`next-${step}`}
       className={`today-routine-page__next ${isTransitioning ? 'is-promoting' : ''} ${isNextLastStep ? 'is-promoting-last' : ''}`} aria-label="다음 운동">
-      <p data-next-step={`Step ${step + 2}/${exercises.length}`}>Next →</p><h2>{next.name}</h2><span>{exerciseDose(next)}</span><img src={next.image_url ?? todayRoutineNextExercise} alt={`다음 ${next.name} 동작`} />
+      <p data-next-step={`Step ${step + 2}/${exercises.length}`}>Next →</p><h2>{next.name}</h2><span>{exerciseDose(next)}</span><ExerciseMedia videoUrl={next.video_url} imageUrl={next.image_url} fallback={todayRoutineNextExercise} label={`다음 ${next.name} 동작`} />
     </aside>}
 
     <button className="today-routine-page__complete" type="button" disabled={isTransitioning || !current} onClick={completeSet}>{isLastStep ? '운동 마치기' : '세트 완료'}</button>
