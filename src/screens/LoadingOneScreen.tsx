@@ -27,9 +27,11 @@ type LoadingOneScreenProps = { phase: number; isComplete: boolean; onComplete: (
 
 export function LoadingOneScreen({ phase, isComplete, onComplete }: LoadingOneScreenProps) {
   const progress = useLoadingProgress(phase, loadingSteps.length, isComplete)
-  // 막대는 점근하느라 단계 끝에 딱 안 닿는다. 그래서 강조 단계는 막대가 아니라
-  // phase 를 그대로 쓴다 — 안 그러면 3단계인데 2번 항목에 불이 들어와 있다.
-  const activeStep = Math.min(loadingSteps.length - 1, phase)
+  // ⚠️ 아래 목록은 **막대에서 끌어온다** — phase 를 따로 읽지 않는다. 둘이 각자 움직이면
+  //    막대는 2구간에 있는데 목록은 3번째에 불이 들어와 있는 식으로 어긋난다.
+  //    막대가 자기 구간 끝에 점근해 머무는 값(예: 1구간이면 48.5%)도 몫을 내리면 그 구간
+  //    번호가 그대로 나오므로, 구간과 항목은 항상 같이 간다.
+  const activeStep = Math.min(loadingSteps.length - 1, Math.floor(progress / (100 / loadingSteps.length)))
   const guideOffset = activeStep * 43
   const hasFinished = useRef(false)
 

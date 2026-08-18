@@ -654,6 +654,9 @@ function App() {
     const alive = () => analysisRunRef.current === run
 
     setAnalysisPhase(0)
+    // ⚠️ 단계는 **앞으로만 간다.** 조회 실패나 재시동으로 되돌리면 게이지가 뒤로 흐르는데,
+    //    사용자에게는 진행이 취소된 것처럼 보인다. 실제로 다시 하더라도 화면은 멈춰만 있게 한다.
+    const advancePhase = (next: number) => setAnalysisPhase(current => Math.max(current, next))
     setIsAnalysisReady(false)
     setView('inbody-loading')
 
@@ -681,7 +684,7 @@ function App() {
     try {
       // ── ① 분석 시작
       if (!await kickOff(force)) return
-      setAnalysisPhase(1)
+      advancePhase(1)
 
       /** 진단 행이 빈 채로 completed 가 뜨면 몇 번까지 조용히 다시 걸어볼지. */
       let reruns = 0
@@ -694,11 +697,11 @@ function App() {
           try { progress = await getAnalysisProgress(sessionId); failures = 0 }
           catch { failures += 1; await waitTick(); continue }
           // part.total 은 «부위 진단이 끝났다»는 신호로만 쓴다 (0 → 9 로 한 번에 뛴다).
-          if (progress.part.total > 0) setAnalysisPhase(2)
+          if (progress.part.total > 0) advancePhase(2)
           if (progress.completed) break
           await waitTick()
         }
-        setAnalysisPhase(3)
+        advancePhase(3)
 
         // ── ③ completed 를 봤으면 결과는 **이미 커밋돼 있다.** 한 번 읽고 판정한다.
         //
@@ -711,10 +714,14 @@ function App() {
         //      부위 진단 실패/종합 미시작 → overall 이 아예 null
         //    DONE 이 아니면 (null 이든 FAILED 든) 결과가 없는 것이고, 그때는 «실패했어요»를
         //    보이는 대신 force 로 다시 건다. 사용자가 [다시 시도]로 할 일을 대신 하는 것뿐이다.
+        // ⚠️ 조회 실패는 **여기서** 다시 읽는다. 바깥 루프로 돌려보내면 진행률 폴링을
+        //    다시 타면서 단계가 3 → 2 로 내려가고, 게이지가 눈에 띄게 뒤로 흐른다.
         let analysis: AnalysisResult | null = null
-        try { analysis = await getAnalysis(sessionId); failures = 0 }
-        catch { failures += 1; await waitTick(); continue }
-        if (!alive()) return
+        for (;;) {
+          if (!alive()) return
+          try { analysis = await getAnalysis(sessionId); failures = 0; break }
+          catch { failures += 1; await waitTick() }
+        }
 
         if (isAnalysisRenderable(analysis)) {
           setAnalysisData(analysis)
@@ -727,7 +734,7 @@ function App() {
 
         // 다시 걸어도 계속 비어 있으면 서버 쪽 문제다. 그래도 화면에 옮기지 않는다 —
         // 폴링만 계속 돌려 두면 워커가 살아나는 순간 사용자는 그냥 결과를 받게 된다.
-        if (reruns < ANALYSIS_MAX_RERUNS) { reruns += 1; setAnalysisPhase(1); if (!await kickOff(true)) return }
+        if (reruns < ANALYSIS_MAX_RERUNS) { reruns += 1; if (!await kickOff(true)) return }
         else await waitTick()
       }
     } catch (error) {
