@@ -196,6 +196,11 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
           onClick={() => setSelectedClass(part.class_name)}>{part.name_ko ?? part.class_name}</button>)}
       </nav>
 
+      {/* ⚠️ 진단 블록 · 버튼 · 안내문구는 **한 흐름으로 묶어야 한다.** 종전에는 셋 다
+          절대 좌표(2092 / 2410 / 2530px)로 고정돼 있었는데, 진단 카드는 differences
+          줄이 붙으면 세로로 자란다. 그만큼 버튼과의 간격만 줄어들었다(52px → 19px).
+          흐름으로 두면 블록이 얼마나 자라든 아래가 같이 밀려 내려간다. */}
+      <div className="comparison-analysis-footer">
       <section className="comparison-analysis-diagnosis" aria-labelledby="comparison-diagnosis-title">
         <h2 id="comparison-diagnosis-title">
           <em>{selected?.name_ko ?? selected?.class_name ?? '부위'}</em>의 진단 결과
@@ -224,6 +229,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
           앞쪽(의학)만 보여준다 — 뒤쪽(외부 AI 전송·삭제 안내)은 요청으로 뺐다.
           자르는 기준은 '상담하세요.' 이므로, 서버 문구가 바뀌면 여기도 같이 봐야 한다. */}
       {medicalDisclaimer && <p className="comparison-analysis-disclaimer"><span>{medicalDisclaimer}</span></p>}
+      </div>
     </section>
   </main>
 }

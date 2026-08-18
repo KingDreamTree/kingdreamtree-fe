@@ -29,7 +29,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionJobs, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type JobSummary, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -81,6 +81,19 @@ const REVEAL_OBSERVER: IntersectionObserverInit = { threshold: 0, rootMargin: '0
 
 /** 잠깐 스쳐 가는 화면 — 뒤로가기 기록에 남기지 않는다. */
 const TRANSIENT_VIEWS: AppView[] = ['pose-analyzing', 'inbody-loading', 'loading-two', 'feedback-loading']
+
+/** 분석 폴링 간격. 오래 걸릴 때는 서버를 덜 두드린다. */
+const ANALYSIS_POLL_MS = 750
+const ANALYSIS_SLOW_POLL_MS = 2500
+/** 이 시간을 넘기면 «조금 더 걸리고 있어요» 안내를 띄운다 — 포기가 아니라 안내다. */
+const ANALYSIS_SLOW_NOTICE_MS = 30_000
+/** 이만큼 지나도 안 끝나면 «다시 시도»를 같이 내준다 — 폴링은 그대로 계속한다.
+ *  ⚠️ 워커가 죽어 있으면 completed 가 영영 false 라, 안내만으로는 빠져나갈 길이 없다. */
+const ANALYSIS_STALLED_MS = 180_000
+/** 409(세그 대기) 중 잡 상태를 몇 박자에 한 번 확인할지. 매번 부르면 호출이 두 배가 된다. */
+const ANALYSIS_SEG_CHECK_EVERY = 4
+/** 조회가 연달아 이만큼 실패하면 «다시 시도»를 내준다 (서버 다운·네트워크). */
+const ANALYSIS_MAX_CONSECUTIVE_ERRORS = 5
 
 const RESUME_KEY = 'refit.view'
 
@@ -400,8 +413,28 @@ async function waitForInbodyDetail(inbodyId: string, jobId: string | null): Prom
  *    넘어온 사용자에게 그 화면을 보이지 않는 것이 로딩 화면의 존재 이유다.
  */
 function isAnalysisRenderable(analysis: AnalysisResult | null): boolean {
-  if (!analysis || analysis.parts.length === 0) return false
-  return analysis.overall !== null && analysis.overall.similarity_score !== null
+  // ⚠️ overall 은 null 일 수 있다 (진단 행 생성 전). status 를 먼저 읽으면 터진다.
+  //    판정 기준은 백엔드 계약 그대로 — overall 이 있고 status 가 DONE 일 때만 «그릴 수 있음».
+  return analysis?.overall != null && analysis.overall.status === 'DONE'
+}
+
+/**
+ * 세그멘테이션 잡을 **아무도 집어가지 않고 있는가** (워커가 꺼진 상태).
+ *
+ * ⚠️ 실제로 갇혔던 지점이 여기다. 세그가 안 돌면 startAnalysis 가 409 를 영원히
+ *    돌려주는데, 409 만 보고는 «처리 중»과 «워커 없음»을 구분할 수 없다.
+ *    잡 목록에는 stalled 가 없어서(요약 스키마) 열린 SEG 잡을 찾아 낱개로 확인한다.
+ * ⚠️ 실패하면 false 로 둔다 — 이 판단이 흐름을 막아서는 안 된다.
+ */
+async function isSegStalled(sessionId: string): Promise<boolean> {
+  try {
+    const { items } = await getSessionJobs(sessionId)
+    const open = items.filter((job: JobSummary) => job.kind.startsWith('SEG') && (job.status === 'PENDING' || job.status === 'PROCESSING')).pop()
+    if (!open) return false
+    return (await getJob(open.job_id)).stalled === true
+  } catch {
+    return false
+  }
 }
 
 /** 세그멘테이션 조회 — 오래 걸리면 포기한다. 사진이 없어도 수치·문구는 읽을 수 있다. */
@@ -476,6 +509,11 @@ function App() {
   //    다시 거짓말을 하게 되고, 그게 이 화면들을 고친 이유였다.
   const [analysisPhase, setAnalysisPhase] = useState(0)
   const [isAnalysisReady, setIsAnalysisReady] = useState(false)
+  /** 로딩 화면에 띄울 안내(오래 걸림) / 실패 문구. 실패면 «다시 시도»가 같이 뜬다. */
+  const [analysisNotice, setAnalysisNotice] = useState<string | null>(null)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
+  /** 오래 걸릴 때 «다시 시도»를 같이 보일지 — 실패가 아니라 «갇히지 않게» 하는 장치다. */
+  const [canRetryAnalysis, setCanRetryAnalysis] = useState(false)
   const [routinePhase, setRoutinePhase] = useState(0)
   const [isRoutineReady, setIsRoutineReady] = useState(false)
 
@@ -618,68 +656,115 @@ function App() {
 
   const retrySamePhoto = () => { if (lastUserPhoto) void uploadUser(lastUserPhoto) }
 
-  const beginAnalysis = async () => {
+  /**
+   * 분석 시작 → 완료까지 기다렸다가 결과 화면으로 넘긴다.
+   *
+   * ⚠️ **«—점 / 요약을 준비하고 있어요»가 최종 상태로 남으면 안 된다.** 종전에는 대기에
+   *    상한을 두고, 넘으면 데이터가 없어도 결과 화면으로 넘겼다. 그래서 사용자가
+   *    새로고침을 해야 점수가 나왔다. 이제 **포기하지 않는다** — 오래 걸리면 로딩 화면에
+   *    머물면서 안내만 띄우고 폴링을 계속한다.
+   *
+   * ⚠️ 넘어가는 조건은 **progress.completed 하나**다. 부위 진행률(part.done/total)로
+   *    판단하면 종합 진단(점수·요약)이 아직 없는 시점에 넘어간다.
+   */
+  const beginAnalysis = async (force = false) => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
     setAnalysisPhase(0)
     setIsAnalysisReady(false)
+    setAnalysisNotice(null)
+    setAnalysisError(null)
     setView('inbody-loading')
+
+    const startedAt = Date.now()
+    let failures = 0
+    setCanRetryAnalysis(false)
+
+    /** 서버가 «아무도 안 집어감»이라고 알려줬는가. 알려주면 3분 폴백보다 빠르고 정확하다. */
+    let stalled = false
+
+    /** 폴링 한 박자. 오래 걸리면 안내를 띄우고 간격을 늦춘다 — **멈추지는 않는다.** */
+    const waitTick = async () => {
+      const elapsed = Date.now() - startedAt
+      const slow = elapsed > ANALYSIS_SLOW_NOTICE_MS
+      // ⚠️ stalled 는 «기다리면 되는 상태»가 아니다 — 워커가 꺼져 있어 영영 안 끝난다.
+      //    같은 «조금만 더» 문구로 뭉뚱그리면 사용자를 그만큼 헛되이 붙잡아 둔다.
+      if (stalled) setAnalysisNotice('서버 처리가 지연되고 있어요 — 잠시 후 다시 시도해주세요.')
+      else if (slow) setAnalysisNotice('조금 더 걸리고 있어요 — 창을 닫지 말고 기다려주세요!')
+      // stalled 신호가 오면 즉시, 없으면 3분 폴백으로 «다시 시도»를 연다. 폴링은 그대로.
+      if (stalled || elapsed > ANALYSIS_STALLED_MS) setCanRetryAnalysis(true)
+      await new Promise(resolve => window.setTimeout(resolve, slow ? ANALYSIS_SLOW_POLL_MS : ANALYSIS_POLL_MS))
+    }
+
+    /** 조회가 연달아 실패하면(서버 다운·네트워크) 무한히 두드리지 않고 다시 시도를 내준다. */
+    const noteFailure = (): boolean => {
+      failures += 1
+      if (failures < ANALYSIS_MAX_CONSECUTIVE_ERRORS) return false
+      setAnalysisNotice(null)
+      setAnalysisError('서버와 연결이 불안정해요. 잠시 후 다시 시도해주세요.')
+      return true
+    }
+
     try {
-      // 사진 세그멘테이션(사피엔스)이 아직 도는 중이면 서버가 409를 준다.
-      // 에러가 아니라 "아직"이라는 뜻이므로, 로딩 화면을 유지한 채 기다렸다가
-      // 자동 재시도한다 — 사용자에게 "왜 안 넘어가지?"라는 순간을 만들지 않는다.
-      let result: Record<string, unknown> | null = null
-      for (let attempt = 0; attempt < 60; attempt += 1) {
-        try {
-          result = await startAnalysis(sessionId)
-          break
-        } catch (error) {
+      // ── ① 분석 시작. 409 는 «세그멘테이션이 아직»이라는 뜻이라 에러가 아니다.
+      let segChecks = 0
+      for (;;) {
+        try { await startAnalysis(sessionId, force); break } catch (error) {
           if (error instanceof RefitApiError && error.status === 409) {
-            await new Promise(resolve => window.setTimeout(resolve, 1000))
+            // 409 = «세그가 아직». 그게 «처리 중»인지 «워커 없음»인지는 잡에 물어야 안다.
+            // 매 박자마다 두 번씩 더 부를 일은 아니라 몇 번에 한 번만 확인한다.
+            if (segChecks % ANALYSIS_SEG_CHECK_EVERY === 0) stalled = await isSegStalled(sessionId)
+            segChecks += 1
+            await waitTick()
             continue
           }
           throw error
         }
       }
-      if (!result) throw new Error('사진 분석이 예상보다 오래 걸리고 있어요. 잠시 후 다시 시도해주세요.')
-      // 세그멘테이션 대기(409 루프)가 끝났다 — 이제부터 부위 진단이다.
+      stalled = false
       setAnalysisPhase(1)
-      // ⚠️ **종합 진단까지 기다린다.** 종전에는 부위 진단 행이 써지면(partComplete)
-      //    바로 빠져나왔는데, 백엔드는 그 행을 다 쓴 **뒤에야** VLM_OVERALL 을 등록한다
-      //    (worker/handlers/vlm.py). 그래서 점수·요약이 아직 없는 응답을 받아 결과
-      //    화면에 «-점 / 요약을 준비하고 있어요»가 떴다. 로딩이 100% 를 지나 결과가
-      //    나올 차례에 빈 화면이 뜨는 게 이 화면의 최악이다.
-      //    progress.completed 가 종합까지 본 신호다 — 그것만 믿는다.
-      let overallFailed = false
-      for (let attempt = 0; attempt < 160; attempt += 1) {
-        const progress = await getAnalysisProgress(sessionId)
-        // part.total 은 진단 행 수이고 백엔드가 전 부위를 한 번에 써넣는다 (0 → 9).
-        // 비율이 아니라 «부위 진단이 끝났다»는 신호로만 쓴다.
+
+      // ── ② progress.completed 까지 기다린다. 상한 없음.
+      for (;;) {
+        let progress
+        try { progress = await getAnalysisProgress(sessionId); failures = 0 }
+        catch { if (noteFailure()) return; await waitTick(); continue }
+        // part.total 은 «부위 진단이 끝났다»는 신호로만 쓴다 (0 → 9 로 한 번에 뛴다).
         if (progress.part.total > 0) setAnalysisPhase(2)
-        const status = String(progress.overall?.status ?? '').toUpperCase()
-        if (status === 'FAILED' || String(progress.part.status ?? '').toUpperCase() === 'FAILED') overallFailed = true
-        if (progress.completed || status === 'DONE' || overallFailed) break
-        await new Promise(resolve => window.setTimeout(resolve, 750))
+        if (progress.completed) break
+        stalled = progress.stalled === true
+        await waitTick()
       }
       setAnalysisPhase(3)
 
-      // ⚠️ 진행률이 끝났다고 응답이 곧바로 채워져 있지는 않다 (행 쓰기와 조회 사이의 틈).
-      //    **실제로 그릴 수 있는지 확인하고 넘긴다** — 이게 이 화면의 약속이다.
-      let analysis = await getAnalysis(sessionId)
-      for (let attempt = 0; attempt < 12 && !overallFailed && !isAnalysisRenderable(analysis); attempt += 1) {
-        await new Promise(resolve => window.setTimeout(resolve, 1000))
-        analysis = await getAnalysis(sessionId)
+      // ── ③ completed 를 봤으면 결과는 **이미 커밋돼 있다.** 한 번 읽고 즉시 판정한다.
+      //
+      // ⚠️ 유예를 두지 않는다 (백엔드 확인 2026-08-19). 워커가 진단 행을 먼저 쓰고
+      //    그 핸들러가 끝나야 잡이 DONE 이 되므로, completed=true 를 본 시점엔 행이
+      //    이미 있다. 쓰기/읽기 틈이 없으니 기다려 봐야 실패를 늦게 알릴 뿐이다.
+      //
+      // ⚠️ 단 completed=true 가 «overall 이 있다»를 뜻하지는 않는다. 실패 모양이 셋이다.
+      //      종합 성공     → 행 있음 · status=DONE
+      //      전 부위 실패  → 행 있음 · status=FAILED
+      //      부위 진단 실패/종합 미시작 → overall 이 아예 null
+      //    그래서 DONE 이 아니면 (null 이든 FAILED 든) 전부 실패로 본다.
+      for (;;) {
+        let analysis: AnalysisResult | null = null
+        // 네트워크 실패만 재시도한다 — «아직 안 됨»으로는 더 돌지 않는다.
+        try { analysis = await getAnalysis(sessionId); failures = 0 }
+        catch { if (noteFailure()) return; await waitTick(); continue }
+
+        if (isAnalysisRenderable(analysis)) {
+          setAnalysisData(analysis)
+          // 사진이 없어도 수치·문구는 읽을 수 있다 — 한 번 더 시도하고 없으면 그냥 간다.
+          setSegmentationData(await fetchSegmentation(sessionId) ?? await fetchSegmentation(sessionId))
+          setIsAnalysisReady(true)   // 막대가 100% 를 찍은 뒤 로딩 화면이 전환한다
+          return
+        }
+        setAnalysisNotice(null)
+        setAnalysisError('분석을 마치지 못했어요. 다시 시도해주세요.')
+        return
       }
-
-      // 사진·세그멘테이션도 같이 있어야 결과 화면이 채워진다. 한 번은 다시 시도한다 —
-      // 실패해도 진행은 막지 않는다 (사진 없이도 수치·문구는 읽을 수 있다).
-      let segmentation: SessionSegmentation | null = await fetchSegmentation(sessionId)
-      if (!segmentation) segmentation = await fetchSegmentation(sessionId)
-
-      setAnalysisData(analysis)
-      setSegmentationData(segmentation)
-      // 화면 전환은 여기서 하지 않는다 — 막대가 100% 를 찍은 뒤 로딩 화면이 부른다.
-      setIsAnalysisReady(true)
     } catch (error) {
       // 비교 가능한 부위가 부족하면 사진 문제 — 재촬영으로 유도한다
       if (error instanceof RefitApiError && error.code === 'INSUFFICIENT_PARTS') {
@@ -687,8 +772,8 @@ function App() {
         setView('pose-capture')
         return
       }
-      window.alert(userFacingMessage(error, '분석을 시작하지 못했습니다. 잠시 후 다시 시도해주세요.'))
-      setView('inbody-upload')
+      setAnalysisNotice(null)
+      setAnalysisError(userFacingMessage(error, '분석을 시작하지 못했어요. 다시 시도해주세요.'))
     }
   }
 
@@ -907,7 +992,9 @@ function App() {
   if (view === 'inbody-unreadable') return <InbodyUnreadableScreen onConfirm={() => setView('inbody-form')} onPrevious={() => setView('inbody-uploaded')} />
   // 로딩 애니메이션이 100%가 되면 분석 화면으로 전환한다. 결과 API는 백그라운드에서
   // 이어서 받아 상태를 채우므로, 네트워크 응답 때문에 로딩 화면이 멈춰 있지 않는다.
-    if (view === 'inbody-loading') return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady} onComplete={() => setView('comparison')} />
+    if (view === 'inbody-loading') return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady}
+      notice={analysisNotice} error={analysisError} canRetry={canRetryAnalysis} onRetry={() => void beginAnalysis(true)}
+      onComplete={() => setView('comparison')} />
   if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
   if (view === 'loading-two') return <LoadingTwoScreen phase={routinePhase} isComplete={isRoutineReady} onComplete={() => setView('custom-routine')} />

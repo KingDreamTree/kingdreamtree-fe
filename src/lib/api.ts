@@ -57,7 +57,10 @@ export type ActiveSession = Session & { steps: Record<string, unknown> }
 export type PoseScaleBasis = 'TORSO' | 'HIP_KNEE'
 export type CaptureSource = 'CAPTURE' | 'UPLOAD'
 export type PoseLandmark = { x: number; y: number; z?: number; visibility?: number }
-export type Job = { job_id: string; session_id: string; kind: string; status: 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED'; attempts: number; result?: Record<string, unknown> | null; error?: string | null }
+export type JobStatus = 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED'
+/** stalled: 아무도 이 잡을 집어가지 않고 있다(워커가 꺼짐). completed 와 독립 필드다. */
+export type Job = { job_id: string; session_id: string; kind: string; status: JobStatus; attempts: number; stalled?: boolean; result?: Record<string, unknown> | null; error?: string | null }
+export type JobSummary = { job_id: string; kind: string; status: JobStatus; attempts: number; created_at: string }
 
 function asApiErrorPayload(value: unknown): ApiErrorPayload {
   if (!value || typeof value !== 'object') return {}
@@ -245,6 +248,9 @@ export interface AnalysisProgress {
   part: { done: number; failed: number; total: number; status: string }
   overall: { status: string }
   completed: boolean
+  /** 아무도 이 잡을 집어가지 않고 있다(워커가 꺼짐). ⚠️ completed 와 독립이다 —
+   *  true 면 «조금만 더»가 아니라 «처리가 지연되고 있어요 + 다시 시도»로 안내한다. */
+  stalled?: boolean
 }
 
 export interface SegPaletteEntry {
@@ -385,7 +391,7 @@ export interface CoachChatResponse {
 }
 
 export function getJob(jobId: string) { return request<Job>(`/jobs/${jobId}`) }
-export function getSessionJobs(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/jobs`) }
+export function getSessionJobs(sessionId: string) { return request<{ items: JobSummary[] }>(`/sessions/${sessionId}/jobs`) }
 export function getReferencePhoto(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/reference`) }
 export function getSessionSegmentation(sessionId: string) { return request<SessionSegmentation>(`/sessions/${sessionId}/segmentation`) }
 export function getPhotoSegmentation(photoId: string) { return request<Record<string, unknown>>(`/photos/${photoId}/segmentation`) }
@@ -398,7 +404,8 @@ export function patchInbody(inbodyId: string, body: { fields?: Record<string, un
   return request<Record<string, unknown>>(`/inbody/${inbodyId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 }
 export function deleteInbody(inbodyId: string) { return request<void>(`/inbody/${inbodyId}`, { method: 'DELETE' }) }
-export function startAnalysis(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis`, { method: 'POST' }) }
+/** force=true — 이미 끝난 분석을 무시하고 다시 돌린다. 실패 후 «다시 시도» 전용. */
+export function startAnalysis(sessionId: string, force = false) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis${force ? '?force=true' : ''}`, { method: 'POST' }) }
 export function getAnalysisProgress(sessionId: string) { return request<AnalysisProgress>(`/sessions/${sessionId}/analysis/progress`) }
 export function getAnalysis(sessionId: string) { return request<AnalysisResult>(`/sessions/${sessionId}/analysis`) }
 export function createRoutine(sessionId: string, exerciseDaysPerWeek: number) {
