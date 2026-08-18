@@ -16,6 +16,13 @@ const GAP_LABELS: Record<string, string> = {
 const SCORE_RING_RADIUS = (300 - 24.83) / 2
 const SCORE_RING_CIRCUMFERENCE = 2 * Math.PI * SCORE_RING_RADIUS
 
+/** 좌우 짝 class_name을 서로 바꾼다. 짝이 없는 부위(Torso 등)는 null. */
+function mirrorClassName(className: string): string | null {
+  if (className.startsWith('Left_')) return `Right_${className.slice(5)}`
+  if (className.startsWith('Right_')) return `Left_${className.slice(6)}`
+  return null
+}
+
 /**
  * 사진 + 선택 부위 세그멘테이션 색칠을 **캔버스 한 장에 원본 해상도로 합성**한다.
  * 맵은 원본 사진 전체의 단순 스트레치(크롭·패딩 없음)라 배율만 맞추면 정확히
@@ -113,9 +120,16 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
   const score = overall?.similarity_score ?? null
   const filled = score === null ? 0 : Math.max(0, Math.min(100, score)) / 100
 
-  const priorityName = overall?.priority_parts?.length
-    ? parts.find(part => part.class_name === overall.priority_parts[0])?.name_ko ?? null
-    : null
+  const topClass = overall?.priority_parts?.[0] ?? null
+  const topPart = topClass ? parts.find(part => part.class_name === topClass) : null
+  // 좌우 쌍은 격차·신뢰도가 항상 같게 나온다(백엔드 규칙) — 짝도 우선순위에 들었으면
+  // 한쪽만 짚는 게 아니라 "양쪽"으로 부른다. 안 그러면 오른쪽도 똑같이 문제인데
+  // 왼쪽만 지목하는 짝짝이 문구가 된다.
+  const mirrorClass = topClass ? mirrorClassName(topClass) : null
+  const isPairedTop = mirrorClass != null && (overall?.priority_parts?.includes(mirrorClass) ?? false)
+  const priorityName = isPairedTop
+    ? topPart?.name_ko?.replace(/^(왼팔|오른팔|왼쪽|오른쪽)\s*/, '양쪽 ') ?? null
+    : topPart?.name_ko ?? null
   const headline = priorityName ? `${priorityName} 중심 개선 필요` : '개선 포인트 요약'
 
   const disclaimer = analysis?.disclaimer
