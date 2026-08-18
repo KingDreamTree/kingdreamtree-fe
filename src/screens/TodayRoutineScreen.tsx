@@ -88,7 +88,7 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
       <p data-next-step={`Step ${step + 2}/${exercises.length}`}>Next →</p><h2>{next.name}</h2><span>{exerciseDose(next)}</span><img src={next.image_url ?? todayRoutineNextExercise} alt={`다음 ${next.name} 동작`} />
     </aside>}
 
-    <button className={`today-routine-page__complete ${isWorkoutComplete ? 'is-complete' : ''}`} type="button" disabled={isTransitioning || !current} onClick={isWorkoutComplete ? onFinish : completeSet}>운동마치기</button>
+    <button className={`today-routine-page__complete ${isWorkoutComplete ? 'is-complete' : ''}`} type="button" disabled={isTransitioning || !current} onClick={isWorkoutComplete ? onFinish : completeSet}>{isLastStep ? '운동마치기' : '세트 완료'}</button>
     {today?.disclaimer && <p className="today-routine-page__disclaimer">{today.disclaimer}</p>}
   </div></FixedStepFrame>
 }
