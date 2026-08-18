@@ -61,7 +61,11 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
           올려 «무엇을 고르는 줄인가»와 «어디까지 왔나»를 한눈에 같이 보게 한다.
           ⚠️ nav 안에 넣지 않는다 — 진행률은 고를 수 있는 항목이 아니다. */}
       {progress && <div className="custom-routine-page__progress">
-        <span className="custom-routine-page__progress-next">{progress.cycle_no}주차 Day {progress.next_day_order}</span>
+        {/* ⚠️ 주차를 빼고 **전체 통산 회차**로 쓴다 (Day 1 … Day 8 …).
+            next_day_order 는 주기 안에서 1..N 으로 되돌아오는 값이라 주차 없이 쓰면
+            «Day 1» 이 계속 반복된다. completed_count + 1 이 옆의 «N/M회» 와 같은
+            기준의 다음 회차다 — 두 숫자가 어긋나지 않는다. */}
+        <span className="custom-routine-page__progress-next">Day {Math.min(progress.completed_count + 1, progress.total_count)}</span>
         <span className="custom-routine-page__progress-gauge" role="progressbar"
           aria-valuenow={progress.percent} aria-valuemin={0} aria-valuemax={100}
           aria-label={`전체 ${progress.total_count}회 중 ${progress.completed_count}회 완료`}>
