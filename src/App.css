@@ -533,7 +533,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-header .previous-button { top: -48px; left: 1087px; }
 .comparison-analysis-header .previous-button { height: 27px; align-items: center; gap: 6px; }
 .comparison-analysis-header .previous-button img { width: 18px; height: 18px; flex: none; object-fit: contain; }
-.comparison-analysis-header .previous-button img { width: 54px; height: 27px; }
+.comparison-analysis-header .previous-button img { width: 18px; height: 16px; }
 .comparison-analysis-header .previous-button span { display: block; line-height: 27px; }
 
 /* 레퍼런스와 현재 체형 사진은 원본 비율을 유지해 전체가 보이도록 표시합니다. */
