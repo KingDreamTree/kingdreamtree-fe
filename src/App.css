@@ -188,6 +188,9 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-diagnosis > div > span { position: relative; display: block; width: 127px; height: 127px; flex: none; }
 .comparison-analysis-diagnosis > div > span img:first-child { position: absolute; inset: 0; width: 127px; height: 127px; }
 .comparison-analysis-diagnosis > div > span img:last-child { position: absolute; top: 34px; left: 32px; width: 70px; height: 70px; }
+.comparison-analysis-diagnosis > div > span img.comparison-analysis-comment-icon--body { top: 35px; left: 28px; width: 72px; height: 58px; }
+.comparison-analysis-diagnosis > div > span img.comparison-analysis-comment-icon--leg { transform: rotate(180deg); }
+.comparison-analysis-diagnosis > div > span img.comparison-analysis-comment-icon--shoulder { transform: rotate(-18deg); }
 .comparison-analysis-diagnosis section { margin-left: 43px; }
 .comparison-analysis-diagnosis h3 { margin: 2px 0 10px; color: #ffe250; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }
 .comparison-analysis-diagnosis section p { margin: 0; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }
