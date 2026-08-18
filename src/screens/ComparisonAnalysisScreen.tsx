@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import comparisonCommentCircle from '../assets/comparison-analysis-comment-circle.svg'
-import comparisonCommentIcon from '../assets/comparison-analysis-comment-icon.svg'
-import comparisonCommentBodyIcon from '../assets/reference-person.svg'
 import comparisonScoreTrack from '../assets/comparison-analysis-score-track.svg'
 import type { AnalysisPart, AnalysisResult, SegmentationInfo, SessionSegmentation } from '../lib/api'
 import { PreviousButton } from '../components/PreviousButton'
 import { RefitHomeLogo } from '../components/RefitHomeLogo'
+import { BodyPartIcon } from '../components/BodyPartIcon'
 
 const GAP_LABELS: Record<string, string> = {
   NONE: '차이 거의 없음',
@@ -16,14 +15,6 @@ const GAP_LABELS: Record<string, string> = {
 
 const SCORE_RING_RADIUS = (300 - 24.83) / 2
 const SCORE_RING_CIRCUMFERENCE = 2 * Math.PI * SCORE_RING_RADIUS
-
-function commentIconVariant(className: string | undefined): 'body' | 'arm' | 'leg' | 'shoulder' {
-  const value = (className ?? '').toLowerCase()
-  if (value.includes('leg') || value.includes('knee') || value.includes('calf') || value.includes('thigh')) return 'leg'
-  if (value.includes('shoulder')) return 'shoulder'
-  if (value.includes('arm') || value.includes('elbow') || value.includes('wrist')) return 'arm'
-  return 'body'
-}
 
 /**
  * 사진 + 선택 부위 세그멘테이션 색칠을 **캔버스 한 장에 원본 해상도로 합성**한다.
@@ -117,8 +108,6 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
   const parts = analysis?.parts ?? []
   const [selectedClass, setSelectedClass] = useState<string | null>(null)
   const selected = parts.find(part => part.class_name === selectedClass) ?? parts[0] ?? null
-  const commentVariant = commentIconVariant(selected?.class_name)
-  const commentIcon = commentVariant === 'body' ? comparisonCommentBodyIcon : comparisonCommentIcon
 
   const overall = analysis?.overall ?? null
   const score = overall?.similarity_score ?? null
@@ -210,7 +199,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
           {selected?.confidence === 'LOW' && <span className="comparison-analysis-badge comparison-analysis-badge--dim">신뢰도 낮음</span>}
         </h2>
         <div className={selected?.confidence === 'LOW' ? 'is-low-confidence' : ''}>
-          <span><img src={comparisonCommentCircle} alt="" /><img className={`comparison-analysis-comment-icon--${commentVariant}`} src={commentIcon} alt={`${selected?.name_ko ?? '선택 부위'} 아이콘`} /></span>
+          <span><img src={comparisonCommentCircle} alt="" /><BodyPartIcon className="comparison-analysis-comment-icon" partClassName={selected?.class_name} label={`${selected?.name_ko ?? '선택 부위'} 아이콘`} /></span>
           <section>
             <h3>AI 코멘트</h3>
             {selected?.gap_level === null && selected?.blocked_reason
