@@ -788,6 +788,3 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 /* 카드 간격을 기본 고정값으로 되돌립니다. */
 .custom-routine-page__cards { width: auto; justify-content: flex-start; gap: 14px; }
-
-/* 카드 행의 오른쪽 끝을 4주간 핵심 목표 박스와 맞춥니다. */
-.custom-routine-page__cards { width: 1178px; justify-content: space-between; gap: 0; }
