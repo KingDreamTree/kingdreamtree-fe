@@ -758,14 +758,14 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
       (이 프로젝트엔 전역 box-sizing 리셋이 없다). */
 .today-routine-page__complete {
   box-sizing: border-box; border: 1px solid #f6f6f6; background: transparent; color: #f6f6f6;
-  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease,
-    box-shadow 180ms ease, opacity 200ms ease;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, opacity 200ms ease;
 }
+/* ⚠️ 글로우(box-shadow)는 넣지 않는다 — 온보딩 CTA 와 달리 이 버튼은 운동 중 계속
+   누르는 버튼이라, 누를 때마다 빛나면 시선을 과하게 끈다. 색 채움만으로 충분하다. */
 .today-routine-page__complete:hover:not(:disabled),
 .today-routine-page__complete:active:not(:disabled),
 .today-routine-page__complete:focus-visible:not(:disabled) {
   border-color: #ffe250; background: #ffe250; color: #222;
-  box-shadow: 0 0 22px rgb(255 226 80 / .85), 0 0 42px rgb(255 226 80 / .42);
 }
 
 /* ── 상세보기 정보 패널의 동작 이미지 ──────────────────────────────────────
