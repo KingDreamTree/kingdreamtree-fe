@@ -4,6 +4,7 @@ import todayRoutineNextExercise from '../assets/today-routine-next-exercise.png'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { PreviousButton } from '../components/PreviousButton'
 import type { RoutineExercise, TodayRoutine } from '../lib/api'
+import { displayProgress } from '../lib/routine-progress'
 
 function exerciseDose(exercise: RoutineExercise | undefined): string {
   if (!exercise) return ''
@@ -62,7 +63,7 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
     {/* ⚠️ 주차를 빼고 **전체 통산 회차**로 쓴다 — 맞춤 루틴 화면의 표기와 같은 기준이다.
         day_order 는 주기 안에서 1..N 으로 되돌아오는 값이라 주차 없이 쓰면 2주차에도
         «Day 1» 이 다시 나온다. completed_count + 1 이 «지금 할 회차»다. */}
-    <p className="today-routine-page__eyebrow">오늘의 루틴 {today ? `· Day ${Math.min(today.progress.completed_count + 1, today.progress.total_count)}` : ''}</p>
+    <p className="today-routine-page__eyebrow">오늘의 루틴 {today ? `· Day ${displayProgress(today.progress).nextDay}` : ''}</p>
     <h1>{today?.day.title ?? '오늘 해야 하는 루틴이에요'}</h1>
     <p className="today-routine-page__notice">{isLastStep ? '운동 마치기 버튼을 누르면 피드백 화면으로 넘어갈 수 있어요!' : '완료 버튼을 눌러야 다음 스텝으로 이동할 수 있어요!'}</p>
     <div className="today-routine-page__progress" role="progressbar" aria-label={`운동 ${Math.min(step + 1, exercises.length)} / ${exercises.length} 단계`} aria-valuemin={0} aria-valuemax={exercises.length} aria-valuenow={Math.min(step + 1, exercises.length)}>
