@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import todayRoutineExercise from '../assets/today-routine-dumbbell-bench-press.png'
 import todayRoutineNextExercise from '../assets/today-routine-next-exercise.png'
-import todayRoutineProgressLine from '../assets/today-routine-progress-line.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { PreviousButton } from '../components/PreviousButton'
 import type { RoutineExercise, TodayRoutine } from '../lib/api'
@@ -26,7 +25,6 @@ type TodayRoutineScreenProps = { today: TodayRoutine | null; onFinish: () => voi
 export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutineScreenProps) {
   const exercises = today?.day.exercises ?? []
   const [step, setStep] = useState(0)
-  const [isFinalSetComplete, setIsFinalSetComplete] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -36,7 +34,6 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
   // 다음 카드가 **마지막 스텝**이면 현재 자리는 전체 폭(1178px)이다. 이걸 안 알려주면
   // 824px 까지만 커졌다가 교체되는 순간 1178px 로 튄다.
   const isNextLastStep = step + 1 >= exercises.length - 1
-  const isWorkoutComplete = exercises.length > 0 && isFinalSetComplete
 
   useEffect(() => {
     if (!isTransitioning) return
@@ -48,9 +45,9 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
   }, [isTransitioning])
 
   const completeSet = () => {
-    if (isTransitioning || isWorkoutComplete) return
+    if (isTransitioning) return
     if (isLastStep) {
-      setIsFinalSetComplete(true)
+      onFinish()
       return
     }
     if (prefersReducedMotion) {
@@ -64,9 +61,10 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
     <PreviousButton onClick={onPrevious} />
     <p className="today-routine-page__eyebrow">오늘의 루틴 {today ? `· ${today.progress.cycle_no}주차 Day ${today.day.day_order}` : ''}</p>
     <h1>{today?.day.title ?? '오늘 해야 하는 루틴이에요'}</h1>
-    <p className="today-routine-page__notice">완료 버튼을 눌러야 다음 스텝으로 이동할 수 있어요!</p>
-    <img className="today-routine-page__progress" src={todayRoutineProgressLine} alt={`운동 ${Math.min(step + 1, exercises.length)} / ${exercises.length} 단계`} />
-    <button className="today-routine-page__finish" type="button" disabled={!isWorkoutComplete} onClick={onFinish}>운동마치기</button>
+    <p className="today-routine-page__notice">{isLastStep ? '운동마치기 버튼을 누르면 피드백 화면으로 넘어갈 수 있어요!' : '완료 버튼을 눌러야 다음 스텝으로 이동할 수 있어요!'}</p>
+    <div className="today-routine-page__progress" role="progressbar" aria-label={`운동 ${Math.min(step + 1, exercises.length)} / ${exercises.length} 단계`} aria-valuemin={0} aria-valuemax={exercises.length} aria-valuenow={Math.min(step + 1, exercises.length)}>
+      {exercises.map((exercise, index) => <span className={index < step ? 'is-complete' : index === step ? 'is-active' : ''} key={`${exercise.name}-${index}`} />)}
+    </div>
 
     {/* ⚠️ key={step} 이 이 전환의 핵심이다. 키가 없으면 두 카드가 **같은 DOM 노드를
         재사용**하는데, step 이 바뀌며 is-promoting/is-exiting 이 떨어지는 순간 전환이
@@ -84,12 +82,12 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
 
     {/* data-next-step: 승격 중 Step 배지에 들어갈 문구. 종전에는 CSS 가 'Step 2' 를
         박아두고 있어서 3스텝 이후에도 매번 "Step 2" 가 스쳐 지나갔다. */}
-    {next && !isWorkoutComplete && <aside key={`next-${step}`}
+    {next && !isLastStep && <aside key={`next-${step}`}
       className={`today-routine-page__next ${isTransitioning ? 'is-promoting' : ''} ${isNextLastStep ? 'is-promoting-last' : ''}`} aria-label="다음 운동">
       <p data-next-step={`Step ${step + 2}/${exercises.length}`}>Next →</p><h2>{next.name}</h2><span>{exerciseDose(next)}</span><img src={next.image_url ?? todayRoutineNextExercise} alt={`다음 ${next.name} 동작`} />
     </aside>}
 
-    <button className={`today-routine-page__complete ${isWorkoutComplete ? 'is-complete' : ''}`} type="button" disabled={isTransitioning || isWorkoutComplete || !current} onClick={completeSet}>세트 완료</button>
+    <button className="today-routine-page__complete" type="button" disabled={isTransitioning || !current} onClick={completeSet}>{isLastStep ? '운동마치기' : '세트 완료'}</button>
     {today?.disclaimer && <p className="today-routine-page__disclaimer">{today.disclaimer}</p>}
   </div></FixedStepFrame>
 }

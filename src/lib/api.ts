@@ -226,6 +226,8 @@ export interface AnalysisOverall {
   priority_parts: string[]
   strengths: string[]
   cautions: string[]
+  /** 두 사진을 직접 본 전체 형태 판단 — summary 보다 구체적인 실루엣 서술 */
+  silhouette: string | null
   status: string
 }
 
