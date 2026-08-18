@@ -355,10 +355,17 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .feedback-exercise-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; }.feedback-exercise-page__header { position: absolute; top: 0; left: 0; box-sizing: border-box; display: flex; width: 1440px; height: 84px; align-items: center; justify-content: center; border-bottom: 1px solid #3b3b3b; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }.feedback-exercise-page__header button { position: absolute; top: 17px; right: 30px; display: grid; width: 46px; height: 46px; padding: 0; place-items: center; border: 0; background: transparent; color: #f6f6f6; font: 500 28px/1.5 Pretendard, sans-serif; cursor: pointer; }.feedback-exercise-page__coach { position: absolute; top: 233px; left: 155px; width: 67px; height: 76px; object-fit: contain; }.feedback-exercise-page__message { position: absolute; top: 218px; right: 131px; box-sizing: border-box; display: flex; min-width: 199px; max-width: 531px; height: 76px; align-items: center; justify-content: center; margin: 0; padding: 0 30px; overflow: hidden; border-radius: 20px; background: #ffe250; color: #222; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; white-space: nowrap; }.feedback-exercise-page__reply { position: absolute; top: 306px; left: 131px; display: grid; gap: 10px; }.feedback-exercise-page__reply > p { box-sizing: border-box; margin: 0; padding: 22px 30px; border-radius: 20px; background: #3b3b3b; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; white-space: nowrap; }.feedback-exercise-page__reply > div { display: flex; width: 142px; height: 50px; align-items: center; justify-content: center; gap: 16px; border-radius: 65px; background: rgb(75 194 125 / .2); }.feedback-exercise-page__reply > div:last-child { width: 142px; }.feedback-exercise-page__reply > div > span { display: grid; width: 22px; height: 22px; place-items: center; border: .5px solid #4bc27d; border-radius: 50%; background: rgb(75 194 125 / .2); }.feedback-exercise-page__reply > div > span img { width: 9.917px; height: 7px; }.feedback-exercise-page__reply strong { color: #4bc27d; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }.feedback-exercise-page__input { position: absolute; top: 837px; left: 305px; box-sizing: border-box; display: block; width: 830px; height: 78px; margin: 0; overflow: hidden; border-radius: 45px; background: #3b3b3b; }.feedback-exercise-page__input input { box-sizing: border-box; width: 100%; height: 100%; padding: 0 92px 0 35px; border: 0; outline: 0; background: transparent; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }.feedback-exercise-page__input input::placeholder { color: #8e8e8e; opacity: 1; }.feedback-exercise-page__input button { position: absolute; top: 24.5px; right: 33px; display: grid; width: 29px; height: 29px; padding: 0; place-items: center; border: 0; background: transparent; cursor: pointer; }.feedback-exercise-page__input button:disabled { cursor: default; opacity: .45; }.feedback-exercise-page__input button img { width: 29px; height: 29px; }
 .feedback-attention-page input:focus-visible, .feedback-attention-page button:focus-visible, .feedback-exercise-page input:focus-visible, .feedback-exercise-page__input button:focus-visible { outline: 3px solid #ffe250; outline-offset: 4px; }
 
-/* Let chat bubbles grow with their message instead of clipping to a fixed frame. */
-.feedback-attention-page__message, .feedback-exercise-page__message { left: auto; right: 131px; width: fit-content; min-width: 0; max-width: 531px; height: auto; min-height: 76px; justify-content: flex-start; padding: 21px 30px; overflow: visible; white-space: normal; overflow-wrap: anywhere; word-break: keep-all; }
+/* Let chat bubbles grow with their message instead of clipping to a fixed frame.
+   ⚠️ overflow-wrap 은 반드시 break-word 여야 한다. anywhere 는 **min-content 계산에
+      참여**해서, width:fit-content(또는 flex 자식의 shrink-to-fit)와 만나면 말풍선이
+      한 글자 폭까지 쪼그라든다. 실측(2026-08-19, 같은 문장 '오늘 너무 아팠어요?'):
+        anywhere   → 80px 폭 / 339px 높이 (글자마다 줄바꿈)
+        break-word → 152px 폭 / 108px 높이
+      긴 URL 같은 끊을 데 없는 문자열을 깨는 보호는 break-word 도 똑같이 한다.
+      다른 점은 '내재 폭을 줄이느냐' 뿐이다. */
+.feedback-attention-page__message, .feedback-exercise-page__message { left: auto; right: 131px; width: fit-content; min-width: 0; max-width: 531px; height: auto; min-height: 76px; justify-content: flex-start; padding: 21px 30px; overflow: visible; white-space: normal; overflow-wrap: break-word; word-break: keep-all; }
 .feedback-attention-page__reply, .feedback-exercise-page__reply { width: auto; max-width: 850px; }
-.feedback-attention-page__reply > p, .feedback-exercise-page__reply > p { width: fit-content; max-width: 850px; white-space: normal; overflow-wrap: anywhere; word-break: keep-all; }
+.feedback-attention-page__reply > p, .feedback-exercise-page__reply > p { width: fit-content; max-width: 850px; white-space: normal; overflow-wrap: break-word; word-break: keep-all; }
 
 @media (prefers-reduced-motion: no-preference) { .feedback-exercise-page__header, .feedback-exercise-page__coach, .feedback-exercise-page__message, .feedback-exercise-page__reply, .feedback-exercise-page__input { opacity: 0; animation: feedback-exercise-enter 480ms cubic-bezier(.22, 1, .36, 1) forwards; }.feedback-exercise-page__coach { animation-delay: 80ms; }.feedback-exercise-page__message { animation-delay: 120ms; }.feedback-exercise-page__reply { animation-delay: 190ms; }.feedback-exercise-page__input { animation-delay: 270ms; } }
 @keyframes feedback-exercise-enter { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
@@ -550,7 +557,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 /* Keep the complete feedback conversation visible between turns. */
 .feedback-chat-history { position: absolute; top: 218px; left: 131px; right: 131px; display: flex; flex-direction: column; gap: 18px; pointer-events: none; }
-.feedback-chat-history__message { box-sizing: border-box; max-width: 531px; margin: 0; padding: 18px 30px; border-radius: 20px; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.feedback-chat-history__message { box-sizing: border-box; max-width: 531px; margin: 0; padding: 18px 30px; border-radius: 20px; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; overflow-wrap: break-word; white-space: pre-wrap; }
 .feedback-chat-history__message.is-user { align-self: flex-end; background: #ffe250; color: #222; }
 .feedback-chat-history__message.is-assistant { align-self: flex-start; background: #3b3b3b; color: #f6f6f6; }
 .feedback-attention-page__reply > p, .feedback-exercise-page__reply > p { display: none; }
@@ -603,7 +610,11 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   border-radius: 18px;
   line-height: 1.5;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  /* ⚠️ anywhere 가 아니라 break-word 다. anywhere 는 min-content 계산에 참여해서
+     위의 width:fit-content 를 한 글자 폭까지 무너뜨린다 — "오늘 너무 아팠어요?"
+     가 두 줄로 쪼개지던 원인 (실측 2026-08-19: anywhere 80px/339px vs
+     break-word 152px/108px). 긴 URL 을 깨는 보호는 break-word 도 동일하다. */
+  overflow-wrap: break-word;
   word-break: keep-all;
 }
 .feedback-chat-history__message.is-typing { color: #b0b0b0; }
