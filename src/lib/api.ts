@@ -337,7 +337,15 @@ export interface RoutineDetail {
   days: RoutineDay[]
   progress: RoutineProgress
   notice: string | null
+  //: 루틴 구성 근거. LLM 이 쓴 글이 아니라 실제 생성된 루틴에서 조립한 것.
+  //  이 필드 이전 루틴은 null 이므로 goal/focus_areas 폴백을 쓴다.
+  strategy: RoutineStrategy | null
   disclaimer: string
+}
+
+export interface RoutineStrategy {
+  headline: string | null
+  body: string | null
 }
 
 export interface TodayRoutine { month_routine_id: string; cycle_no: number; day: RoutineDay; progress: RoutineProgress; disclaimer: string }
