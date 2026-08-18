@@ -64,7 +64,7 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
         «Day 1» 이 다시 나온다. completed_count + 1 이 «지금 할 회차»다. */}
     <p className="today-routine-page__eyebrow">오늘의 루틴 {today ? `· Day ${Math.min(today.progress.completed_count + 1, today.progress.total_count)}` : ''}</p>
     <h1>{today?.day.title ?? '오늘 해야 하는 루틴이에요'}</h1>
-    <p className="today-routine-page__notice">{isLastStep ? '운동마치기 버튼을 누르면 피드백 화면으로 넘어갈 수 있어요!' : '완료 버튼을 눌러야 다음 스텝으로 이동할 수 있어요!'}</p>
+    <p className="today-routine-page__notice">{isLastStep ? '운동 마치기 버튼을 누르면 피드백 화면으로 넘어갈 수 있어요!' : '완료 버튼을 눌러야 다음 스텝으로 이동할 수 있어요!'}</p>
     <div className="today-routine-page__progress" role="progressbar" aria-label={`운동 ${Math.min(step + 1, exercises.length)} / ${exercises.length} 단계`} aria-valuemin={0} aria-valuemax={exercises.length} aria-valuenow={Math.min(step + 1, exercises.length)}>
       {exercises.map((exercise, index) => <span className={index < step ? 'is-complete' : index === step ? 'is-active' : ''} key={`${exercise.name}-${index}`} />)}
     </div>
@@ -90,7 +90,7 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
       <p data-next-step={`Step ${step + 2}/${exercises.length}`}>Next →</p><h2>{next.name}</h2><span>{exerciseDose(next)}</span><img src={next.image_url ?? todayRoutineNextExercise} alt={`다음 ${next.name} 동작`} />
     </aside>}
 
-    <button className="today-routine-page__complete" type="button" disabled={isTransitioning || !current} onClick={completeSet}>{isLastStep ? '운동마치기' : '세트 완료'}</button>
+    <button className="today-routine-page__complete" type="button" disabled={isTransitioning || !current} onClick={completeSet}>{isLastStep ? '운동 마치기' : '세트 완료'}</button>
     {today?.disclaimer && <p className="today-routine-page__disclaimer">{today.disclaimer}</p>}
   </div></FixedStepFrame>
 }
