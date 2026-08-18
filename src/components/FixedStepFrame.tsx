@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { RefitHomeLogo } from './RefitHomeLogo'
 
 type FixedStepFrameProps = { children: ReactNode; label: string }
 
@@ -21,5 +22,5 @@ export function FixedStepFrame({ children, label }: FixedStepFrameProps) {
   }, [])
 
   const canvasStyle = { transform: `scale(${scale})` } as CSSProperties
-  return <main className="step-page" aria-label={label}><div className="step-frame" style={{ width: 1440 * scale, height: 1024 * scale }}><div className="step-canvas" style={canvasStyle}><button className="refit-logo" type="button" aria-label="RE:FIT 홈으로 이동" onClick={() => window.dispatchEvent(new Event('refit-logo-click'))}><span>RE:</span><strong>FIT</strong></button>{children}</div></div></main>
+  return <main className="step-page" aria-label={label}><div className="step-frame" style={{ width: 1440 * scale, height: 1024 * scale }}><div className="step-canvas" style={canvasStyle}><RefitHomeLogo />{children}</div></div></main>
 }

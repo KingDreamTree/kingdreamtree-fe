@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import customRoutinePreviousArrow from '../assets/custom-routine-previous-arrow.svg'
+import previousArrow from '../assets/previous-arrow.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import type { RoutineDay, RoutineDetail } from '../lib/api'
 
@@ -23,15 +23,17 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
   const [week, setWeek] = useState(progress?.cycle_no ?? 1)
   const days = routine?.days ?? []
   const focusAreas = routine?.focus_areas?.filter(Boolean) ?? []
-  const routineSummary = routine?.goal ?? `주 ${routine?.exercise_days_per_week ?? '-'}일 운동으로 목표 체형에 가까워지는 ${routine?.total_cycles ?? 4}주 루틴입니다.`
-  const routineEvidence = focusAreas.length > 0
+  // strategy 는 백엔드가 실제로 생성한 루틴(모드·가중 세트)에서 조립한 설명이다.
+  // 이 필드 이전 루틴은 null 이므로 기존 goal/focus_areas 폴백을 그대로 쓴다.
+  const routineSummary = routine?.strategy?.headline ?? routine?.goal ?? `주 ${routine?.exercise_days_per_week ?? '-'}일 운동으로 목표 체형에 가까워지는 ${routine?.total_cycles ?? 4}주 루틴입니다.`
+  const routineEvidence = routine?.strategy?.body ?? (focusAreas.length > 0
     ? `${focusAreas.join('·')} 개선을 우선순위로 두고, 주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정에 맞춰 구성했어요.`
-    : `주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정과 각 운동의 세트·반복·휴식 구성을 바탕으로 만들었어요.`
+    : `주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정과 각 운동의 세트·반복·휴식 구성을 바탕으로 만들었어요.`)
 
   return <FixedStepFrame label="맞춤 루틴"><div className="custom-routine-page">
     <p className="custom-routine-page__eyebrow">맞춤루틴 제공</p>
       <h1>목표 체형 레퍼런스</h1>
-    <button className="custom-routine-page__adjust" type="button" onClick={onAdjustDays}><img src={customRoutinePreviousArrow} alt="" />운동 일수 조정</button>
+    <button className="custom-routine-page__adjust" type="button" onClick={onAdjustDays}><img src={previousArrow} alt="" />운동 일수 조정</button>
     <button className="custom-routine-page__next" type="button" onClick={onNext}>다음 단계</button>
 
     <section className="custom-routine-page__goal">

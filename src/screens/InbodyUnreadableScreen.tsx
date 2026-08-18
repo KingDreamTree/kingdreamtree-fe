@@ -1,6 +1,6 @@
 import inbodyCalendar from '../assets/inbody-calendar.svg'
 import inbodyUnreadableInfo from '../assets/inbody-unreadable-info.svg'
-import inbodyPreviousArrow from '../assets/inbody-previous-arrow.svg'
+import previousArrow from '../assets/previous-arrow.svg'
 import inbodyRequiredDot from '../assets/inbody-required-dot.svg'
 import { InbodyGenderSelector } from '../components/InbodyGenderSelector'
 import { FixedStepFrame } from '../components/FixedStepFrame'
@@ -25,6 +25,6 @@ export function InbodyUnreadableScreen({ onConfirm, onPrevious }: InbodyUnreadab
     <section className="inbody-unreadable-column inbody-unreadable-composition"><h2>2. 체성분</h2>{composition.map(field => <EmptyField key={field.label} field={field} />)}</section>
     <section className="inbody-unreadable-column inbody-unreadable-muscle"><h2>3. 부위별 근육량</h2>{muscle.map(label => <EmptyField key={label} field={{ label }} />)}</section>
     <section className="inbody-unreadable-column inbody-unreadable-fat"><h2>4. 부위별 체지방량</h2>{fat.map(label => <EmptyField key={label} field={{ label }} />)}</section>
-    <button className="inbody-unreadable-confirm" type="button" onClick={onConfirm}>확인 완료</button><button className="inbody-unreadable-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button><p className="inbody-unreadable-note">* 이 값으로 진행 및 확인 기록이 저장됩니다.</p>
+    <button className="inbody-unreadable-confirm" type="button" onClick={onConfirm}>확인 완료</button><button className="inbody-unreadable-previous" type="button" onClick={onPrevious}><img src={previousArrow} alt="" />이전 단계</button><p className="inbody-unreadable-note">* 이 값으로 진행 및 확인 기록이 저장됩니다.</p>
   </div></FixedStepFrame>
 }
