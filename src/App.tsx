@@ -79,6 +79,62 @@ type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' 
  */
 const REVEAL_OBSERVER: IntersectionObserverInit = { threshold: 0, rootMargin: '0px 0px -45% 0px' }
 
+/** 잠깐 스쳐 가는 화면 — 뒤로가기 기록에 남기지 않는다. */
+const TRANSIENT_VIEWS: AppView[] = ['pose-analyzing', 'inbody-loading', 'loading-two', 'feedback-loading']
+
+const RESUME_KEY = 'refit.view'
+
+/**
+ * 새로고침 후 되살릴 수 있는 화면 — **서버에서 다시 받아 채울 수 있는 것만** 넣는다.
+ *
+ * ⚠️ 여기에 화면을 추가하려면 App 의 복원 효과(resumedView 를 보는 useEffect)에도
+ *    그 화면의 데이터를 받아오는 분기를 같이 넣어야 한다. 한쪽만 하면 화면은 뜨는데
+ *    내용이 비어 있다.
+ */
+const RESUMABLE_VIEWS: AppView[] = [
+  'reference-notice', 'reference', 'inbody-upload', 'comparison',
+  'exercise-days', 'custom-routine', 'today-routine', 'feedback',
+]
+
+/**
+ * 되살릴 수 없는 화면 → 가장 가까운 되살릴 수 있는 화면.
+ *
+ * ⚠️ 이 화면들은 **서버에 없는 값**에 기대고 있다 — 사용자가 고른 File(포즈 판정),
+ *    코치 대화 내역, 화면에서 고른 Day. 그대로 복원하면 점수 0점짜리 결과 화면이나
+ *    빈 페이지가 뜬다. 한 단계 앞으로 내려서 사용자가 그 화면을 **다시 만들게** 한다.
+ */
+const RESUME_FALLBACK: Partial<Record<AppView, AppView>> = {
+  'pose-capture': 'reference', 'pose-analyzing': 'reference', 'pose-failure': 'reference',
+  'pose-unavailable': 'reference', 'pose-success': 'reference',
+  'inbody-uploaded': 'inbody-upload', 'inbody-form': 'inbody-upload',
+  'inbody-range-error': 'inbody-upload', 'inbody-warning': 'inbody-upload',
+  'inbody-fixed': 'inbody-upload', 'inbody-unreadable': 'inbody-upload',
+  'inbody-loading': 'inbody-upload',
+  'loading-two': 'exercise-days',
+  'custom-routine-detail': 'custom-routine',
+  'feedback-loading': 'today-routine', 'feedback-attention-area': 'today-routine',
+  'feedback-exercise-intensity': 'today-routine', 'feedback-reflection': 'today-routine',
+  'feedback-applied': 'today-routine', 'feedback-kept': 'today-routine',
+}
+
+/**
+ * 새로고침 직후 보여줄 화면. **useState 초기값으로 동기 호출한다** — 효과에서 하면
+ * 온보딩이 한 프레임 번쩍인 뒤 화면이 바뀐다.
+ *
+ * ⚠️ history.state 는 쓸 수 없다. 아래 첫 기록 효과가 마운트 직후 replaceState 로
+ *    덮어쓰므로, 읽으려던 값이 이미 사라진 뒤다. 그래서 sessionStorage 에 따로 적는다
+ *    (탭을 닫으면 지워지는 것도 의도 — 새 탭은 온보딩부터가 맞다).
+ */
+function restoreView(): AppView {
+  // 세션이 없으면 되살릴 것도 없다 — 어차피 모든 조회가 사용자 없이 실패한다.
+  if (!getStoredSessionId()) return 'onboarding'
+  let saved: string | null = null
+  try { saved = sessionStorage.getItem(RESUME_KEY) } catch { return 'onboarding' }
+  if (!saved) return 'onboarding'
+  const target = RESUME_FALLBACK[saved as AppView] ?? (saved as AppView)
+  return RESUMABLE_VIEWS.includes(target) ? target : 'onboarding'
+}
+
 /** Reveals a design section once it reaches the viewport. */
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
@@ -254,6 +310,8 @@ type PoseScreenProps = {
   score: number
   message?: string
   referenceUrl: string | null
+  /** 사용자가 고른 사진 — 프레임 안에 미리보기로 띄운다 */
+  userPhoto: File | null
   onRetry: () => void
   onBrowse: (file: File) => void
   onLive: () => void
@@ -261,14 +319,25 @@ type PoseScreenProps = {
   onPrevious: () => void
 }
 
-function PoseScreen({ result, score, message, referenceUrl, onRetry, onBrowse, onLive, onNext, onPrevious }: PoseScreenProps) {
+function PoseScreen({ result, score, message, referenceUrl, userPhoto, onRetry, onBrowse, onLive, onNext, onPrevious }: PoseScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  // 미리보기 URL은 **효과 안에서** 만든다. useMemo 로 만들면 StrictMode 가 효과를 두 번
+  // 돌릴 때 첫 URL 이 해제되는데 useMemo 값은 그대로라, 이미 죽은 주소를 계속 가리켜
+  // 사진이 깨져 보인다 (실제로 그렇게 나왔다).
+  const [userPhotoUrl, setUserPhotoUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!userPhoto) { setUserPhotoUrl(null); return }
+    const url = URL.createObjectURL(userPhoto)
+    setUserPhotoUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [userPhoto])
   return <FixedStepFrame label={`Step 2 체형 사진 ${result}`}><div className="pose-page">
       <p className="step-label">Step 2/3</p>
       <h1>체형 사진 업로드</h1>
       <p className="step-description">레퍼런스와 같은 포즈로 자신의 체형을 업로드 해주세요!</p><PreviousButton onClick={onPrevious} />
       {referenceUrl && <div className="pose-reference pose-reference--live"><img src={referenceUrl} alt="레퍼런스 체형" /></div>}
       <PoseCorners />
+      {userPhotoUrl && <div className="pose-user-photo"><img src={userPhotoUrl} alt="업로드한 체형 사진" /></div>}
       <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) onBrowse(file); event.currentTarget.value = '' }} />
       <PoseScore score={score} />
       {result === 'success'
@@ -318,7 +387,40 @@ async function waitForInbodyDetail(inbodyId: string, jobId: string | null): Prom
 }
 
 function App() {
-  const [view, setView] = useState<AppView>('onboarding')
+  // 복원 대상은 **첫 렌더에 한 번** 정한다. 값이 바뀌지 않으므로 아래 복원 효과의
+  // 의존성에 그대로 넣을 수 있다 — 억지로 비운 의존성 배열보다 안전하다.
+  const [resumedView] = useState(restoreView)
+  const [view, setView] = useState<AppView>(resumedView)
+  const isRestoringHistory = useRef(false)
+  const isFirstHistoryEntry = useRef(true)
+
+  // 화면 전환을 브라우저 기록에 심어 뒤로가기가 사이트를 벗어나지 않게 한다.
+  // ⚠️ 첫 화면은 push 가 아니라 replace 다 — push 하면 온보딩에서 뒤로가기를 눌러도
+  //    같은 화면이 다시 나와 빠져나갈 수 없다.
+  useEffect(() => {
+    // 새로고침 복원용 — 뒤로가기 기록과 달리 **탭이 살아 있는 동안** 유지된다.
+    try { sessionStorage.setItem(RESUME_KEY, view) } catch { /* 사파리 프라이빗 등 — 복원만 포기 */ }
+    if (isRestoringHistory.current) { isRestoringHistory.current = false; return }
+    if (isFirstHistoryEntry.current) {
+      isFirstHistoryEntry.current = false
+      window.history.replaceState({ view }, '')
+      return
+    }
+    // 로딩·분석처럼 스쳐 지나가는 화면은 기록을 남기지 않는다(replace) — 남기면
+    // 뒤로가기가 이미 끝난 로딩 화면으로 되돌아가 멈춰 있는 것처럼 보인다.
+    if (TRANSIENT_VIEWS.includes(view)) window.history.replaceState({ view }, '')
+    else window.history.pushState({ view }, '')
+  }, [view])
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const restored = (event.state as { view?: AppView } | null)?.view
+      isRestoringHistory.current = true
+      setView(restored ?? 'onboarding')
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
   const [workoutDays, setWorkoutDays] = useState(1)
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [isPreparingSession, setIsPreparingSession] = useState(false)
@@ -339,6 +441,48 @@ function App() {
   const [routineData, setRoutineData] = useState<RoutineDetail | null>(null)
   const [selectedDay, setSelectedDay] = useState<RoutineDay | null>(null)
   const [coach, setCoach] = useState<CoachChatResponse | null>(null)
+
+  /**
+   * 복원된 화면의 내용을 서버에서 다시 채운다.
+   *
+   * ⚠️ 화면 전환(setView)은 하지 않는다 — 화면은 restoreView() 가 이미 동기로 정했다.
+   *    여기서 또 옮기면 사용자가 그 사이에 누른 버튼을 되돌려 버린다.
+   *
+   * ⚠️ 실패해도 화면을 바꾸지 않는다. 각 화면이 null 을 견디도록 되어 있어서
+   *    "준비 중" 상태로 보이고, 사용자는 뒤로 가서 다시 만들 수 있다. 여기서 온보딩으로
+   *    튕기면 새로고침할 때마다 처음으로 돌아가는 지금 문제가 그대로 남는다.
+   */
+  useEffect(() => {
+    const resumed = resumedView
+    if (resumed === 'onboarding') return
+    const sessionId = getStoredSessionId()
+    if (!sessionId) return
+    let cancelled = false
+    void (async () => {
+      try {
+        if (resumed === 'reference-notice' || resumed === 'reference') {
+          // 판정 기준이 없으면 [촬영 시작]을 눌러도 pose-capture 가 빈 화면이 된다.
+          const poseCriteria = await getPoseCriteria()
+          if (!cancelled) setCriteria(poseCriteria as unknown as PoseCriteria)
+        } else if (resumed === 'comparison') {
+          const analysis = await getAnalysis(sessionId)
+          if (cancelled) return
+          setAnalysisData(analysis)
+          const segmentation = await getSessionSegmentation(sessionId).catch(() => null)
+          if (!cancelled) setSegmentationData(segmentation)
+        } else if (resumed === 'custom-routine') {
+          const routine = await getActiveRoutine(sessionId)
+          if (!cancelled) setRoutineData(routine)
+        } else if (resumed === 'today-routine') {
+          const today = await getTodayRoutine(sessionId)
+          if (!cancelled) setTodayRoutine(today)
+        }
+      } catch {
+        // 조회 실패 — 화면은 그대로 두고 빈 상태로 보인다 (위 주석 참고)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [resumedView])
 
   useEffect(() => {
     const handleLogoClick = () => {
@@ -646,10 +790,10 @@ function App() {
         onPrevious={() => setView('reference')}
         onBrowse={file => void uploadUser(file)} />
     : null
-  if (view === 'pose-analyzing') return <PoseScreen result="loading" score={poseEvaluation?.pose_similarity ?? 0} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
-  if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
-  if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
-  if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} onPrevious={() => setView('reference')} />
+  if (view === 'pose-analyzing') return <PoseScreen result="loading" score={poseEvaluation?.pose_similarity ?? 0} referenceUrl={refData?.url ?? null} userPhoto={lastUserPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} userPhoto={lastUserPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} userPhoto={lastUserPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} userPhoto={lastUserPhoto} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} onPrevious={() => setView('reference')} />
   if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('pose-success')} /></>
   if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => setView('inbody-upload')} onStart={openInbodyConfirmation} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-upload')} />
   if (view === 'inbody-form') return <InbodyUploadAfterScreen inbody={inbodyData} onConfirm={patch => void verifyInbodyAndBeginAnalysis(patch)} onPrevious={() => setView('inbody-uploaded')} />
