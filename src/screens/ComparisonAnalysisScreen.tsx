@@ -118,16 +118,12 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
     : null
   const headline = priorityName ? `${priorityName} 중심 개선 필요` : '개선 포인트 요약'
 
-  const excluded = analysis?.excluded ?? []
   const disclaimer = analysis?.disclaimer
   const disclaimerBoundary = '상담하세요.'
   const disclaimerBoundaryIndex = disclaimer?.indexOf(disclaimerBoundary) ?? -1
   const medicalDisclaimer = disclaimerBoundaryIndex >= 0
     ? disclaimer?.slice(0, disclaimerBoundaryIndex + disclaimerBoundary.length)
     : disclaimer
-  const dataDisclaimer = disclaimerBoundaryIndex >= 0
-    ? disclaimer?.slice(disclaimerBoundaryIndex + disclaimerBoundary.length).trim()
-    : null
 
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
     <section className="comparison-analysis-page">
@@ -161,11 +157,9 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
           <p>{overall?.summary ?? '요약을 준비하고 있어요.'}</p>
           {overall?.silhouette && <p>{overall.silhouette}</p>}
         </div>
-        {(overall?.strengths?.length || overall?.cautions?.length || excluded.length) ? <ul className="comparison-analysis-notes">
-          {overall?.strengths?.map(item => <li key={item}>💪 {item}</li>)}
-          {overall?.cautions?.map(item => <li key={item}>⚠️ {item}</li>)}
-          {excluded.length > 0 && <li>⚠️ {excluded.map(part => part.name_ko ?? part.class_name).join(', ')}은(는) 이번 사진에서 확인할 수 없었습니다.</li>}
-        </ul> : null}
+        {/* ⚠️ 강점·주의·제외 부위 목록은 **의도적으로 그리지 않는다.** 세 값이 다 있을 때만
+            나타나는 구조라 세션마다 떴다 안 떴다 해서, 요약 상자 아래 높이가 들쭉날쭉했다.
+            (되살릴 일이 생기면 analysis.overall.strengths / cautions / analysis.excluded 다.) */}
       </section>
 
       <p className="comparison-analysis-count">총 <em>{parts.length}건</em>의 부위별 진단 결과</p>
@@ -212,7 +206,10 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
 
       <button className="comparison-analysis-routine" type="button" onClick={onCreateRoutine}>맞춤 루틴 생성 →</button>
 
-      {medicalDisclaimer && <p className="comparison-analysis-disclaimer"><span>{medicalDisclaimer}</span>{dataDisclaimer && <span>{dataDisclaimer}</span>}</p>}
+      {/* ⚠️ 서버 disclaimer 는 «의학 고지 + 데이터 처리 고지» 두 문장이다. 이 화면에서는
+          앞쪽(의학)만 보여준다 — 뒤쪽(외부 AI 전송·삭제 안내)은 요청으로 뺐다.
+          자르는 기준은 '상담하세요.' 이므로, 서버 문구가 바뀌면 여기도 같이 봐야 한다. */}
+      {medicalDisclaimer && <p className="comparison-analysis-disclaimer"><span>{medicalDisclaimer}</span></p>}
     </section>
   </main>
 }
