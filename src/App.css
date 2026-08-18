@@ -261,7 +261,11 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .custom-routine-detail-page__groups article:focus-visible { outline: 0; }
 .custom-routine-detail-page__groups article > img { width: 85.746px; height: 84px; margin: 12px 8.074px 12px 14px; border-radius: 0; object-fit: cover; object-position: center; }
 .custom-routine-detail-page__info { position: absolute; top: 382px; left: 884px; box-sizing: border-box; width: 424px; height: 485px; min-height: 0; padding: 54px 40px; overflow: hidden; border: 0; border-radius: 15.98px; background: rgb(59 59 59 / .4); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
-.custom-routine-detail-page__info h2 { position: relative; z-index: 1; max-width: 200px; margin: 0 0 20px; color: #f6f6f6; font: 700 22.372px/1.5 Pretendard, sans-serif; letter-spacing: -.671px; }
+/* ⚠️ max-width 는 패널이 실제로 내주는 폭(424 − 좌우 패딩 40×2 = 344px)이다.
+   종전 200px 은 그보다 144px 좁아서, 한 줄에 들어가는 이름도 접혔다
+   ("덤벨 싱글 레그 카프 / 레이즈"). 넘칠 때만 접히게 하고, 접히더라도
+   keep-all 로 낱말 안에서는 자르지 않는다. */
+.custom-routine-detail-page__info h2 { position: relative; z-index: 1; max-width: 344px; margin: 0 0 20px; color: #f6f6f6; font: 700 22.372px/1.5 Pretendard, sans-serif; letter-spacing: -.671px; word-break: keep-all; }
 .custom-routine-detail-page__info dl { position: relative; z-index: 1; display: grid; gap: 5px; margin: 0; }
 .custom-routine-detail-page__info dl > div { display: flex; gap: 10px; }
 .custom-routine-detail-page__info dt, .custom-routine-detail-page__info dd { margin: 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
@@ -273,6 +277,48 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .today-routine-page__current { position: absolute; top: 364px; left: 131px; box-sizing: border-box; width: 824px; height: 455px; overflow: hidden; border: 1px solid #ffe250; border-radius: 20px; background: #3b3b3b; transition: transform 520ms cubic-bezier(.4, 0, .2, 1), opacity 520ms ease; }.today-routine-page__current.is-exiting { opacity: 0; transform: translateX(-900px); }.today-routine-page__current > span { position: absolute; top: 72px; left: 74px; display: grid; width: 83.757px; height: 29.844px; place-items: center; border-radius: 24.578px; background: #ffe250; color: #000; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__current h2 { position: absolute; top: 124px; left: 74px; margin: 0; font: 600 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; }.today-routine-page__current small { position: absolute; top: 174px; left: 74px; color: #8e8e8e; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; }.today-routine-page__current p { position: absolute; top: 207px; left: 74px; margin: 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }.today-routine-page__current button { position: absolute; top: 286px; left: 74px; box-sizing: border-box; width: 88.63px; height: 29.466px; border: 1px solid rgb(246 246 246 / .2); border-radius: 6.011px; background: rgb(59 59 59 / .3); color: #f6f6f6; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; cursor: pointer; }.today-routine-page__current > img { position: absolute; top: 177px; right: 78px; width: 191px; height: 236px; object-fit: contain; }
 .today-routine-page__current.is-last-step { width: 1178px; }
 .today-routine-page__next { position: absolute; top: 364px; left: 974px; box-sizing: border-box; width: 335px; height: 455px; overflow: hidden; border-radius: 20px; background: #3b3b3b; transition: left 520ms cubic-bezier(.4, 0, .2, 1), width 520ms cubic-bezier(.4, 0, .2, 1), border-radius 520ms ease; }.today-routine-page__next.is-promoting { left: 131px; width: 824px; border: 1px solid #ffe250; }.today-routine-page__next > p { position: absolute; top: 73px; left: 35px; margin: 0; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next h2 { position: absolute; top: 107.84px; left: 35px; margin: 0; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }.today-routine-page__next span { position: absolute; top: 161px; left: 35px; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next img { position: absolute; right: 33px; bottom: 47px; width: 132px; height: 163px; object-fit: contain; }.today-routine-page__next.is-promoting > p { top: 72px; left: 74px; display: grid; width: 83.757px; height: 29.844px; place-items: center; border-radius: 24.578px; background: #ffe250; color: #000; font-size: 0; }.today-routine-page__next.is-promoting > p::after { content: 'Step 2'; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next.is-promoting h2 { top: 124px; left: 74px; font-size: 38px; font-weight: 600; }.today-routine-page__next.is-promoting span { top: 207px; left: 74px; font-size: 18px; }.today-routine-page__next.is-promoting img { right: 78px; bottom: 42px; width: 191px; height: 236px; }.today-routine-page__complete { position: absolute; top: 861px; left: 573px; width: 293px; height: 63px; padding: 0; border: 0; border-radius: 41px; background: #ffe250; color: #222; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; }.today-routine-page__complete:disabled { cursor: default; opacity: .72; }.today-routine-page__complete.is-complete { background: #ffe250; color: #222; opacity: 1; }.today-routine-page button:focus-visible { outline: 3px solid #f6f6f6; outline-offset: 4px; }
+
+/* ── 세트 완료 전환 다듬기 ───────────────────────────────────────────────────
+   "다음" 카드가 현재 자리로 커지며 올라오는 동작인데, 종전에는 **상자만** 미끄러지고
+   안의 글자·그림은 클릭하는 순간 새 위치로 순간이동했다. 내용물에도 같은 곡선·같은
+   길이의 전환을 걸어 한 덩어리로 움직이게 한다.
+
+   ⚠️ 시간(520ms)은 TodayRoutineScreen 의 CARD_TRANSITION_MS 와 **같아야 한다.**
+      여기가 길면 애니메이션 도중에 카드가 교체되어 튄다. */
+.today-routine-page__next { border: 1px solid transparent; transition: left 520ms cubic-bezier(.4, 0, .2, 1), width 520ms cubic-bezier(.4, 0, .2, 1), border-radius 520ms ease, border-color 520ms ease; }
+.today-routine-page__next > p, .today-routine-page__next h2, .today-routine-page__next span, .today-routine-page__next img {
+  transition: top 520ms cubic-bezier(.4, 0, .2, 1), left 520ms cubic-bezier(.4, 0, .2, 1),
+    right 520ms cubic-bezier(.4, 0, .2, 1), bottom 520ms cubic-bezier(.4, 0, .2, 1),
+    width 520ms cubic-bezier(.4, 0, .2, 1), height 520ms cubic-bezier(.4, 0, .2, 1),
+    font-size 520ms ease, color 520ms ease, background-color 520ms ease, border-radius 520ms ease,
+    letter-spacing 520ms ease;
+}
+
+/* 승격이 끝난 모습은 **현재 카드와 픽셀 단위로 같아야 한다.** 한 군데라도 어긋나면
+   카드가 교체되는 프레임에 딱 그만큼 튄다 — 이음매가 보이는 원인이 여기다.
+   ⚠️ dose 텍스트가 종전에는 207px(현재 카드의 '노트' 자리)로 갔다가 교체되는 순간
+      174px(현재 카드의 dose 자리)로 되뛰었다. 처음부터 제자리로 보낸다. */
+.today-routine-page__next.is-promoting span { top: 174px; left: 74px; color: #8e8e8e; font-size: 14px; letter-spacing: -.42px; }
+/* 자간까지 현재 카드에 맞춘다 — 이름이 길수록 누적돼 교체 순간 글자가 옆으로 밀린다
+   (h2 는 -.84px 대 -1.14px 라 12자면 3.6px 차이가 난다) */
+.today-routine-page__next.is-promoting h2 { letter-spacing: -1.14px; }
+/* 다음이 마지막 스텝이면 현재 자리는 전체 폭이다 (.is-last-step 과 같은 값) */
+.today-routine-page__next.is-promoting.is-promoting-last { width: 1178px; }
+/* 종전에는 'Step 2' 가 CSS 에 박혀 있어 3스텝 이후에도 매번 "Step 2" 가 스쳐 갔다 */
+.today-routine-page__next.is-promoting > p::after { content: attr(data-next-step); }
+
+/* 눌린 직후 버튼이 딱딱하게 꺼지던 것 — 흐리게 만드는 데에도 시간을 준다 */
+.today-routine-page__complete { transition: opacity 200ms ease, background-color 200ms ease; }
+
+/* 교체된 뒤 새로 나타나는 것들(다음 카드, 그리고 승격 카드에는 없던 노트·자세가이드)은
+   전환이 아니라 등장이 필요하다 — 키가 바뀌며 새로 mount 되기 때문이다.
+   ⚠️ opacity 만 다룬다. transform 을 쓰면 현재 카드의 퇴장 transform 과 부딪혀
+      카드가 왼쪽으로 나가지 못하고 제자리에서 사라진다. */
+@media (prefers-reduced-motion: no-preference) {
+  .today-routine-page__next { animation: today-card-in 300ms ease 40ms both; }
+  .today-routine-page__current > p, .today-routine-page__current > button { animation: today-card-in 260ms ease 120ms both; }
+}
+@keyframes today-card-in { from { opacity: 0; } }
 
 /* Figma 657:4507 — 피드백 */
 .feedback-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; }.feedback-page__eyebrow { position: absolute; top: 158px; left: 0; width: 100%; margin: 0; color: #ffe250; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; text-align: center; }.feedback-page h1 { position: absolute; top: 225px; left: 0; width: 100%; margin: 0; font: 600 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; text-align: center; }.feedback-page__description { position: absolute; top: 300px; left: 0; width: 100%; margin: 0; color: #8e8e8e; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; text-align: center; }.feedback-page__circle { position: absolute; top: 398px; left: 563px; width: 336.47px; height: 355px; }.feedback-page__illustration { position: absolute; top: 438px; left: 582.5px; width: 275px; height: 257px; object-fit: contain; }.feedback-page__input { position: absolute; top: 753px; left: 305px; box-sizing: border-box; display: block; width: 830px; height: 78px; margin: 0; overflow: hidden; border-radius: 45px; background: #3b3b3b; }.feedback-page__input input { box-sizing: border-box; width: 100%; height: 100%; padding: 0 92px 0 35px; border: 0; outline: 0; background: transparent; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }.feedback-page__input input::placeholder { color: #8e8e8e; opacity: 1; }.feedback-page__input button { position: absolute; top: 24.5px; right: 33px; display: grid; width: 29px; height: 29px; padding: 0; place-items: center; border: 0; background: transparent; cursor: pointer; }.feedback-page__input button:disabled { cursor: default; opacity: .45; }.feedback-page__input button img { width: 29px; height: 29px; }.feedback-page__skip { position: absolute; top: 849px; left: 0; width: 100%; padding: 0; border: 0; background: transparent; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; text-align: center; }.feedback-page button:focus-visible, .feedback-page input:focus-visible { outline: 3px solid #ffe250; outline-offset: 4px; }
