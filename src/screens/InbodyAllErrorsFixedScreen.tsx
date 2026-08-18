@@ -1,6 +1,6 @@
 import inbodyCalendar from '../assets/inbody-calendar.svg'
 import inbodySuccessCheck from '../assets/inbody-all-errors-fixed-check.svg'
-import inbodyPreviousArrow from '../assets/inbody-previous-arrow.svg'
+import previousArrow from '../assets/previous-arrow.svg'
 import inbodyRequiredDot from '../assets/inbody-required-dot.svg'
 import { InbodyGenderSelector } from '../components/InbodyGenderSelector'
 import { FixedStepFrame } from '../components/FixedStepFrame'
@@ -26,6 +26,6 @@ export function InbodyAllErrorsFixedScreen({ onConfirm, onPrevious }: InbodyAllE
     <section className="inbody-fixed-column inbody-fixed-composition"><h2>2. 체성분</h2>{composition.map(field => <FixedField key={field.label} field={field} />)}</section>
     <section className="inbody-fixed-column inbody-fixed-muscle"><h2>3. 부위별 근육량</h2>{muscle.map(field => <FixedField key={field.label} field={field} />)}</section>
     <section className="inbody-fixed-column inbody-fixed-fat"><h2>4. 부위별 체지방량</h2>{fat.map(field => <FixedField key={field.label} field={field} />)}</section>
-    <button className="inbody-fixed-confirm" type="button" onClick={onConfirm}>확인 완료</button><button className="inbody-fixed-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button>
+    <button className="inbody-fixed-confirm" type="button" onClick={onConfirm}>확인 완료</button><button className="inbody-fixed-previous" type="button" onClick={onPrevious}><img src={previousArrow} alt="" />이전 단계</button>
   </div></FixedStepFrame>
 }

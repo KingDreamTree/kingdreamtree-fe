@@ -4,6 +4,7 @@ import comparisonCommentIcon from '../assets/comparison-analysis-comment-icon.sv
 import comparisonScoreTrack from '../assets/comparison-analysis-score-track.svg'
 import type { AnalysisPart, AnalysisResult, SegmentationInfo, SessionSegmentation } from '../lib/api'
 import { PreviousButton } from '../components/PreviousButton'
+import { RefitHomeLogo } from '../components/RefitHomeLogo'
 
 const GAP_LABELS: Record<string, string> = {
   NONE: '차이 거의 없음',
@@ -130,6 +131,9 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
 
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
     <section className="comparison-analysis-page">
+      {/* 이 화면은 FixedStepFrame 을 쓰지 않아 로고가 빠져 있었다 — 여기서만
+          온보딩으로 돌아갈 길이 없었다. */}
+      <RefitHomeLogo />
       <header className="comparison-analysis-header">
         <PreviousButton onClick={onPrevious} />
         <p>분석이 완료되었어요</p>
@@ -185,7 +189,10 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
       <section className="comparison-analysis-diagnosis" aria-labelledby="comparison-diagnosis-title">
         <h2 id="comparison-diagnosis-title">
           <em>{selected?.name_ko ?? selected?.class_name ?? '부위'}</em>의 진단 결과
-          {selected?.gap_level && <span className="comparison-analysis-gap">{GAP_LABELS[selected.gap_level] ?? selected.gap_level}</span>}
+          {/* 차이 정도를 색으로도 읽히게 한다 — 노랑(차이 없음) → 빨강(큰 차이).
+              ⚠️ 색은 거들 뿐이고 문구가 정보를 다 담는다. 색만으로 뜻이 갈리면
+                 색을 구분하기 어려운 사람에게는 배지가 통째로 사라지는 셈이다. */}
+          {selected?.gap_level && <span className={`comparison-analysis-gap comparison-analysis-gap--${selected.gap_level.toLowerCase()}`}>{GAP_LABELS[selected.gap_level] ?? selected.gap_level}</span>}
           {selected?.blocked_reason && <span className="comparison-analysis-badge">{selected.blocked_reason}{analysis?.inbody_id ? ' · 인바디 기준' : ''}</span>}
           {selected?.confidence === 'LOW' && <span className="comparison-analysis-badge comparison-analysis-badge--dim">신뢰도 낮음</span>}
         </h2>
