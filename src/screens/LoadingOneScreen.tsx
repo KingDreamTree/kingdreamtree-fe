@@ -28,12 +28,10 @@ type LoadingOneScreenProps = {
   onComplete: () => void
   notice?: string | null
   error?: string | null
-  /** 실패는 아니지만 너무 오래 걸릴 때 — 안내와 함께 [다시 시도]를 같이 보인다. */
-  canRetry?: boolean
   onRetry?: () => void
 }
 
-export function LoadingOneScreen({ phase, isComplete, onComplete, notice, error, canRetry, onRetry }: LoadingOneScreenProps) {
+export function LoadingOneScreen({ phase, isComplete, onComplete, notice, error, onRetry }: LoadingOneScreenProps) {
   const progress = useLoadingProgress(phase, loadingSteps.length, isComplete)
   // 막대는 점근하느라 단계 끝에 딱 안 닿는다. 그래서 강조 단계는 막대가 아니라
   // phase 를 그대로 쓴다 — 안 그러면 3단계인데 2번 항목에 불이 들어와 있다.
@@ -54,9 +52,7 @@ export function LoadingOneScreen({ phase, isComplete, onComplete, notice, error,
     <h1><em>결과지를</em> 분석 중이에요</h1>
     {error
       ? <p className="loading-two-message loading-two-message--error" role="alert">{error}{onRetry && <button type="button" onClick={onRetry}>다시 시도</button>}</p>
-      : <p className="loading-two-message" aria-live="polite">{notice ?? '잠시만 기다려주세요!'}
-          {canRetry && onRetry && <button className="loading-two-retry" type="button" onClick={onRetry}>다시 시도</button>}
-        </p>}
+      : <p className="loading-two-message" aria-live="polite">{notice ?? '잠시만 기다려주세요!'}</p>}
     <section className="loading-two-progress" aria-label={`결과지 분석 진행률 ${progress}%`} style={{ '--loading-two-progress': `${progress}%` } as CSSProperties}><img className="loading-two-progress__track" src={loadingTwoProgressTrack} alt="" /><span className="loading-two-progress__fill"><img src={loadingTwoProgressFill} alt="" /></span><img className="loading-two-progress__runner" src={loadingTwoRunnerIcon} alt="" /><strong>{progress}%</strong></section>
     <img className="loading-two-glow" style={{ transform: `translateY(${guideOffset}px)` }} src={loadingTwoActiveGlow} alt="" />
     <ol className="loading-two-steps">{loadingSteps.map((step, index) => <li className={index === activeStep ? 'is-active' : ''} key={step}>

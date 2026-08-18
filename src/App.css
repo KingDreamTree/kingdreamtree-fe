@@ -820,11 +820,3 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .loading-two-message--error button:hover, .loading-two-message--error button:focus-visible {
   background: #ffe250; color: #222;
 }
-/* 오래 걸릴 때 안내 옆에 붙는 [다시 시도] — 실패 버튼과 같은 모양이되 문구는 회색이다.
-   ⚠️ 이게 떠 있어도 폴링은 계속 돈다. 결과가 오면 누르지 않아도 그대로 넘어간다. */
-.loading-two-retry {
-  margin-left: 14px; padding: 6px 18px; border: 1px solid #ffe250; border-radius: 999px;
-  background: transparent; color: #ffe250; font: 700 18px/1.5 Pretendard, sans-serif;
-  letter-spacing: -.54px; cursor: pointer; transition: background-color 160ms ease, color 160ms ease;
-}
-.loading-two-retry:hover, .loading-two-retry:focus-visible { background: #ffe250; color: #222; }

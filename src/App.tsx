@@ -29,7 +29,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionJobs, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type JobSummary, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -87,11 +87,6 @@ const ANALYSIS_POLL_MS = 750
 const ANALYSIS_SLOW_POLL_MS = 2500
 /** 이 시간을 넘기면 «조금 더 걸리고 있어요» 안내를 띄운다 — 포기가 아니라 안내다. */
 const ANALYSIS_SLOW_NOTICE_MS = 30_000
-/** 이만큼 지나도 안 끝나면 «다시 시도»를 같이 내준다 — 폴링은 그대로 계속한다.
- *  ⚠️ 워커가 죽어 있으면 completed 가 영영 false 라, 안내만으로는 빠져나갈 길이 없다. */
-const ANALYSIS_STALLED_MS = 180_000
-/** 409(세그 대기) 중 잡 상태를 몇 박자에 한 번 확인할지. 매번 부르면 호출이 두 배가 된다. */
-const ANALYSIS_SEG_CHECK_EVERY = 4
 /** 조회가 연달아 이만큼 실패하면 «다시 시도»를 내준다 (서버 다운·네트워크). */
 const ANALYSIS_MAX_CONSECUTIVE_ERRORS = 5
 
@@ -418,25 +413,6 @@ function isAnalysisRenderable(analysis: AnalysisResult | null): boolean {
   return analysis?.overall != null && analysis.overall.status === 'DONE'
 }
 
-/**
- * 세그멘테이션 잡을 **아무도 집어가지 않고 있는가** (워커가 꺼진 상태).
- *
- * ⚠️ 실제로 갇혔던 지점이 여기다. 세그가 안 돌면 startAnalysis 가 409 를 영원히
- *    돌려주는데, 409 만 보고는 «처리 중»과 «워커 없음»을 구분할 수 없다.
- *    잡 목록에는 stalled 가 없어서(요약 스키마) 열린 SEG 잡을 찾아 낱개로 확인한다.
- * ⚠️ 실패하면 false 로 둔다 — 이 판단이 흐름을 막아서는 안 된다.
- */
-async function isSegStalled(sessionId: string): Promise<boolean> {
-  try {
-    const { items } = await getSessionJobs(sessionId)
-    const open = items.filter((job: JobSummary) => job.kind.startsWith('SEG') && (job.status === 'PENDING' || job.status === 'PROCESSING')).pop()
-    if (!open) return false
-    return (await getJob(open.job_id)).stalled === true
-  } catch {
-    return false
-  }
-}
-
 /** 세그멘테이션 조회 — 오래 걸리면 포기한다. 사진이 없어도 수치·문구는 읽을 수 있다. */
 async function fetchSegmentation(sessionId: string): Promise<SessionSegmentation | null> {
   try {
@@ -512,8 +488,6 @@ function App() {
   /** 로딩 화면에 띄울 안내(오래 걸림) / 실패 문구. 실패면 «다시 시도»가 같이 뜬다. */
   const [analysisNotice, setAnalysisNotice] = useState<string | null>(null)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
-  /** 오래 걸릴 때 «다시 시도»를 같이 보일지 — 실패가 아니라 «갇히지 않게» 하는 장치다. */
-  const [canRetryAnalysis, setCanRetryAnalysis] = useState(false)
   const [routinePhase, setRoutinePhase] = useState(0)
   const [isRoutineReady, setIsRoutineReady] = useState(false)
 
@@ -678,21 +652,22 @@ function App() {
 
     const startedAt = Date.now()
     let failures = 0
-    setCanRetryAnalysis(false)
 
-    /** 서버가 «아무도 안 집어감»이라고 알려줬는가. 알려주면 3분 폴백보다 빠르고 정확하다. */
-    let stalled = false
-
-    /** 폴링 한 박자. 오래 걸리면 안내를 띄우고 간격을 늦춘다 — **멈추지는 않는다.** */
+    /**
+     * 폴링 한 박자.
+     *
+     * ⚠️ **«서버 처리가 지연되고 있어요 + 다시 시도»를 사용자에게 보이지 않는다.**
+     *    분석이 정상으로 끝나는 도중에도 떴다 (진단이 98% 까지 간 화면에서 목격).
+     *    서버 stalled 는 «PENDING 30초 + 같은 kind 처리 중인 잡 없음»이라, VLM_PART 가
+     *    끝나고 VLM_OVERALL 이 집히기 전 틈에서도 참이 된다 — 멀쩡한 대기를 장애로
+     *    보고하는 셈이다. 잘못된 경고는 없느니만 못하다.
+     *
+     * 오래 걸릴 때는 부드러운 안내만 띄우고 **버튼은 내지 않는다.** 폴링은 계속 돈다.
+     */
     const waitTick = async () => {
       const elapsed = Date.now() - startedAt
       const slow = elapsed > ANALYSIS_SLOW_NOTICE_MS
-      // ⚠️ stalled 는 «기다리면 되는 상태»가 아니다 — 워커가 꺼져 있어 영영 안 끝난다.
-      //    같은 «조금만 더» 문구로 뭉뚱그리면 사용자를 그만큼 헛되이 붙잡아 둔다.
-      if (stalled) setAnalysisNotice('서버 처리가 지연되고 있어요 — 잠시 후 다시 시도해주세요.')
-      else if (slow) setAnalysisNotice('조금 더 걸리고 있어요 — 창을 닫지 말고 기다려주세요!')
-      // stalled 신호가 오면 즉시, 없으면 3분 폴백으로 «다시 시도»를 연다. 폴링은 그대로.
-      if (stalled || elapsed > ANALYSIS_STALLED_MS) setCanRetryAnalysis(true)
+      if (slow) setAnalysisNotice('조금 더 걸리고 있어요 — 창을 닫지 말고 기다려주세요!')
       await new Promise(resolve => window.setTimeout(resolve, slow ? ANALYSIS_SLOW_POLL_MS : ANALYSIS_POLL_MS))
     }
 
@@ -707,21 +682,13 @@ function App() {
 
     try {
       // ── ① 분석 시작. 409 는 «세그멘테이션이 아직»이라는 뜻이라 에러가 아니다.
-      let segChecks = 0
       for (;;) {
         try { await startAnalysis(sessionId, force); break } catch (error) {
-          if (error instanceof RefitApiError && error.status === 409) {
-            // 409 = «세그가 아직». 그게 «처리 중»인지 «워커 없음»인지는 잡에 물어야 안다.
-            // 매 박자마다 두 번씩 더 부를 일은 아니라 몇 번에 한 번만 확인한다.
-            if (segChecks % ANALYSIS_SEG_CHECK_EVERY === 0) stalled = await isSegStalled(sessionId)
-            segChecks += 1
-            await waitTick()
-            continue
-          }
+          // 409 = «세그가 아직». 에러가 아니라 «기다리라»는 뜻이라 조용히 기다린다.
+          if (error instanceof RefitApiError && error.status === 409) { await waitTick(); continue }
           throw error
         }
       }
-      stalled = false
       setAnalysisPhase(1)
 
       // ── ② progress.completed 까지 기다린다. 상한 없음.
@@ -732,7 +699,6 @@ function App() {
         // part.total 은 «부위 진단이 끝났다»는 신호로만 쓴다 (0 → 9 로 한 번에 뛴다).
         if (progress.part.total > 0) setAnalysisPhase(2)
         if (progress.completed) break
-        stalled = progress.stalled === true
         await waitTick()
       }
       setAnalysisPhase(3)
@@ -993,7 +959,7 @@ function App() {
   // 로딩 애니메이션이 100%가 되면 분석 화면으로 전환한다. 결과 API는 백그라운드에서
   // 이어서 받아 상태를 채우므로, 네트워크 응답 때문에 로딩 화면이 멈춰 있지 않는다.
     if (view === 'inbody-loading') return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady}
-      notice={analysisNotice} error={analysisError} canRetry={canRetryAnalysis} onRetry={() => void beginAnalysis(true)}
+      notice={analysisNotice} error={analysisError} onRetry={() => void beginAnalysis(true)}
       onComplete={() => setView('comparison')} />
   if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
