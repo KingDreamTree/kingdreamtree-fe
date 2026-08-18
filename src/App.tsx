@@ -66,27 +66,97 @@ import './App.css'
 type SectionProps = { children: ReactNode; className: string; label: string; scaleToViewport?: boolean; designHeight?: number }
 type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' | 'pose-analyzing' | 'pose-failure' | 'pose-unavailable' | 'pose-success' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-exercise-intensity' | 'feedback-reflection' | 'feedback-applied' | 'feedback-kept'
 
+/**
+ * 등장 애니메이션 발동 조건.
+ *
+ * ⚠️ 종전에는 `threshold: 0.18` 이었는데, 섹션이 1058~1417px 로 뷰포트보다 커서
+ *    18% 는 **화면 아래 21~28% 만 걸친 시점**이었다. 거기서 750~1100ms(+지연 360ms)
+ *    가 시작되니, 사용자가 섹션을 다 내리기도 전에 애니메이션이 끝나 있었다.
+ *
+ * 그래서 면적 비율 대신 **위치**로 잡는다 — 아래쪽 45% 를 잘라낸 가상의 뷰포트에
+ * 섹션 윗변이 들어올 때(= 화면 아래 절반쯤을 채울 때) 시작한다. 섹션 높이에
+ * 영향받지 않으므로 섹션마다 체감이 같다.
+ */
+const REVEAL_OBSERVER: IntersectionObserverInit = { threshold: 0, rootMargin: '0px 0px -45% 0px' }
+
+/** 잠깐 스쳐 가는 화면 — 뒤로가기 기록에 남기지 않는다. */
+const TRANSIENT_VIEWS: AppView[] = ['pose-analyzing', 'inbody-loading', 'loading-two', 'feedback-loading']
+
+const RESUME_KEY = 'refit.view'
+
+/**
+ * 새로고침 후 되살릴 수 있는 화면 — **서버에서 다시 받아 채울 수 있는 것만** 넣는다.
+ *
+ * ⚠️ 여기에 화면을 추가하려면 App 의 복원 효과(resumedView 를 보는 useEffect)에도
+ *    그 화면의 데이터를 받아오는 분기를 같이 넣어야 한다. 한쪽만 하면 화면은 뜨는데
+ *    내용이 비어 있다.
+ */
+const RESUMABLE_VIEWS: AppView[] = [
+  'reference-notice', 'reference', 'inbody-upload', 'comparison',
+  'exercise-days', 'custom-routine', 'today-routine', 'feedback',
+]
+
+/**
+ * 되살릴 수 없는 화면 → 가장 가까운 되살릴 수 있는 화면.
+ *
+ * ⚠️ 이 화면들은 **서버에 없는 값**에 기대고 있다 — 사용자가 고른 File(포즈 판정),
+ *    코치 대화 내역, 화면에서 고른 Day. 그대로 복원하면 점수 0점짜리 결과 화면이나
+ *    빈 페이지가 뜬다. 한 단계 앞으로 내려서 사용자가 그 화면을 **다시 만들게** 한다.
+ */
+const RESUME_FALLBACK: Partial<Record<AppView, AppView>> = {
+  'pose-capture': 'reference', 'pose-analyzing': 'reference', 'pose-failure': 'reference',
+  'pose-unavailable': 'reference', 'pose-success': 'reference',
+  'inbody-uploaded': 'inbody-upload', 'inbody-form': 'inbody-upload',
+  'inbody-range-error': 'inbody-upload', 'inbody-warning': 'inbody-upload',
+  'inbody-fixed': 'inbody-upload', 'inbody-unreadable': 'inbody-upload',
+  'inbody-loading': 'inbody-upload',
+  'loading-two': 'exercise-days',
+  'custom-routine-detail': 'custom-routine',
+  'feedback-loading': 'today-routine', 'feedback-attention-area': 'today-routine',
+  'feedback-exercise-intensity': 'today-routine', 'feedback-reflection': 'today-routine',
+  'feedback-applied': 'today-routine', 'feedback-kept': 'today-routine',
+}
+
+/**
+ * 새로고침 직후 보여줄 화면. **useState 초기값으로 동기 호출한다** — 효과에서 하면
+ * 온보딩이 한 프레임 번쩍인 뒤 화면이 바뀐다.
+ *
+ * ⚠️ history.state 는 쓸 수 없다. 아래 첫 기록 효과가 마운트 직후 replaceState 로
+ *    덮어쓰므로, 읽으려던 값이 이미 사라진 뒤다. 그래서 sessionStorage 에 따로 적는다
+ *    (탭을 닫으면 지워지는 것도 의도 — 새 탭은 온보딩부터가 맞다).
+ */
+function restoreView(): AppView {
+  // 세션이 없으면 되살릴 것도 없다 — 어차피 모든 조회가 사용자 없이 실패한다.
+  if (!getStoredSessionId()) return 'onboarding'
+  let saved: string | null = null
+  try { saved = sessionStorage.getItem(RESUME_KEY) } catch { return 'onboarding' }
+  if (!saved) return 'onboarding'
+  const target = RESUME_FALLBACK[saved as AppView] ?? (saved as AppView)
+  return RESUMABLE_VIEWS.includes(target) ? target : 'onboarding'
+}
+
 /** Reveals a design section once it reaches the viewport. */
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const [isVisible, setIsVisible] = useState(false)
-  const [scale, setScale] = useState(() => Math.max(1, document.documentElement.clientWidth / 1440))
+  const [scale, setScale] = useState(() => document.documentElement.clientWidth / 1440)
 
   useEffect(() => {
     const section = sectionRef.current
     if (!section) return
     const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return
+      // 이미 지나친 섹션(새로고침 스크롤 복원)도 즉시 드러낸다 — 안 그러면 영영 opacity 0
+      if (!entry.isIntersecting && entry.boundingClientRect.top >= 0) return
       setIsVisible(true)
       observer.unobserve(entry.target)
-    }, { threshold: 0.18 })
+    }, REVEAL_OBSERVER)
     observer.observe(section)
     return () => observer.disconnect()
   }, [])
 
   useEffect(() => {
     if (!scaleToViewport) return
-    const updateScale = () => setScale(Math.max(1, document.documentElement.clientWidth / 1440))
+    const updateScale = () => setScale(document.documentElement.clientWidth / 1440)
     window.addEventListener('resize', updateScale)
     return () => window.removeEventListener('resize', updateScale)
   }, [scaleToViewport])
@@ -122,7 +192,7 @@ function OnboardingOne() {
 }
 
 function OnboardingTwo() {
-  return <RevealSection className="onboarding-wellness" label="온보딩 2: WELLNESS">
+  return <RevealSection className="onboarding-wellness" label="온보딩 2: WELLNESS" scaleToViewport designHeight={1417}>
     <p className="onboarding-wellness__subtitle motion">리핏이 선사하는 특별한 경험</p>
     <h1 className="onboarding-wellness__title motion motion--delay-1">WELLNESS</h1>
     <img className="onboarding-wellness__orbit motion motion--delay-1" src={wellnessOrbit} alt="" />
@@ -141,7 +211,7 @@ function OnboardingThree() {
     { number: '2', icon: functionStep, title: '맞춤형 루틴', description: '결과를 바탕으로 나에게 맞는 루틴 생성' },
     { number: '3', icon: functionStep, title: '강도 조절', description: '날마다 피드백을 통해 바뀌는 루틴' },
   ]
-  return <RevealSection className="onboarding-function" label="온보딩 3: 기능 소개">
+  return <RevealSection className="onboarding-function" label="온보딩 3: 기능 소개" scaleToViewport designHeight={1130}>
     <p className="onboarding-function__subtitle motion">리핏만이 제공하는 기능</p>
     <h1 className="onboarding-function__title motion motion--delay-1">FUNCTION</h1>
     <div className="onboarding-function__cards">{cards.map((card, index) => <article className={`onboarding-function__card motion motion--delay-${index + 1}`} key={card.number}>
@@ -151,7 +221,7 @@ function OnboardingThree() {
 }
 
 function OnboardingFour({ onStart }: { onStart: () => void }) {
-  return <RevealSection className="closing-section" label="온보딩 4: REFIT 시작하기">
+  return <RevealSection className="closing-section" label="온보딩 4: REFIT 시작하기" scaleToViewport designHeight={1058}>
     <RefitLogo small /><div className="closing-section__copy motion"><h1>AI가 만드는 <em>맞춤 루틴</em></h1><p>오늘부터 REFIT과 함께, 내가 바라는 건강함을 차곡차곡</p></div>
     <div className="closing-section__illustration motion motion--delay-1" aria-hidden="true"><img className="closing-section__platform" src={routinePlatform} alt="" /><img className="closing-section__figure" src={routineFigure} alt="" /><img className="closing-section__marker" src={routineMarker} alt="" /></div>
     <div className="closing-section__button motion motion--delay-2"><StartButton wide onStart={onStart} /></div>
@@ -193,7 +263,7 @@ function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFi
       <PreviousButton onClick={onPrevious} />
       <ReferenceHints />
       <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { pick(event.currentTarget.files); event.currentTarget.value = '' }} />
-      <button type="button" className={`reference-dropzone ${ready ? 'is-ready' : ''}`} disabled={busy}
+      <button type="button" className={`reference-dropzone ${ready ? 'is-ready' : ''}`} disabled={busy || showNotice}
         onClick={() => inputRef.current?.click()}
         onDragOver={event => event.preventDefault()}
         onDrop={event => { event.preventDefault(); pick(event.dataTransfer.files) }}>
@@ -205,12 +275,16 @@ function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFi
       </button>
       {error && <p className="reference-error" role="alert">{error}</p>}
       <button className={`reference-start ${ready ? 'is-ready' : ''}`} type="button" disabled={!ready || busy} onClick={onStart}>AI 분석 비교 시작 →</button>
-      {showNotice && <section className="reference-notice" role="dialog" aria-modal="true" aria-labelledby="reference-notice-title">
-        <span className="reference-notice__icon"><img src={referenceInfo} alt="" /></span>
-        <h2 id="reference-notice-title">레퍼런스 주의사항 안내</h2>
-        <p>해당 레퍼런스 이미지에 있는 부위에 대한 루틴만 제공되오니<br />신중하게 업로드해주시길 바랍니다.</p>
-        <button type="button" onClick={onConfirm}>확인</button>
-      </section>}
+      {showNotice && <>
+        {/* 막이 뒤를 덮어 시선을 모으고, 확인을 누르기 전에는 업로드가 눌리지 않게 한다 */}
+        <div className="reference-notice-veil" aria-hidden="true" />
+        <section className="reference-notice" role="dialog" aria-modal="true" aria-labelledby="reference-notice-title">
+          <span className="reference-notice__icon"><img src={referenceInfo} alt="" /></span>
+          <h2 id="reference-notice-title">레퍼런스 주의사항 안내</h2>
+          <p>해당 레퍼런스 이미지에 있는 부위에 대한 루틴만 제공되오니<br />신중하게 업로드해주시길 바랍니다.</p>
+          <button type="button" autoFocus onClick={onConfirm}>확인</button>
+        </section>
+      </>}
   </div></FixedStepFrame>
 }
 
@@ -236,6 +310,8 @@ type PoseScreenProps = {
   score: number
   message?: string
   referenceUrl: string | null
+  /** 사용자가 고른 사진 — 프레임 안에 미리보기로 띄운다 */
+  userPhoto: File | null
   onRetry: () => void
   onBrowse: (file: File) => void
   onLive: () => void
@@ -243,14 +319,25 @@ type PoseScreenProps = {
   onPrevious: () => void
 }
 
-function PoseScreen({ result, score, message, referenceUrl, onRetry, onBrowse, onLive, onNext, onPrevious }: PoseScreenProps) {
+function PoseScreen({ result, score, message, referenceUrl, userPhoto, onRetry, onBrowse, onLive, onNext, onPrevious }: PoseScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  // 미리보기 URL은 **효과 안에서** 만든다. useMemo 로 만들면 StrictMode 가 효과를 두 번
+  // 돌릴 때 첫 URL 이 해제되는데 useMemo 값은 그대로라, 이미 죽은 주소를 계속 가리켜
+  // 사진이 깨져 보인다 (실제로 그렇게 나왔다).
+  const [userPhotoUrl, setUserPhotoUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!userPhoto) { setUserPhotoUrl(null); return }
+    const url = URL.createObjectURL(userPhoto)
+    setUserPhotoUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [userPhoto])
   return <FixedStepFrame label={`Step 2 체형 사진 ${result}`}><div className="pose-page">
       <p className="step-label">Step 2/3</p>
       <h1>체형 사진 업로드</h1>
       <p className="step-description">레퍼런스와 같은 포즈로 자신의 체형을 업로드 해주세요!</p><PreviousButton onClick={onPrevious} />
       {referenceUrl && <div className="pose-reference pose-reference--live"><img src={referenceUrl} alt="레퍼런스 체형" /></div>}
       <PoseCorners />
+      {userPhotoUrl && <div className="pose-user-photo"><img src={userPhotoUrl} alt="업로드한 체형 사진" /></div>}
       <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) onBrowse(file); event.currentTarget.value = '' }} />
       <PoseScore score={score} />
       {result === 'success'
@@ -266,9 +353,11 @@ function getJobId(value: Record<string, unknown>): string | null {
   return typeof value.job_id === 'string' ? value.job_id : null
 }
 
-async function waitForJob(jobId: string): Promise<Job> {
+/** onStatus: 폴링할 때마다 현재 잡 상태를 알려준다 — 로딩 화면 진행률의 유일한 근거다. */
+async function waitForJob(jobId: string, onStatus?: (status: Job['status']) => void): Promise<Job> {
   for (let attempt = 0; attempt < 120; attempt += 1) {
     const job = await getJob(jobId)
+    onStatus?.(job.status)
     if (job.status === 'DONE') return job
     if (job.status === 'FAILED') throw new Error(job.error || 'The requested job failed.')
     await new Promise(resolve => window.setTimeout(resolve, 1500))
@@ -300,7 +389,40 @@ async function waitForInbodyDetail(inbodyId: string, jobId: string | null): Prom
 }
 
 function App() {
-  const [view, setView] = useState<AppView>('onboarding')
+  // 복원 대상은 **첫 렌더에 한 번** 정한다. 값이 바뀌지 않으므로 아래 복원 효과의
+  // 의존성에 그대로 넣을 수 있다 — 억지로 비운 의존성 배열보다 안전하다.
+  const [resumedView] = useState(restoreView)
+  const [view, setView] = useState<AppView>(resumedView)
+  const isRestoringHistory = useRef(false)
+  const isFirstHistoryEntry = useRef(true)
+
+  // 화면 전환을 브라우저 기록에 심어 뒤로가기가 사이트를 벗어나지 않게 한다.
+  // ⚠️ 첫 화면은 push 가 아니라 replace 다 — push 하면 온보딩에서 뒤로가기를 눌러도
+  //    같은 화면이 다시 나와 빠져나갈 수 없다.
+  useEffect(() => {
+    // 새로고침 복원용 — 뒤로가기 기록과 달리 **탭이 살아 있는 동안** 유지된다.
+    try { sessionStorage.setItem(RESUME_KEY, view) } catch { /* 사파리 프라이빗 등 — 복원만 포기 */ }
+    if (isRestoringHistory.current) { isRestoringHistory.current = false; return }
+    if (isFirstHistoryEntry.current) {
+      isFirstHistoryEntry.current = false
+      window.history.replaceState({ view }, '')
+      return
+    }
+    // 로딩·분석처럼 스쳐 지나가는 화면은 기록을 남기지 않는다(replace) — 남기면
+    // 뒤로가기가 이미 끝난 로딩 화면으로 되돌아가 멈춰 있는 것처럼 보인다.
+    if (TRANSIENT_VIEWS.includes(view)) window.history.replaceState({ view }, '')
+    else window.history.pushState({ view }, '')
+  }, [view])
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      const restored = (event.state as { view?: AppView } | null)?.view
+      isRestoringHistory.current = true
+      setView(restored ?? 'onboarding')
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
   const [workoutDays, setWorkoutDays] = useState(1)
   const [feedbackMessage, setFeedbackMessage] = useState('')
   const [isPreparingSession, setIsPreparingSession] = useState(false)
@@ -321,6 +443,55 @@ function App() {
   const [routineData, setRoutineData] = useState<RoutineDetail | null>(null)
   const [selectedDay, setSelectedDay] = useState<RoutineDay | null>(null)
   const [coach, setCoach] = useState<CoachChatResponse | null>(null)
+  // 로딩 화면 진행률 — 화면이 스스로 시간을 재지 않고 **여기서 실제 단계를 받아 간다.**
+  // ⚠️ ...Ready 는 결과까지 다 받은 뒤에만 true 로 만든다. 이걸 먼저 켜면 진행률이
+  //    다시 거짓말을 하게 되고, 그게 이 화면들을 고친 이유였다.
+  const [analysisPhase, setAnalysisPhase] = useState(0)
+  const [isAnalysisReady, setIsAnalysisReady] = useState(false)
+  const [routinePhase, setRoutinePhase] = useState(0)
+  const [isRoutineReady, setIsRoutineReady] = useState(false)
+
+  /**
+   * 복원된 화면의 내용을 서버에서 다시 채운다.
+   *
+   * ⚠️ 화면 전환(setView)은 하지 않는다 — 화면은 restoreView() 가 이미 동기로 정했다.
+   *    여기서 또 옮기면 사용자가 그 사이에 누른 버튼을 되돌려 버린다.
+   *
+   * ⚠️ 실패해도 화면을 바꾸지 않는다. 각 화면이 null 을 견디도록 되어 있어서
+   *    "준비 중" 상태로 보이고, 사용자는 뒤로 가서 다시 만들 수 있다. 여기서 온보딩으로
+   *    튕기면 새로고침할 때마다 처음으로 돌아가는 지금 문제가 그대로 남는다.
+   */
+  useEffect(() => {
+    const resumed = resumedView
+    if (resumed === 'onboarding') return
+    const sessionId = getStoredSessionId()
+    if (!sessionId) return
+    let cancelled = false
+    void (async () => {
+      try {
+        if (resumed === 'reference-notice' || resumed === 'reference') {
+          // 판정 기준이 없으면 [촬영 시작]을 눌러도 pose-capture 가 빈 화면이 된다.
+          const poseCriteria = await getPoseCriteria()
+          if (!cancelled) setCriteria(poseCriteria as unknown as PoseCriteria)
+        } else if (resumed === 'comparison') {
+          const analysis = await getAnalysis(sessionId)
+          if (cancelled) return
+          setAnalysisData(analysis)
+          const segmentation = await getSessionSegmentation(sessionId).catch(() => null)
+          if (!cancelled) setSegmentationData(segmentation)
+        } else if (resumed === 'custom-routine') {
+          const routine = await getActiveRoutine(sessionId)
+          if (!cancelled) setRoutineData(routine)
+        } else if (resumed === 'today-routine') {
+          const today = await getTodayRoutine(sessionId)
+          if (!cancelled) setTodayRoutine(today)
+        }
+      } catch {
+        // 조회 실패 — 화면은 그대로 두고 빈 상태로 보인다 (위 주석 참고)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [resumedView])
 
   useEffect(() => {
     const handleLogoClick = () => {
@@ -422,6 +593,8 @@ function App() {
   const beginAnalysis = async () => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
+    setAnalysisPhase(0)
+    setIsAnalysisReady(false)
     setView('inbody-loading')
     try {
       // 사진 세그멘테이션(사피엔스)이 아직 도는 중이면 서버가 409를 준다.
@@ -441,14 +614,21 @@ function App() {
         }
       }
       if (!result) throw new Error('사진 분석이 예상보다 오래 걸리고 있어요. 잠시 후 다시 시도해주세요.')
+      // 세그멘테이션 대기(409 루프)가 끝났다 — 이제부터 부위 진단이다.
+      setAnalysisPhase(1)
       // 부위 진단(VLM)이 끝날 때까지 진행률 폴링 — reused=true(기존 결과)면 바로 완료로 나온다
       for (let attempt = 0; attempt < 80; attempt += 1) {
         const progress = await getAnalysisProgress(sessionId)
         const status = String(progress.overall?.status ?? '').toUpperCase()
         const partComplete = progress.part.total > 0 && progress.part.done + progress.part.failed >= progress.part.total
+        // ⚠️ part.total 은 **진단 행 수**이고 백엔드가 전 부위를 한 번에 써넣는다.
+        //    그래서 0 → 9 로 한 번에 뛴다 (비율이 아니라 신호로만 쓸 수 있다).
+        //    0보다 커졌다 = 부위 진단이 끝나고 종합 진단으로 넘어갔다는 뜻.
+        if (progress.part.total > 0) setAnalysisPhase(2)
         if (progress.completed || ['DONE', 'COMPLETED', 'SUCCESS', 'SUCCEEDED'].includes(status) || partComplete) break
         await new Promise(resolve => window.setTimeout(resolve, 750))
       }
+      setAnalysisPhase(3)
       const analysis = await getAnalysis(sessionId)
       let segmentation: SessionSegmentation | null = null
       try {
@@ -461,7 +641,8 @@ function App() {
       }
       setAnalysisData(analysis)
       setSegmentationData(segmentation)
-      setView('comparison')
+      // 화면 전환은 여기서 하지 않는다 — 막대가 100% 를 찍은 뒤 로딩 화면이 부른다.
+      setIsAnalysisReady(true)
     } catch (error) {
       // 비교 가능한 부위가 부족하면 사진 문제 — 재촬영으로 유도한다
       if (error instanceof RefitApiError && error.code === 'INSUFFICIENT_PARTS') {
@@ -511,14 +692,20 @@ function App() {
   const beginRoutine = async () => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
+    setRoutinePhase(0)
+    setIsRoutineReady(false)
     setView('loading-two')
     try {
       const result = await createRoutine(sessionId, workoutDays)
       const jobId = getJobId(result)
-      if (jobId) await waitForJob(jobId)
+      // ⚠️ 루틴 생성 잡은 PENDING/PROCESSING/DONE 셋뿐이다 — 한 번의 LLM 호출이라
+      //    쪼갤 중간 지점이 서버에도 없다. 있는 신호를 그대로 단계로 옮긴다.
+      if (jobId) await waitForJob(jobId, status => setRoutinePhase(status === 'PROCESSING' ? 2 : 1))
+      setRoutinePhase(3)
       const routine = await getActiveRoutine(sessionId)
       setRoutineData(routine)
-      setView('custom-routine')
+      // 전환은 막대가 100% 를 찍은 뒤 로딩 화면이 시작한다.
+      setIsRoutineReady(true)
     } catch (error) {
       window.alert(userFacingMessage(error, '맞춤 루틴을 생성하지 못했습니다. 잠시 후 다시 시도해주세요.'))
       setView('exercise-days')
@@ -628,10 +815,10 @@ function App() {
         onPrevious={() => setView('reference')}
         onBrowse={file => void uploadUser(file)} />
     : null
-  if (view === 'pose-analyzing') return <PoseScreen result="loading" score={poseEvaluation?.pose_similarity ?? 0} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
-  if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
-  if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
-  if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} onPrevious={() => setView('reference')} />
+  if (view === 'pose-analyzing') return <PoseScreen result="loading" score={poseEvaluation?.pose_similarity ?? 0} referenceUrl={refData?.url ?? null} userPhoto={lastUserPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-failure') return <PoseScreen result="failure" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} userPhoto={lastUserPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} userPhoto={lastUserPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
+  if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} userPhoto={lastUserPhoto} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} onPrevious={() => setView('reference')} />
   if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('pose-success')} /></>
   if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => setView('inbody-upload')} onStart={openInbodyConfirmation} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-upload')} />
   if (view === 'inbody-form') return <InbodyUploadAfterScreen inbody={inbodyData} onConfirm={patch => void verifyInbodyAndBeginAnalysis(patch)} onPrevious={() => setView('inbody-uploaded')} />
@@ -641,10 +828,10 @@ function App() {
   if (view === 'inbody-unreadable') return <InbodyUnreadableScreen onConfirm={() => setView('inbody-form')} onPrevious={() => setView('inbody-uploaded')} />
   // 로딩 애니메이션이 100%가 되면 분석 화면으로 전환한다. 결과 API는 백그라운드에서
   // 이어서 받아 상태를 채우므로, 네트워크 응답 때문에 로딩 화면이 멈춰 있지 않는다.
-    if (view === 'inbody-loading') return <LoadingOneScreen isAnalysisReady={false} onComplete={() => undefined} />
+    if (view === 'inbody-loading') return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady} onComplete={() => setView('comparison')} />
   if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
-  if (view === 'loading-two') return <LoadingTwoScreen onComplete={() => undefined} />
+  if (view === 'loading-two') return <LoadingTwoScreen phase={routinePhase} isComplete={isRoutineReady} onComplete={() => setView('custom-routine')} />
   if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setSelectedDay(day); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />
   if (view === 'custom-routine-detail') return <CustomRoutineDetailScreen day={selectedDay} onPrevious={() => setView('custom-routine')} />
   if (view === 'today-routine') return <TodayRoutineScreen today={todayRoutine} onFinish={() => setView('feedback')} onPrevious={() => setView('custom-routine')} />

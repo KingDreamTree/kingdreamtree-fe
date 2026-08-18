@@ -1,6 +1,8 @@
 .inbody-range-confirm:not(:disabled) { background: #ffe250; color: #222; cursor: pointer; }
 
-.onboarding { min-width: 1440px; overflow: hidden; }
+/* 온보딩은 1440px 고정 캔버스를 화면 폭에 맞춰 축소·확대한다 (RevealSection scaleToViewport).
+   min-width 를 두면 좁은 화면에서 가로 스크롤이 생기고 오른쪽이 잘린다. */
+.onboarding { overflow: hidden; }
 .page-stage { position: relative; width: 100%; min-width: 1440px; overflow: hidden; background: #fff; }
 .page-stage--scaled { min-width: 0; }
 .hero-section-stage, .onboarding-function-stage, .closing-section-stage { background: #222; }
@@ -44,9 +46,19 @@
 .reference-dropzone > img { position: absolute; top: 97px; left: 409px; width: 72px; height: 72px; aspect-ratio: 1 / 1; object-fit: contain; }.reference-dropzone p { position: absolute; top: 171px; left: 0; width: 100%; margin: 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; text-align: center; }
 .reference-dropzone.is-ready { border-color: #ffe250; }.reference-dropzone.is-ready .reference-dropzone__done { top: 76px; left: 409px; width: 72px; height: 72px; }.reference-dropzone.is-ready .reference-dropzone__check { top: 102px; left: 430px; width: 30.6px; height: 21.6px; object-fit: contain; }.reference-dropzone.is-ready strong { position: absolute; top: 171px; left: 0; width: 100%; color: #ffe250; font: 700 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }.reference-dropzone.is-ready span { position: absolute; top: 201px; left: 0; width: 100%; color: #ccc; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; }
 .reference-start { position: absolute; top: 861px; left: 574px; display: grid; width: 293px; height: 63px; place-items: center; border: 0; border-radius: 41px; background: rgba(255, 226, 80, .2); color: #222; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; transition: transform 180ms ease, background-color 180ms ease; }.reference-start.is-ready { background: #ffe250; }.reference-start:hover { transform: translateY(-2px); }.reference-start:focus-visible, .reference-notice button:focus-visible, .pose-next:focus-visible, .pose-status button:focus-visible { outline: 3px solid #ffe250; outline-offset: 5px; }
-.reference-notice { position: absolute; top: 398px; left: 483px; width: 472px; height: 264px; border-radius: 15px; background: #f6f6f6; color: #222; text-align: center; box-shadow: 0 18px 48px rgba(0, 0, 0, .22); }.reference-notice img { position: absolute; top: 35px; left: 225px; width: 22px; height: 22px; }.reference-notice h2 { margin: 67px 0 0; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }.reference-notice p { margin: 7px 0 0; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.reference-notice button { position: absolute; top: 195px; left: 186px; width: 100px; height: 34px; border: 0; border-radius: 30px; background: #222; color: #f6f6f6; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; cursor: pointer; }
+/* 주의사항 안내 — 막이 먼저 깔리고 카드가 살짝 떠오른다. 튀어나오는 느낌을 없애려고
+   카드는 12px 만 올라오면서 커지고, 막은 그보다 빨리 깔려 시선을 먼저 모은다. */
+.reference-notice-veil { position: absolute; z-index: 2; inset: 0; background: rgba(17, 17, 17, .5); }
+@media (prefers-reduced-motion: no-preference) { .reference-notice-veil { animation: reference-veil-in 240ms ease-out both; } .reference-notice { animation: reference-notice-in 420ms cubic-bezier(.2, .8, .2, 1) 80ms both; } }
+@keyframes reference-veil-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes reference-notice-in { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+.reference-notice { position: absolute; z-index: 3; top: 398px; left: 483px; width: 472px; height: 264px; border-radius: 15px; background: #f6f6f6; color: #222; text-align: center; box-shadow: 0 18px 48px rgba(0, 0, 0, .22); }.reference-notice img { position: absolute; top: 35px; left: 225px; width: 22px; height: 22px; }.reference-notice h2 { margin: 67px 0 0; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }.reference-notice p { margin: 7px 0 0; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.reference-notice button { position: absolute; top: 195px; left: 186px; width: 100px; height: 34px; border: 0; border-radius: 30px; background: #222; color: #f6f6f6; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; cursor: pointer; }
 
 .pose-reference { position: absolute; top: 343px; left: 131px; width: 433.226px; height: 474.638px; overflow: hidden; border: 1px solid #f6f6f6; background: #e2e2e2; }.pose-reference img { position: absolute; top: 0; left: -15.69%; width: 136.08%; height: 100%; max-width: none; }
+/* 업로드한 체형 사진 — 코너 가이드가 잡아둔 사각형을 그대로 채운다.
+   원본 비율을 유지(contain)해 전신이 잘리지 않게 하고, 점수 링이 위에 얹힌다. */
+.pose-user-photo { position: absolute; top: 348px; left: 593px; width: 711px; height: 471px; overflow: hidden; background: #111; }
+.pose-user-photo img { width: 100%; height: 100%; object-fit: contain; }
 .pose-corner { position: absolute; width: 63px; height: 64px; transform-origin: center; }.pose-corner--top-left { top: 348px; left: 593px; }.pose-corner--top-right { top: 348px; left: 1241px; transform: rotate(180deg) scaleY(-1); }.pose-corner--bottom-left { top: 755px; left: 593px; transform: rotate(-90deg); }.pose-corner--bottom-right { top: 755px; left: 1240px; transform: rotate(-90deg) scaleY(-1); }
 .pose-score { position: absolute; top: 621.49px; left: 1126.49px; width: 168.021px; height: 168.021px; }.pose-score img:first-child { position: absolute; top: 17.51px; left: 17.51px; width: 133px; height: 133px; }.pose-score img:nth-child(2) { position: absolute; top: 22px; left: 22px; width: 123px; height: 123px; transform: rotate(-120deg); }.pose-score strong { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #f6f6f6; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; white-space: nowrap; }
 .pose-score__fill { position: absolute; top: 17.51px; left: 17.51px; width: 133px; height: 133px; overflow: visible; }
@@ -154,7 +166,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-score__progress { position: absolute; top: 47px; left: 48px; width: 256.85px; height: 255.12px; transform: rotate(-120deg); }
 .comparison-analysis-score > span { position: absolute; top: 114px; left: 111px; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }
 .comparison-analysis-score > strong { position: absolute; top: 132px; left: 0; width: 320px; color: #f6f6f6; font: 700 63.2px/1.5 Pretendard, sans-serif; letter-spacing: -1.896px; text-align: center; }
-.comparison-analysis-summary { position: absolute; top: 517px; left: 477px; }
+.comparison-analysis-summary { position: absolute; top: 479px; left: 477px; }
 .comparison-analysis-summary h2 { margin: 0; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }
 .comparison-analysis-summary > div { box-sizing: border-box; width: 832px; height: 169px; margin-top: 14px; padding: 42px 47px; overflow: hidden; border-radius: 18.659px; background: rgb(59 59 59 / .4); }
 .comparison-analysis-summary strong { display: block; color: #ffe250; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }
@@ -252,7 +264,11 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .custom-routine-detail-page__groups article:focus-visible { outline: 0; }
 .custom-routine-detail-page__groups article > img { width: 85.746px; height: 84px; margin: 12px 8.074px 12px 14px; border-radius: 0; object-fit: cover; object-position: center; }
 .custom-routine-detail-page__info { position: absolute; top: 382px; left: 884px; box-sizing: border-box; width: 424px; height: 485px; min-height: 0; padding: 54px 40px; overflow: hidden; border: 0; border-radius: 15.98px; background: rgb(59 59 59 / .4); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
-.custom-routine-detail-page__info h2 { position: relative; z-index: 1; max-width: 200px; margin: 0 0 20px; color: #f6f6f6; font: 700 22.372px/1.5 Pretendard, sans-serif; letter-spacing: -.671px; }
+/* ⚠️ max-width 는 패널이 실제로 내주는 폭(424 − 좌우 패딩 40×2 = 344px)이다.
+   종전 200px 은 그보다 144px 좁아서, 한 줄에 들어가는 이름도 접혔다
+   ("덤벨 싱글 레그 카프 / 레이즈"). 넘칠 때만 접히게 하고, 접히더라도
+   keep-all 로 낱말 안에서는 자르지 않는다. */
+.custom-routine-detail-page__info h2 { position: relative; z-index: 1; max-width: 344px; margin: 0 0 20px; color: #f6f6f6; font: 700 22.372px/1.5 Pretendard, sans-serif; letter-spacing: -.671px; word-break: keep-all; }
 .custom-routine-detail-page__info dl { position: relative; z-index: 1; display: grid; gap: 5px; margin: 0; }
 .custom-routine-detail-page__info dl > div { display: flex; gap: 10px; }
 .custom-routine-detail-page__info dt, .custom-routine-detail-page__info dd { margin: 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
@@ -264,6 +280,48 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .today-routine-page__current { position: absolute; top: 364px; left: 131px; box-sizing: border-box; width: 824px; height: 455px; overflow: hidden; border: 1px solid #ffe250; border-radius: 20px; background: #3b3b3b; transition: transform 520ms cubic-bezier(.4, 0, .2, 1), opacity 520ms ease; }.today-routine-page__current.is-exiting { opacity: 0; transform: translateX(-900px); }.today-routine-page__current > span { position: absolute; top: 72px; left: 74px; display: grid; width: 83.757px; height: 29.844px; place-items: center; border-radius: 24.578px; background: #ffe250; color: #000; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__current h2 { position: absolute; top: 124px; left: 74px; margin: 0; font: 600 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; }.today-routine-page__current small { position: absolute; top: 174px; left: 74px; color: #8e8e8e; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; }.today-routine-page__current p { position: absolute; top: 207px; left: 74px; margin: 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }.today-routine-page__current button { position: absolute; top: 286px; left: 74px; box-sizing: border-box; width: 88.63px; height: 29.466px; border: 1px solid rgb(246 246 246 / .2); border-radius: 6.011px; background: rgb(59 59 59 / .3); color: #f6f6f6; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; cursor: pointer; }.today-routine-page__current > img { position: absolute; top: 177px; right: 78px; width: 191px; height: 236px; object-fit: contain; }
 .today-routine-page__current.is-last-step { width: 1178px; }
 .today-routine-page__next { position: absolute; top: 364px; left: 974px; box-sizing: border-box; width: 335px; height: 455px; overflow: hidden; border-radius: 20px; background: #3b3b3b; transition: left 520ms cubic-bezier(.4, 0, .2, 1), width 520ms cubic-bezier(.4, 0, .2, 1), border-radius 520ms ease; }.today-routine-page__next.is-promoting { left: 131px; width: 824px; border: 1px solid #ffe250; }.today-routine-page__next > p { position: absolute; top: 73px; left: 35px; margin: 0; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next h2 { position: absolute; top: 107.84px; left: 35px; margin: 0; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }.today-routine-page__next span { position: absolute; top: 161px; left: 35px; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next img { position: absolute; right: 33px; bottom: 47px; width: 132px; height: 163px; object-fit: contain; }.today-routine-page__next.is-promoting > p { top: 72px; left: 74px; display: grid; width: 83.757px; height: 29.844px; place-items: center; border-radius: 24.578px; background: #ffe250; color: #000; font-size: 0; }.today-routine-page__next.is-promoting > p::after { content: 'Step 2'; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next.is-promoting h2 { top: 124px; left: 74px; font-size: 38px; font-weight: 600; }.today-routine-page__next.is-promoting span { top: 207px; left: 74px; font-size: 18px; }.today-routine-page__next.is-promoting img { right: 78px; bottom: 42px; width: 191px; height: 236px; }.today-routine-page__complete { position: absolute; top: 861px; left: 573px; width: 293px; height: 63px; padding: 0; border: 0; border-radius: 41px; background: #ffe250; color: #222; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; }.today-routine-page__complete:disabled { cursor: default; opacity: .72; }.today-routine-page__complete.is-complete { background: #ffe250; color: #222; opacity: 1; }.today-routine-page button:focus-visible { outline: 3px solid #f6f6f6; outline-offset: 4px; }
+
+/* ── 세트 완료 전환 다듬기 ───────────────────────────────────────────────────
+   "다음" 카드가 현재 자리로 커지며 올라오는 동작인데, 종전에는 **상자만** 미끄러지고
+   안의 글자·그림은 클릭하는 순간 새 위치로 순간이동했다. 내용물에도 같은 곡선·같은
+   길이의 전환을 걸어 한 덩어리로 움직이게 한다.
+
+   ⚠️ 시간(520ms)은 TodayRoutineScreen 의 CARD_TRANSITION_MS 와 **같아야 한다.**
+      여기가 길면 애니메이션 도중에 카드가 교체되어 튄다. */
+.today-routine-page__next { border: 1px solid transparent; transition: left 520ms cubic-bezier(.4, 0, .2, 1), width 520ms cubic-bezier(.4, 0, .2, 1), border-radius 520ms ease, border-color 520ms ease; }
+.today-routine-page__next > p, .today-routine-page__next h2, .today-routine-page__next span, .today-routine-page__next img {
+  transition: top 520ms cubic-bezier(.4, 0, .2, 1), left 520ms cubic-bezier(.4, 0, .2, 1),
+    right 520ms cubic-bezier(.4, 0, .2, 1), bottom 520ms cubic-bezier(.4, 0, .2, 1),
+    width 520ms cubic-bezier(.4, 0, .2, 1), height 520ms cubic-bezier(.4, 0, .2, 1),
+    font-size 520ms ease, color 520ms ease, background-color 520ms ease, border-radius 520ms ease,
+    letter-spacing 520ms ease;
+}
+
+/* 승격이 끝난 모습은 **현재 카드와 픽셀 단위로 같아야 한다.** 한 군데라도 어긋나면
+   카드가 교체되는 프레임에 딱 그만큼 튄다 — 이음매가 보이는 원인이 여기다.
+   ⚠️ dose 텍스트가 종전에는 207px(현재 카드의 '노트' 자리)로 갔다가 교체되는 순간
+      174px(현재 카드의 dose 자리)로 되뛰었다. 처음부터 제자리로 보낸다. */
+.today-routine-page__next.is-promoting span { top: 174px; left: 74px; color: #8e8e8e; font-size: 14px; letter-spacing: -.42px; }
+/* 자간까지 현재 카드에 맞춘다 — 이름이 길수록 누적돼 교체 순간 글자가 옆으로 밀린다
+   (h2 는 -.84px 대 -1.14px 라 12자면 3.6px 차이가 난다) */
+.today-routine-page__next.is-promoting h2 { letter-spacing: -1.14px; }
+/* 다음이 마지막 스텝이면 현재 자리는 전체 폭이다 (.is-last-step 과 같은 값) */
+.today-routine-page__next.is-promoting.is-promoting-last { width: 1178px; }
+/* 종전에는 'Step 2' 가 CSS 에 박혀 있어 3스텝 이후에도 매번 "Step 2" 가 스쳐 갔다 */
+.today-routine-page__next.is-promoting > p::after { content: attr(data-next-step); }
+
+/* 눌린 직후 버튼이 딱딱하게 꺼지던 것 — 흐리게 만드는 데에도 시간을 준다 */
+.today-routine-page__complete { transition: opacity 200ms ease, background-color 200ms ease; }
+
+/* 교체된 뒤 새로 나타나는 것들(다음 카드, 그리고 승격 카드에는 없던 노트·자세가이드)은
+   전환이 아니라 등장이 필요하다 — 키가 바뀌며 새로 mount 되기 때문이다.
+   ⚠️ opacity 만 다룬다. transform 을 쓰면 현재 카드의 퇴장 transform 과 부딪혀
+      카드가 왼쪽으로 나가지 못하고 제자리에서 사라진다. */
+@media (prefers-reduced-motion: no-preference) {
+  .today-routine-page__next { animation: today-card-in 300ms ease 40ms both; }
+  .today-routine-page__current > p, .today-routine-page__current > button { animation: today-card-in 260ms ease 120ms both; }
+}
+@keyframes today-card-in { from { opacity: 0; } }
 
 /* Figma 657:4507 — 피드백 */
 .feedback-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; }.feedback-page__eyebrow { position: absolute; top: 158px; left: 0; width: 100%; margin: 0; color: #ffe250; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; text-align: center; }.feedback-page h1 { position: absolute; top: 225px; left: 0; width: 100%; margin: 0; font: 600 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; text-align: center; }.feedback-page__description { position: absolute; top: 300px; left: 0; width: 100%; margin: 0; color: #8e8e8e; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; text-align: center; }.feedback-page__circle { position: absolute; top: 398px; left: 563px; width: 336.47px; height: 355px; }.feedback-page__illustration { position: absolute; top: 438px; left: 582.5px; width: 275px; height: 257px; object-fit: contain; }.feedback-page__input { position: absolute; top: 753px; left: 305px; box-sizing: border-box; display: block; width: 830px; height: 78px; margin: 0; overflow: hidden; border-radius: 45px; background: #3b3b3b; }.feedback-page__input input { box-sizing: border-box; width: 100%; height: 100%; padding: 0 92px 0 35px; border: 0; outline: 0; background: transparent; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }.feedback-page__input input::placeholder { color: #8e8e8e; opacity: 1; }.feedback-page__input button { position: absolute; top: 24.5px; right: 33px; display: grid; width: 29px; height: 29px; padding: 0; place-items: center; border: 0; background: transparent; cursor: pointer; }.feedback-page__input button:disabled { cursor: default; opacity: .45; }.feedback-page__input button img { width: 29px; height: 29px; }.feedback-page__skip { position: absolute; top: 849px; left: 0; width: 100%; padding: 0; border: 0; background: transparent; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; text-align: center; }.feedback-page button:focus-visible, .feedback-page input:focus-visible { outline: 3px solid #ffe250; outline-offset: 4px; }
@@ -334,13 +392,28 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 /* Figma 586:886 — 인바디-업로드 후 */
 .inbody-after-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; }
 .inbody-after-page h1 { position: absolute; top: 198px; left: 131px; margin: 0; font: 700 50px/1.5 Pretendard, sans-serif; letter-spacing: -1.5px; }.inbody-after-page h2 { margin: 0; color: #f6f6f6; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }
-.inbody-after-basic, .inbody-after-column { position: absolute; width: 259px; }.inbody-after-basic { top: 526px; left: 131px; }.inbody-after-basic h2 { margin-bottom: 17px; }.inbody-after-column { top: 368px; }.inbody-after-column h2 { margin-bottom: 17px; }.inbody-after-composition { left: 437px; }.inbody-after-muscle { left: 743px; }.inbody-after-fat { left: 1049px; }
+.inbody-after-basic, .inbody-after-column { position: absolute; width: 259px; }.inbody-after-basic { top: 368px; left: 131px; }.inbody-after-basic h2 { margin-bottom: 17px; }.inbody-after-column { top: 368px; }.inbody-after-column h2 { margin-bottom: 17px; }.inbody-after-composition { left: 437px; }.inbody-after-muscle { left: 743px; }.inbody-after-fat { left: 1049px; }
 .inbody-after-field { display: block; width: 259px; height: 74px; }.inbody-after-field > span { display: flex; height: 24px; align-items: center; gap: 3px; color: #f6f6f6; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.inbody-after-field > span small { color: #ccc; font-size: 12px; letter-spacing: -.36px; }.inbody-after-field > span img { width: 3px; height: 3px; margin-left: 0; }
 .inbody-after-field > input, .inbody-after-date input { box-sizing: border-box; width: 259px; height: 41px; margin-top: 9px; padding: 0 16px; border: 0; border-radius: 10px; outline: 0; background: #3b3b3b; color: #f6f6f6; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.inbody-after-composition .inbody-after-field { margin-bottom: 5px; }.inbody-after-muscle .inbody-after-field, .inbody-after-fat .inbody-after-field { margin-bottom: 24.75px; }
 .inbody-after-gender { display: flex; gap: 11px; margin-top: 9px; }.inbody-after-gender button { width: 124px; height: 41px; border: 1px solid #f6f6f6; border-radius: 10px; background: transparent; color: #f6f6f6; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; cursor: pointer; }.inbody-after-gender .is-selected { border: 0; background: #f6f6f6; color: #222; }
+/* 1. 기본 정보는 성격이 다른 항목(신장·나이·성별·측정일)이 이어져 붙어 있으면 한 덩어리로
+   읽힌다 — 다른 열보다 넉넉히 띄운다. */
+.inbody-after-basic .inbody-after-field { margin-bottom: 18px; }
+.inbody-after-date img { pointer-events: none; }
+/* 측정일 — 브라우저 기본 달력 대신 연·월·일을 굴려 고르는 선택기를 입력 칸 **아래**에 편다.
+   위치를 우리가 정할 수 있고, 연도를 몇 칸 올리면 지난해로 바로 갈 수 있다. */
+.inbody-after-date__value { box-sizing: border-box; width: 259px; height: 41px; margin-top: 9px; padding: 0 16px; border: 0; border-radius: 10px; background: #3b3b3b; color: #f6f6f6; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; text-align: left; cursor: pointer; }
+.inbody-after-date__value:focus-visible { outline: 2px solid #ffe250; outline-offset: 2px; }
+.date-picker { position: absolute; z-index: 20; top: 58px; left: 0; display: flex; width: 259px; gap: 4px; padding: 0 10px; border-radius: 14px; background: #fff; color: #222; box-shadow: 0 14px 34px rgb(0 0 0 / .35); }
+/* 가운데 띠 = 지금 고른 값 자리. 목록 높이 180px 의 정중앙에 한 칸(36px) 크기로 놓는다. */
+.date-picker__band { position: absolute; z-index: 0; top: 72px; right: 10px; left: 10px; height: 36px; border-radius: 8px; background: rgb(34 34 34 / .07); pointer-events: none; }
+.date-wheel { position: relative; z-index: 1; flex: 1; }
+.date-wheel__list { height: 180px; overflow-y: auto; padding: 72px 0; scroll-snap-type: y mandatory; scrollbar-width: none; }
+.date-wheel__list::-webkit-scrollbar { display: none; }
+.date-wheel__list button { display: block; width: 100%; height: 36px; padding: 0; border: 0; background: transparent; color: #8e8e8e; font: 500 15px/36px Pretendard, sans-serif; letter-spacing: -.45px; scroll-snap-align: center; cursor: pointer; }
+.date-wheel__list button.is-selected { color: #222; font-weight: 700; }
 .inbody-after-date { position: relative; }.inbody-after-date input { margin-top: 9px; }.inbody-after-date img { position: absolute; top: 20px; left: 226px; width: 18px; height: 18px; }
-.inbody-after-smi { position: absolute; top: 368px; left: 131px; width: 259px; height: 133px; overflow: hidden; border-radius: 20px; background: rgb(59 59 59 / .4); text-align: center; }.inbody-after-smi > span { display: block; margin-top: 17px; color: #f6f6f6; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.inbody-after-smi > span small { color: #ccc; font-size: 12px; letter-spacing: -.36px; }.inbody-after-smi strong { display: block; margin-top: -1px; font: 700 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; }.inbody-after-smi > small { display: block; margin-top: -2px; color: #ccc; font: 500 12px/1.5 Pretendard, sans-serif; letter-spacing: -.36px; }
-.inbody-after-skip, .inbody-after-confirm { position: absolute; top: 198px; width: 165px; height: 63px; border: 0; border-radius: 13px; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; }.inbody-after-skip { left: 960px; background: rgba(59, 59, 59, .3); color: #f6f6f6; }.inbody-after-confirm { left: 1144px; background: #ffe250; color: #222; }.inbody-after-previous { position: absolute; top: 150px; left: 1220px; display: flex; width: 88px; height: 27px; align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: #f6f6f6; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; cursor: pointer; }.inbody-after-previous img { width: 18px; height: 16px; transform: rotate(-90deg); }.inbody-after-note { position: absolute; top: 279px; left: 1012px; margin: 0; color: #b0b0b0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
+.inbody-after-skip, .inbody-after-confirm { position: absolute; top: 198px; width: 165px; height: 63px; border: 0; border-radius: 13px; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; }.inbody-after-skip { left: 960px; background: rgba(59, 59, 59, .3); color: #f6f6f6; }.inbody-after-confirm { left: 1144px; background: #ffe250; color: #222; }.inbody-after-previous { position: absolute; top: 150px; left: 1220px; display: flex; width: 88px; height: 27px; align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: #f6f6f6; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; cursor: pointer; }.inbody-after-previous img { width: 18px; height: 16px; transform: rotate(-90deg); }
 
 /* Figma 586:1182 — 인바디-입력범위오류 */
 .inbody-range-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; }.inbody-range-page h1 { position: absolute; top: 198px; left: 131px; margin: 0; font: 700 50px/1.5 Pretendard, sans-serif; letter-spacing: -1.5px; }.inbody-range-page h2 { margin: 0; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }
@@ -427,17 +500,30 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 .pose-status--retry strong, .pose-status--failure strong { max-width: 700px; }
 .pose-status--retry strong { font-size: 18px; }
-.pose-gallery { position: absolute; top: 198px; left: 1104px; width: 239px; height: 63px; border: 1px solid #3b3b3b; border-radius: 13px; background: rgba(59, 59, 59, .4); color: #f6f6f6; font: 500 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; cursor: pointer; }
+/* 설명 문구(top 274px, 줄높이 33px)의 세로 가운데(≈290px)에 63px 버튼을 맞춘다 */
+.pose-gallery { position: absolute; top: 259px; left: 1065px; width: 239px; height: 63px; border: 1px solid #3b3b3b; border-radius: 13px; background: rgba(59, 59, 59, .4); color: #f6f6f6; font: 500 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; cursor: pointer; }
 .pose-page h1 { line-height: 1.25; }
 
 .loading-one-glow { position: absolute; top: 644px; left: 479px; width: 61px; height: 62px; pointer-events: none; transition: transform 35ms linear; }
 
 
 
-.hero-section__scroll-cue { position: absolute; z-index: 1; top: 784px; left: 659px; display: flex; width: 122px; height: auto; margin: 0; flex-direction: column; align-items: center; gap: 5px; color: #ccc; text-align: center; }.hero-section__scroll-cue img { width: 53.891px; height: 67.239px; }.hero-section__scroll-cue p { min-width: 122px; margin: 0; font: 500 17.608px/1.5 Pretendard, sans-serif; letter-spacing: -.528px; }
+.hero-section__scroll-cue { position: absolute; z-index: 1; top: 784px; left: 659px; display: flex; width: 122px; height: auto; margin: 0; flex-direction: column; align-items: center; gap: 5px; color: #ccc; text-align: center; }.hero-section__scroll-cue img { width: 53.891px; height: 67.239px; }.hero-section__scroll-cue p { min-width: 122px; margin: 0; white-space: nowrap; font: 500 17.608px/1.5 Pretendard, sans-serif; letter-spacing: -.528px; }
+/* 스크롤 힌트 — 손 아이콘이 위로 스와이프하듯 반복해 떠오르고, 문구는 함께 숨쉰다.
+   ⚠️ 컨테이너(.motion)는 등장 트랜지션이 transform 을 쓰므로 자식만 애니메이션한다. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-section__scroll-cue img { animation: scroll-cue-nudge 2.6s cubic-bezier(.4, 0, .2, 1) infinite; }
+  .hero-section__scroll-cue p { animation: scroll-cue-breathe 2.6s ease-in-out infinite; }
+}
+@keyframes scroll-cue-nudge { 0%, 6% { transform: translateY(0); opacity: .7; } 34% { transform: translateY(-11px); opacity: 1; } 60% { transform: translateY(0); opacity: .8; } 100% { transform: translateY(0); opacity: .7; } }
+@keyframes scroll-cue-breathe { 0%, 100% { opacity: .68; } 34% { opacity: 1; } }
 
 .closing-section__button .ai-button:hover { background: #ffe250; color: #222; box-shadow: 0 0 22px rgba(255, 226, 80, .85), 0 0 42px rgba(255, 226, 80, .42); }
 
+/* 인바디 화면들의 "이전 단계"는 공용 버튼(.previous-button)이 아니라 각자 스타일을 쓰는데,
+   폭이 88px 로 고정돼 있어 기기 폰트가 조금만 넓어도 두 줄로 접혔다. 폭은 글자에 맡기고
+   줄바꿈만 막는다 — 위치(left:1220px)는 그대로라 디자인은 바뀌지 않는다. */
+.inbody-after-previous, .inbody-range-previous, .inbody-warning-previous, .inbody-fixed-previous, .inbody-unreadable-previous { width: auto; white-space: nowrap; }
 .previous-button { position: absolute; top: 150px; left: 1220px; z-index: 5; display: inline-flex; height: 27px; align-items: center; gap: 5px; padding: 0; border: 0; background: transparent; color: #f6f6f6; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; cursor: pointer; white-space: nowrap; }
 .previous-button img { width: 18px; height: 16px; transform: rotate(-90deg); }
 .previous-button:hover { color: #ccc; }
@@ -513,3 +599,24 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .feedback-attention-page__coach,
 .feedback-exercise-page__coach { z-index: 1; }
 .feedback-chat-history { z-index: 2; }
+
+/* ── 비교 분석: 안내 문구와 부위 목록 아래 간격 ─────────────────────────────
+   안내는 별표로 시작하는 각주였는데, 그 모양이 "덧붙인 말"처럼 보였다.
+   강조색 점을 앞에 둔 칩으로 바꿔 안내로 읽히게 한다.
+   ⚠️ 점은 ::before 로 그린다. 문자 '*' 로 넣으면 스크린리더가 그대로 읽는다. */
+.comparison-analysis-help {
+  display: inline-flex; width: auto; max-width: 1182px; min-height: 0;
+  align-items: center; gap: 10px; padding: 9px 22px 9px 16px;
+  border: 1px solid rgb(255 226 80 / .3); border-radius: 999px;
+  background: rgb(255 226 80 / .08); color: #dcdcdc;
+  font: 500 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px;
+}
+.comparison-analysis-help::before { content: ''; width: 7px; height: 7px; flex: none; border-radius: 50%; background: #ffe250; }
+
+/* 진단 결과가 부위 버튼에 거의 붙어 있었다 (버튼 두 줄이 2064px 에서 끝나는데
+   진단이 2070px 에서 시작 — 6px). 안내가 한 줄로 짧아진 만큼 버튼을 올리고,
+   진단은 내려서 사이를 띄운다.
+   ⚠️ min-height 로 **두 줄 자리를 미리 잡아둔다.** 부위 개수는 사진마다 달라서
+      (한 줄일 수도 있다) 이걸 안 잡으면 진단 결과가 붙었다 떨어졌다 한다. */
+.comparison-analysis-parts { top: 1935px; min-height: 111px; align-content: flex-start; }
+.comparison-analysis-diagnosis { top: 2092px; }
