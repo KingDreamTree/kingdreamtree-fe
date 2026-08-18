@@ -696,9 +696,11 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
    이 배율로 흡수한다. 넘치지 않으면 종전과 완전히 같다.
    ⚠️ display:flow-root 가 없으면 __body 의 margin-top 이 부모 밖으로 빠져나가(마진 상쇄)
       목표 블록이 제목 위로 올라붙는다. 실제로 그랬다. */
-.custom-routine-page { display: flow-root; height: auto; min-height: 1024px; overflow: visible; padding-bottom: 24px; }
+/* ⚠️ 아래 여백은 «기본 상태에서 1024px 을 넘지 않는» 선에서 잡는다. 6px 만 넘어도
+   스크롤바가 생겨서 «평소엔 스크롤 없음»이 깨진다. */
+.custom-routine-page { display: flow-root; height: auto; min-height: 1024px; overflow: visible; padding-bottom: 14px; }
 /* 안내문구는 bottom 기준이었는데 높이가 가변이면 기준점이 흔들린다 — 흐름으로 내린다 */
-.custom-routine-page__disclaimer { position: static; margin: 18px 0 0 131px; }
+.custom-routine-page__disclaimer { position: static; margin: 12px 0 0 131px; }
 
 /* ── 맞춤 루틴: 진행률을 주차 줄 오른쪽으로 ─────────────────────────────────
    종전에는 페이지 맨 아래 회색 한 줄이라 눈에 안 들어왔다. 주차 줄과 한 행에 두어
@@ -736,3 +738,9 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-diagnosis > div > span .comparison-analysis-comment-icon {
   position: absolute; top: 28px; left: 28px; width: 72px; height: 72px; object-fit: contain;
 }
+
+/* 내용이 길어질 수 있는 단계 화면 — 넘칠 때만 세로로 스크롤된다.
+   ⚠️ align-items 는 safe center 다. 그냥 center 로 두면 액자가 창보다 클 때 위쪽이
+      창 밖으로 밀려 나가 **스크롤해도 못 보는 영역**이 생긴다.
+      safe 는 «넘치면 시작점 정렬»로 알아서 물러선다. */
+.step-page--fit { align-items: safe center; overflow-x: hidden; overflow-y: auto; }
