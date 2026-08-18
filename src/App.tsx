@@ -66,6 +66,19 @@ import './App.css'
 type SectionProps = { children: ReactNode; className: string; label: string; scaleToViewport?: boolean; designHeight?: number }
 type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' | 'pose-analyzing' | 'pose-failure' | 'pose-unavailable' | 'pose-success' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-exercise-intensity' | 'feedback-reflection' | 'feedback-applied' | 'feedback-kept'
 
+/**
+ * 등장 애니메이션 발동 조건.
+ *
+ * ⚠️ 종전에는 `threshold: 0.18` 이었는데, 섹션이 1058~1417px 로 뷰포트보다 커서
+ *    18% 는 **화면 아래 21~28% 만 걸친 시점**이었다. 거기서 750~1100ms(+지연 360ms)
+ *    가 시작되니, 사용자가 섹션을 다 내리기도 전에 애니메이션이 끝나 있었다.
+ *
+ * 그래서 면적 비율 대신 **위치**로 잡는다 — 아래쪽 45% 를 잘라낸 가상의 뷰포트에
+ * 섹션 윗변이 들어올 때(= 화면 아래 절반쯤을 채울 때) 시작한다. 섹션 높이에
+ * 영향받지 않으므로 섹션마다 체감이 같다.
+ */
+const REVEAL_OBSERVER: IntersectionObserverInit = { threshold: 0, rootMargin: '0px 0px -45% 0px' }
+
 /** Reveals a design section once it reaches the viewport. */
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
@@ -76,10 +89,11 @@ function RevealSection({ children, className, label, scaleToViewport = false, de
     const section = sectionRef.current
     if (!section) return
     const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return
+      // 이미 지나친 섹션(새로고침 스크롤 복원)도 즉시 드러낸다 — 안 그러면 영영 opacity 0
+      if (!entry.isIntersecting && entry.boundingClientRect.top >= 0) return
       setIsVisible(true)
       observer.unobserve(entry.target)
-    }, { threshold: 0.18 })
+    }, REVEAL_OBSERVER)
     observer.observe(section)
     return () => observer.disconnect()
   }, [])
