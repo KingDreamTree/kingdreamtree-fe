@@ -2,6 +2,7 @@ import { useState } from 'react'
 import previousArrow from '../assets/previous-arrow.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import type { RoutineDay, RoutineDetail } from '../lib/api'
+import { displayProgress } from '../lib/routine-progress'
 
 /** Day 카드의 포커스 문구 — 운동들의 근육군을 요약한다. */
 function dayFocus(day: RoutineDay): string {
@@ -20,6 +21,8 @@ type CustomRoutineScreenProps = {
 /** Figma 641:3901 — 맞춤 루틴. 카드·목표·주차는 GET /routines/active 응답에서 온다. */
 export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }: CustomRoutineScreenProps) {
   const progress = routine?.progress ?? null
+  // 서버 값은 100%를 넘을 수 있다 — 표시용으로 다듬는다 (routine-progress 주석 참고)
+  const shown = progress ? displayProgress(progress) : null
   const [week, setWeek] = useState(progress?.cycle_no ?? 1)
   const days = routine?.days ?? []
   const focusAreas = routine?.focus_areas?.filter(Boolean) ?? []
@@ -60,19 +63,19 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
       {/* 진행률은 페이지 맨 아래에 한 줄로 있어서 눈에 안 들어왔다. 주차 줄 오른쪽으로
           올려 «무엇을 고르는 줄인가»와 «어디까지 왔나»를 한눈에 같이 보게 한다.
           ⚠️ nav 안에 넣지 않는다 — 진행률은 고를 수 있는 항목이 아니다. */}
-      {progress && <div className="custom-routine-page__progress">
+      {progress && shown && <div className="custom-routine-page__progress">
         {/* ⚠️ 주차를 빼고 **전체 통산 회차**로 쓴다 (Day 1 … Day 8 …).
             next_day_order 는 주기 안에서 1..N 으로 되돌아오는 값이라 주차 없이 쓰면
             «Day 1» 이 계속 반복된다. completed_count + 1 이 옆의 «N/M회» 와 같은
             기준의 다음 회차다 — 두 숫자가 어긋나지 않는다. */}
-        <span className="custom-routine-page__progress-next">Day {Math.min(progress.completed_count + 1, progress.total_count)}</span>
+        <span className="custom-routine-page__progress-next">Day {shown.nextDay}</span>
         <span className="custom-routine-page__progress-gauge" role="progressbar"
-          aria-valuenow={progress.percent} aria-valuemin={0} aria-valuemax={100}
-          aria-label={`전체 ${progress.total_count}회 중 ${progress.completed_count}회 완료`}>
-          <span style={{ width: `${Math.max(0, Math.min(100, progress.percent))}%` }} />
+          aria-valuenow={shown.percent} aria-valuemin={0} aria-valuemax={100}
+          aria-label={`전체 ${shown.totalCount}회 중 ${shown.completedCount}회 완료`}>
+          <span style={{ width: `${shown.percent}%` }} />
         </span>
-        <span className="custom-routine-page__progress-count">{progress.completed_count}<i>/{progress.total_count}회</i></span>
-        <strong>{progress.percent}%</strong>
+        <span className="custom-routine-page__progress-count">{shown.completedCount}<i>/{shown.totalCount}회</i></span>
+        <strong>{shown.percent}%</strong>
       </div>}
     </div>
     <section className="custom-routine-page__cards" aria-label={`${week}주차 운동 루틴`}>{days.map(day => {
