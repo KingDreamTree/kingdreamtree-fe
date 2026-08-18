@@ -170,6 +170,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
         <div>
           <strong>{headline}</strong>
           <p>{overall?.summary ?? '요약을 준비하고 있어요.'}</p>
+          {overall?.silhouette && <p>{overall.silhouette}</p>}
         </div>
         {(overall?.strengths?.length || overall?.cautions?.length || excluded.length) ? <ul className="comparison-analysis-notes">
           {overall?.strengths?.map(item => <li key={item}>💪 {item}</li>)}
