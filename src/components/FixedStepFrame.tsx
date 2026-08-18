@@ -8,11 +8,11 @@ type FixedStepFrameProps = {
   children: ReactNode
   label: string
   /**
-   * 내용이 설계 높이(1024px)를 넘을 때만 액자를 그만큼 늘린다.
+   * 내용이 설계 높이(1024px)를 넘으면 액자를 그만큼 늘리고 **세로 스크롤을 연다.**
    *
-   * ⚠️ **넘치지 않으면 아무것도 달라지지 않는다** — 높이도 배율도 종전과 같다.
-   *    화면 크기를 바꾸는 장치가 아니라, 잘려나가는 것을 막는 안전장치다.
-   *    (페이지가 height:1024 + overflow:hidden 이라 넘치면 스크롤도 없이 잘린다.)
+   * ⚠️ **넘치지 않으면 아무것도 달라지지 않는다** — 창에 딱 맞고 스크롤도 없다.
+   *    넘친 만큼만 아래로 길어져서 그때 스크롤이 생긴다.
+   *    (이 장치가 없으면 페이지가 height:1024 + overflow:hidden 이라 잘려나간다.)
    *
    * ⚠️ 기본값 false — 서버 문구 길이에 따라 세로로 자라는 화면에서만 켠다.
    *    늘어날 일이 없는 화면에 관측기를 달아둘 이유가 없다.
@@ -48,23 +48,30 @@ export function FixedStepFrame({ children, label, fitContent = false }: FixedSte
     return () => observer.disconnect()
   }, [fitContent])
 
+  /**
+   * 배율은 **설계 높이(1024) 기준**으로만 잡는다.
+   *
+   * ⚠️ 늘어난 내용 높이로 배율을 잡으면 안 된다 — 내용이 길어질수록 화면이 작아지고
+   *    스크롤은 영영 생기지 않는다. 설계 높이 기준이어야 «평소엔 창에 딱 맞고,
+   *    1024 를 넘은 만큼만 아래로 넘쳐 스크롤이 생긴다».
+   */
   useEffect(() => {
     const updateScale = () => setScale(Math.min(
       1,
       document.documentElement.clientWidth / DESIGN_WIDTH,
-      window.innerHeight / canvasHeight,
+      window.innerHeight / DESIGN_HEIGHT,
     ))
     updateScale()
     window.addEventListener('resize', updateScale)
     return () => window.removeEventListener('resize', updateScale)
-  }, [canvasHeight])
+  }, [])
 
   const canvasStyle = {
     transform: `scale(${scale})`,
     ...(fitContent ? { height: 'auto', minHeight: `${DESIGN_HEIGHT}px`, overflow: 'visible' } : null),
   } as CSSProperties
 
-  return <main className="step-page" aria-label={label}>
+  return <main className={`step-page ${fitContent ? 'step-page--fit' : ''}`.trim()} aria-label={label}>
     <div className="step-frame" style={{ width: DESIGN_WIDTH * scale, height: canvasHeight * scale }}>
       <div className="step-canvas" ref={canvasRef} style={canvasStyle}><RefitHomeLogo />{children}</div>
     </div>

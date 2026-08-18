@@ -23,10 +23,10 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
   const [week, setWeek] = useState(progress?.cycle_no ?? 1)
   const days = routine?.days ?? []
   const focusAreas = routine?.focus_areas?.filter(Boolean) ?? []
-  // strategy 는 백엔드가 실제로 생성한 루틴(모드·가중 세트)에서 조립한 설명이다.
-  // 이 필드 이전 루틴은 null 이므로 기존 goal/focus_areas 폴백을 그대로 쓴다.
-  const routineSummary = routine?.strategy?.headline ?? routine?.goal ?? `주 ${routine?.exercise_days_per_week ?? '-'}일 운동으로 목표 체형에 가까워지는 ${routine?.total_cycles ?? 4}주 루틴입니다.`
-  const routineEvidence = routine?.strategy?.body ?? (focusAreas.length > 0
+  // strategy.body 는 백엔드가 실제로 생성한 루틴(모드 판정·부위별 가중 세트·유산소
+  // 여부)에서 조립한 설명이다. 헤드라인은 쓰지 않는다 — "루틴 요약"엔 이 근거
+  // 문단 하나만 보여준다. 이 필드 이전 루틴은 null 이므로 기존 폴백을 그대로 쓴다.
+  const routineSummary = routine?.strategy?.body ?? (focusAreas.length > 0
     ? `${focusAreas.join('·')} 개선을 우선순위로 두고, 주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정에 맞춰 구성했어요.`
     : `주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정과 각 운동의 세트·반복·휴식 구성을 바탕으로 만들었어요.`)
 
@@ -47,10 +47,6 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
         <h3>루틴 요약</h3>
         <p>{routineSummary}</p>
       </div>
-      <div className="custom-routine-page__goal-section">
-        <h3>근거</h3>
-        <p>{routineEvidence}</p>
-      </div>
       {routine?.notice && <p className="custom-routine-page__notice">{routine.notice}</p>}
     </section>
 
@@ -61,7 +57,11 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
           올려 «무엇을 고르는 줄인가»와 «어디까지 왔나»를 한눈에 같이 보게 한다.
           ⚠️ nav 안에 넣지 않는다 — 진행률은 고를 수 있는 항목이 아니다. */}
       {progress && <div className="custom-routine-page__progress">
-        <span className="custom-routine-page__progress-next">{progress.cycle_no}주차 Day {progress.next_day_order}</span>
+        {/* ⚠️ 주차를 빼고 **전체 통산 회차**로 쓴다 (Day 1 … Day 8 …).
+            next_day_order 는 주기 안에서 1..N 으로 되돌아오는 값이라 주차 없이 쓰면
+            «Day 1» 이 계속 반복된다. completed_count + 1 이 옆의 «N/M회» 와 같은
+            기준의 다음 회차다 — 두 숫자가 어긋나지 않는다. */}
+        <span className="custom-routine-page__progress-next">Day {Math.min(progress.completed_count + 1, progress.total_count)}</span>
         <span className="custom-routine-page__progress-gauge" role="progressbar"
           aria-valuenow={progress.percent} aria-valuemin={0} aria-valuemax={100}
           aria-label={`전체 ${progress.total_count}회 중 ${progress.completed_count}회 완료`}>
