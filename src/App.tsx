@@ -30,7 +30,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, createRoutine, createWorkoutLog, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -679,6 +679,23 @@ function App() {
     }
   }
 
+  /** 업로드 완료 후 [건너뛰기] — OCR로 이미 DONE 행이 생겼으므로, 그냥 넘어가면
+   *  세션에 인바디가 계속 붙어있는 채로 남는다(다음 분석에도 계속 반영됨).
+   *  "건너뛴다"는 의도를 실제로 지운다. */
+  const skipInbody = async () => {
+    const id = inbodyId
+    setInbodyId(null)
+    setInbodyJobId(null)
+    if (id) {
+      try {
+        await deleteInbody(id)
+      } catch {
+        // 삭제 실패해도 분석은 막지 않는다 — 인바디는 선택 입력이다.
+      }
+    }
+    await beginAnalysis()
+  }
+
   const verifyInbodyAndBeginAnalysis = async (patch?: InbodyPatch) => {
     try {
       if (inbodyJobId) await waitForJob(inbodyJobId)
@@ -820,7 +837,7 @@ function App() {
   if (view === 'pose-unavailable') return <PoseScreen result="unavailable" score={poseEvaluation?.pose_similarity ?? 0} message={poseMessage} referenceUrl={refData?.url ?? null} userPhoto={lastUserPhoto} onRetry={retrySamePhoto} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => undefined} onPrevious={() => setView('reference')} />
   if (view === 'pose-success') return <PoseScreen result="success" score={poseEvaluation?.pose_similarity ?? 100} referenceUrl={refData?.url ?? null} userPhoto={lastUserPhoto} onRetry={() => undefined} onBrowse={file => void uploadUser(file)} onLive={() => setView('pose-capture')} onNext={() => setView('inbody-upload')} onPrevious={() => setView('reference')} />
   if (view === 'inbody-upload') return <><input ref={inbodyFileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { const file = event.currentTarget.files?.[0]; if (file) void handleInbodyFile(file); event.currentTarget.value = '' }} /><InbodyUploadBeforeScreen onUpload={() => inbodyFileInputRef.current?.click()} onComplete={() => void beginAnalysis()} onSkip={() => void beginAnalysis()} onPrevious={() => setView('pose-success')} /></>
-  if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => setView('inbody-upload')} onStart={openInbodyConfirmation} onSkip={() => void beginAnalysis()} onPrevious={() => setView('inbody-upload')} />
+  if (view === 'inbody-uploaded') return <InbodyUploadSuccessScreen onChangePhoto={() => setView('inbody-upload')} onStart={openInbodyConfirmation} onSkip={() => void skipInbody()} onPrevious={() => setView('inbody-upload')} />
   if (view === 'inbody-form') return <InbodyUploadAfterScreen inbody={inbodyData} onConfirm={patch => void verifyInbodyAndBeginAnalysis(patch)} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'inbody-range-error') return <InbodyRangeErrorScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onPrevious={() => setView('inbody-form')} />
   if (view === 'inbody-warning') return <InbodyValidationWarningScreen onConfirm={() => void verifyInbodyAndBeginAnalysis()} onPrevious={() => setView('inbody-range-error')} />
