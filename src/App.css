@@ -706,11 +706,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
    이 한 줄을 빠뜨리면 주차 버튼이 카드 위에 겹쳐 그려진다 (실제로 그랬다). */
 .custom-routine-page__weeks { position: static; margin-top: 0; }
 .custom-routine-page__cards { position: static; margin-top: 34px; }
-.custom-routine-page__cards:has(> article:nth-child(7):last-child) { gap: 4px; }
-.custom-routine-page__cards:has(> article:nth-child(6):last-child) { gap: 6px; }
-.custom-routine-page__cards:has(> article:nth-child(5):last-child) { gap: 8px; }
-.custom-routine-page__cards:has(> article:nth-child(4):last-child) { gap: 10px; }
-.custom-routine-page__cards:has(> article:nth-child(3):last-child) { gap: 12px; }
 
 /* 목표 블록이 길어지면 카드 아래가 **잘려나갔다** — 페이지가 height:1024 + overflow:hidden
    이라 스크롤조차 안 생긴다. 내용만큼 자라게 두고, 넘친 높이는 FixedStepFrame(fitContent)
@@ -802,6 +797,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 /* 카드 간격을 기본 고정값으로 되돌립니다. */
 .custom-routine-page__cards { width: auto; justify-content: flex-start; gap: 14px; }
+.custom-routine-page__cards:has(> article:nth-child(7)) { gap: 12px; }
 
 /* ── 비교 분석 하단: 진단 블록 → 버튼 → 안내문구를 한 흐름으로 ────────────────
    종전에는 셋 다 절대 좌표(2092 / 2410 / 2530px)로 고정이었다. 그런데 진단 카드는
