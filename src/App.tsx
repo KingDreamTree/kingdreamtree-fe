@@ -83,7 +83,7 @@ const REVEAL_OBSERVER: IntersectionObserverInit = { threshold: 0, rootMargin: '0
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const [isVisible, setIsVisible] = useState(false)
-  const [scale, setScale] = useState(() => Math.max(1, document.documentElement.clientWidth / 1440))
+  const [scale, setScale] = useState(() => document.documentElement.clientWidth / 1440)
 
   useEffect(() => {
     const section = sectionRef.current
@@ -100,7 +100,7 @@ function RevealSection({ children, className, label, scaleToViewport = false, de
 
   useEffect(() => {
     if (!scaleToViewport) return
-    const updateScale = () => setScale(Math.max(1, document.documentElement.clientWidth / 1440))
+    const updateScale = () => setScale(document.documentElement.clientWidth / 1440)
     window.addEventListener('resize', updateScale)
     return () => window.removeEventListener('resize', updateScale)
   }, [scaleToViewport])
@@ -136,7 +136,7 @@ function OnboardingOne() {
 }
 
 function OnboardingTwo() {
-  return <RevealSection className="onboarding-wellness" label="온보딩 2: WELLNESS">
+  return <RevealSection className="onboarding-wellness" label="온보딩 2: WELLNESS" scaleToViewport designHeight={1417}>
     <p className="onboarding-wellness__subtitle motion">리핏이 선사하는 특별한 경험</p>
     <h1 className="onboarding-wellness__title motion motion--delay-1">WELLNESS</h1>
     <img className="onboarding-wellness__orbit motion motion--delay-1" src={wellnessOrbit} alt="" />
@@ -155,7 +155,7 @@ function OnboardingThree() {
     { number: '2', icon: functionStep, title: '맞춤형 루틴', description: '결과를 바탕으로 나에게 맞는 루틴 생성' },
     { number: '3', icon: functionStep, title: '강도 조절', description: '날마다 피드백을 통해 바뀌는 루틴' },
   ]
-  return <RevealSection className="onboarding-function" label="온보딩 3: 기능 소개">
+  return <RevealSection className="onboarding-function" label="온보딩 3: 기능 소개" scaleToViewport designHeight={1130}>
     <p className="onboarding-function__subtitle motion">리핏만이 제공하는 기능</p>
     <h1 className="onboarding-function__title motion motion--delay-1">FUNCTION</h1>
     <div className="onboarding-function__cards">{cards.map((card, index) => <article className={`onboarding-function__card motion motion--delay-${index + 1}`} key={card.number}>
@@ -165,7 +165,7 @@ function OnboardingThree() {
 }
 
 function OnboardingFour({ onStart }: { onStart: () => void }) {
-  return <RevealSection className="closing-section" label="온보딩 4: REFIT 시작하기">
+  return <RevealSection className="closing-section" label="온보딩 4: REFIT 시작하기" scaleToViewport designHeight={1058}>
     <RefitLogo small /><div className="closing-section__copy motion"><h1>AI가 만드는 <em>맞춤 루틴</em></h1><p>오늘부터 REFIT과 함께, 내가 바라는 건강함을 차곡차곡</p></div>
     <div className="closing-section__illustration motion motion--delay-1" aria-hidden="true"><img className="closing-section__platform" src={routinePlatform} alt="" /><img className="closing-section__figure" src={routineFigure} alt="" /><img className="closing-section__marker" src={routineMarker} alt="" /></div>
     <div className="closing-section__button motion motion--delay-2"><StartButton wide onStart={onStart} /></div>
@@ -207,7 +207,7 @@ function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFi
       <PreviousButton onClick={onPrevious} />
       <ReferenceHints />
       <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { pick(event.currentTarget.files); event.currentTarget.value = '' }} />
-      <button type="button" className={`reference-dropzone ${ready ? 'is-ready' : ''}`} disabled={busy}
+      <button type="button" className={`reference-dropzone ${ready ? 'is-ready' : ''}`} disabled={busy || showNotice}
         onClick={() => inputRef.current?.click()}
         onDragOver={event => event.preventDefault()}
         onDrop={event => { event.preventDefault(); pick(event.dataTransfer.files) }}>
@@ -219,12 +219,16 @@ function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFi
       </button>
       {error && <p className="reference-error" role="alert">{error}</p>}
       <button className={`reference-start ${ready ? 'is-ready' : ''}`} type="button" disabled={!ready || busy} onClick={onStart}>AI 분석 비교 시작 →</button>
-      {showNotice && <section className="reference-notice" role="dialog" aria-modal="true" aria-labelledby="reference-notice-title">
-        <span className="reference-notice__icon"><img src={referenceInfo} alt="" /></span>
-        <h2 id="reference-notice-title">레퍼런스 주의사항 안내</h2>
-        <p>해당 레퍼런스 이미지에 있는 부위에 대한 루틴만 제공되오니<br />신중하게 업로드해주시길 바랍니다.</p>
-        <button type="button" onClick={onConfirm}>확인</button>
-      </section>}
+      {showNotice && <>
+        {/* 막이 뒤를 덮어 시선을 모으고, 확인을 누르기 전에는 업로드가 눌리지 않게 한다 */}
+        <div className="reference-notice-veil" aria-hidden="true" />
+        <section className="reference-notice" role="dialog" aria-modal="true" aria-labelledby="reference-notice-title">
+          <span className="reference-notice__icon"><img src={referenceInfo} alt="" /></span>
+          <h2 id="reference-notice-title">레퍼런스 주의사항 안내</h2>
+          <p>해당 레퍼런스 이미지에 있는 부위에 대한 루틴만 제공되오니<br />신중하게 업로드해주시길 바랍니다.</p>
+          <button type="button" autoFocus onClick={onConfirm}>확인</button>
+        </section>
+      </>}
   </div></FixedStepFrame>
 }
 
