@@ -201,7 +201,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-score__fill { position: absolute; top: 20.5px; left: 9.63px; width: 300.21px; height: 300.21px; overflow: visible; }
 .comparison-analysis-score__fill circle { transition: stroke-dashoffset 600ms ease; }
 .comparison-analysis-summary > div { height: auto; min-height: 169px; }
-.comparison-analysis-notes { width: 832px; margin: 14px 0 0; padding: 0; list-style: none; color: #ccc; font: 500 18px/1.7 Pretendard, sans-serif; letter-spacing: -.54px; }
 .comparison-analysis-photo { position: relative; width: 573.124px; height: 797px; overflow: hidden; border-radius: 41.548px; background: #161616; }
 .comparison-analysis-photo__canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; } /* 사진+색칠 합성 캔버스 — 함께 크롭돼 어긋나지 않는다 */
 .comparison-analysis-photo__label { position: absolute; top: 24px; left: 28px; padding: 6px 18px; border-radius: 24px; background: rgba(17, 17, 17, .65); color: #f6f6f6; font: 600 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; }
@@ -729,3 +728,11 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .today-routine-page__progress span { display: block; flex: 1 1 0; height: 5px; border-radius: 999px; background: #3b3b3b; transition: background-color 220ms ease, box-shadow 220ms ease; }
 .today-routine-page__progress span.is-active { background: #ffe250; box-shadow: 0 0 8px rgb(255 226 80 / .24); }
 .today-routine-page__progress span.is-complete { background: #ffe250; box-shadow: 0 0 8px rgb(255 226 80 / .24); }
+
+/* ── 진단 카드 부위 아이콘 ──────────────────────────────────────────────────
+   종전에는 팔 그림 하나를 돌려 전 부위에 썼다 (--leg 는 rotate(180deg)) — 그래서
+   "왼쪽 종아리"에 손가락이 달렸고 상완과 전완이 똑같아 보였다.
+   이제 BodyPartIcon 이 부위마다 다르게 그린다. 원 안 같은 자리에 얹기만 하면 된다. */
+.comparison-analysis-diagnosis > div > span .comparison-analysis-comment-icon {
+  position: absolute; top: 28px; left: 28px; width: 72px; height: 72px; object-fit: contain;
+}
