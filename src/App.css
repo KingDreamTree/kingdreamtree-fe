@@ -398,7 +398,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .reference-start:disabled { cursor: default; transform: none; }
 .reference-start:disabled:hover { transform: none; }
 
-.pose-reference--live { background: #111; }
+.pose-reference--live { background: #222; }
 .pose-reference--live img { position: static; display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
 .pose-reference__skeleton { display: none; }
 .pose-corner { opacity: .72; }
