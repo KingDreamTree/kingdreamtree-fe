@@ -812,7 +812,11 @@ function App() {
     await refreshRoutine()
     if (feedbackText) {
       setFeedbackMessage(feedbackText)
-      setView('feedback-loading')
+      // feedback-loading 을 거치지 않고 바로 대화 화면으로 — coach 가 아직
+      // null 이어도 이 화면은 "코치가 확인하고 있어요" 자리표시자를 보여준다
+      // (아래 sendCoach 참고). 중간 화면을 왕복하면 대화창이 매번 다시
+      // 마운트되어 화면이 깜빡인다.
+      setView('feedback-attention-area')
       await sendCoach([{ role: 'user', content: feedbackText }])
     } else {
       // 피드백 없이 완료 — 갱신된 오늘 루틴으로 복귀 (대화잠금 화면은 흐름에서 제외)
@@ -828,8 +832,12 @@ function App() {
     try {
       const response = await sendCoachMessage(sessionId, messages)
       setCoach(response)
-      // 디자인 흐름 유지: 첫 응답은 주의부위 화면, 2턴째부터는 운동·강도 화면 레이아웃
-      setView(response.finalized ? 'feedback-reflection' : response.turn > 1 ? 'feedback-exercise-intensity' : 'feedback-attention-area')
+      // ⚠️ 2턴째부터 다른 화면(feedback-exercise-intensity)으로 바꾸지 않는다
+      //    (2026-08-18 정정). 턴마다 컴포넌트가 통째로 마운트 해제·재마운트되면
+      //    대화가 카톡처럼 안 쌓이고 화면이 매번 바뀌는 것처럼 보인다 — 대화
+      //    내내 같은 화면(feedback-attention-area) 하나를 유지해야 스크롤되는
+      //    누적 대화 이력이 유지된다.
+      setView(response.finalized ? 'feedback-reflection' : 'feedback-attention-area')
     } catch (error) {
       window.alert(userFacingMessage(error, '코치와 연결하지 못했어요. 잠시 후 다시 시도해주세요.'))
       await openTodayRoutine()
@@ -839,7 +847,8 @@ function App() {
   const continueCoach = async (text: string) => {
     if (!coach) return
     setFeedbackMessage(text)
-    setView('feedback-loading')
+    // 화면을 안 바꾼다 — 이미 feedback-attention-area 다. 응답을 기다리는 동안
+    // 화면(=대화 이력)을 그대로 유지하는 게 이번 수정의 핵심이다.
     await sendCoach([...coach.messages, { role: 'user', content: text }])
   }
 
