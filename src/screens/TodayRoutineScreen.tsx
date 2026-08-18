@@ -73,8 +73,10 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
         거꾸로 재생된다 — 방금 현재 자리로 올라온 카드가 오른쪽으로 되돌아가고, 새 현재
         카드는 화면 왼쪽 밖에서 미끄러져 들어온다. 그게 "뚝뚝 끊긴다"의 정체였다.
         키를 주면 전환이 끝난 자리에서 옛 노드가 사라지고 새 노드가 그 자리에 나타난다 —
+        ⚠️ 두 카드는 형제라서 키가 서로 달라야 한다. 둘 다 {step} 만 주면 React 가
+           "같은 키를 가진 자식이 둘"이라고 경고하고, 노드를 섞어 쓰거나 하나를 빠뜨린다.
         승격된 카드와 새 현재 카드의 최종 모습이 같도록 CSS 를 맞춰뒀으므로 이음매가 없다. */}
-    {current && <section key={step} className={`today-routine-page__current ${isTransitioning ? 'is-exiting' : ''} ${isLastStep ? 'is-last-step' : ''}`} aria-label={`현재 운동 Step ${step + 1}`}>
+    {current && <section key={`current-${step}`} className={`today-routine-page__current ${isTransitioning ? 'is-exiting' : ''} ${isLastStep ? 'is-last-step' : ''}`} aria-label={`현재 운동 Step ${step + 1}`}>
       <span>Step {step + 1}/{exercises.length}</span><h2>{current.name}</h2><small>{exerciseDose(current)}</small>
       <p>{current.note ?? (current.muscle_group ? `${current.muscle_group} 자극에 집중해주세요.` : '정확한 자세에 집중해주세요.')}</p>
       <button type="button">자세가이드</button><img src={current.image_url ?? todayRoutineExercise} alt={`${current.name} 동작`} />
@@ -82,7 +84,7 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
 
     {/* data-next-step: 승격 중 Step 배지에 들어갈 문구. 종전에는 CSS 가 'Step 2' 를
         박아두고 있어서 3스텝 이후에도 매번 "Step 2" 가 스쳐 지나갔다. */}
-    {next && !isWorkoutComplete && <aside key={step}
+    {next && !isWorkoutComplete && <aside key={`next-${step}`}
       className={`today-routine-page__next ${isTransitioning ? 'is-promoting' : ''} ${isNextLastStep ? 'is-promoting-last' : ''}`} aria-label="다음 운동">
       <p data-next-step={`Step ${step + 2}/${exercises.length}`}>Next →</p><h2>{next.name}</h2><span>{exerciseDose(next)}</span><img src={next.image_url ?? todayRoutineNextExercise} alt={`다음 ${next.name} 동작`} />
     </aside>}
