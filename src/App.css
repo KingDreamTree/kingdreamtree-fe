@@ -662,3 +662,26 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-gap--slight { background: rgb(255 194 77 / .15); color: #ffc24d; }
 .comparison-analysis-gap--moderate { background: rgb(255 144 87 / .16); color: #ff9057; }
 .comparison-analysis-gap--significant { background: rgb(255 107 94 / .18); color: #ff6b5e; }
+
+/* ── 맞춤 루틴: 목표 상자 → 주차 → 카드를 한 흐름으로 ────────────────────────
+   종전에는 셋 다 절대 좌표(291 / 512 / 597px)로 고정돼 있었다. 그런데 «근거»
+   문단은 루틴마다 길이가 달라 상자가 세로로 자란다 — 두 줄만 돼도 상자 아래끝이
+   537px 이라 512px 의 주차 버튼을 덮었다. 흐름으로 묶어 상자가 얼마나 자라든
+   간격이 유지되게 한다.
+   ⚠️ 화면은 1024px 고정이라 아래로 무한정 밀 수 없다. 그래서
+      · 주차·카드는 margin-top:auto 로 **바닥 쪽에 붙여** 두고
+      · 남는 자리를 목표 상자가 쓰되, 넘치면 상자 안에서 스크롤한다.
+      이렇게 해야 근거가 아무리 길어져도 카드가 화면 밖으로 밀려나지 않는다. */
+.custom-routine-page__body {
+  position: absolute; top: 291px; bottom: 96px; left: 131px; width: 1178px;
+  display: flex; flex-direction: column; align-items: flex-start;
+}
+.custom-routine-page__goal {
+  position: static; flex: 0 1 auto; overflow: hidden auto;  /* x 를 명시하지 않으면 가로 스크롤바가 같이 생긴다 */
+  margin-bottom: 30px;              /* 주차 버튼과의 최소 간격 — 이게 이번 요청이다 */
+  padding: 22px 40px 24px;          /* 자란 상자가 들어갈 자리를 벌기 위해 소폭 축소 */
+}
+.custom-routine-page__goal h2 { margin-bottom: 10px; }
+.custom-routine-page__goal-section + .custom-routine-page__goal-section { margin-top: 10px; }
+.custom-routine-page__weeks { position: static; flex: none; margin-top: auto; }
+.custom-routine-page__cards { position: static; flex: none; margin-top: 34px; }

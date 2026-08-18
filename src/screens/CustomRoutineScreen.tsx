@@ -36,6 +36,11 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
     <button className="custom-routine-page__adjust" type="button" onClick={onAdjustDays}><img src={previousArrow} alt="" />운동 일수 조정</button>
     <button className="custom-routine-page__next" type="button" onClick={onNext}>다음 단계</button>
 
+    {/* ⚠️ 목표 상자 · 주차 · 카드는 **한 흐름으로 묶어야 한다.** 종전에는 셋 다 절대
+        좌표(291 / 512 / 597px)로 고정돼 있었는데, 근거 문단은 길이가 데이터마다
+        달라서 상자가 세로로 자란다. 상자가 512px 을 넘는 순간 주차 버튼이 상자
+        위로 겹쳐 올라왔다. 흐름으로 두면 상자가 얼마나 자라든 간격이 유지된다. */}
+    <div className="custom-routine-page__body">
     <section className="custom-routine-page__goal">
       <h2>{routine?.total_cycles ?? 4}주간 핵심 목표</h2>
       <div className="custom-routine-page__goal-section">
@@ -56,6 +61,8 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
         <h2>DAY {day.day_order}</h2><p>{dayFocus(day)}</p><button type="button" onClick={() => onViewDay(day)}>+상세보기</button>
       </article>
     })}</section>
+
+    </div>
 
     {progress && <p className="custom-routine-page__progress">진행 {progress.completed_count}/{progress.total_count}회 · {progress.cycle_no}주차 Day {progress.next_day_order} 예정 ({progress.percent}%)</p>}
     {routine?.disclaimer && <p className="custom-routine-page__disclaimer">{routine.disclaimer}</p>}
