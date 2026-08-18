@@ -819,23 +819,3 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-routine { position: static; display: block; margin: 52px auto 0; }
 .comparison-analysis-disclaimer { position: static; margin: 42px 0 0 131px; }
 
-/* 로딩 화면의 안내·실패 문구. 안내는 기존 문구 자리를 그대로 쓰고, 실패일 때만
-   [다시 시도]가 붙는다. ⚠️ 실패 문구는 색으로만 구분하지 않는다 — role="alert" 로
-   스크린리더에도 알리고, 버튼이 함께 떠서 다음 행동이 보인다. */
-.loading-two-message--error { color: #ff9e9e; }
-.loading-two-message--error button {
-  margin-left: 14px; padding: 6px 18px; border: 1px solid #ffe250; border-radius: 999px;
-  background: transparent; color: #ffe250; font: 700 18px/1.5 Pretendard, sans-serif;
-  letter-spacing: -.54px; cursor: pointer; transition: background-color 160ms ease, color 160ms ease;
-}
-.loading-two-message--error button:hover, .loading-two-message--error button:focus-visible {
-  background: #ffe250; color: #222;
-}
-/* 오래 걸릴 때 안내 옆에 붙는 [다시 시도] — 실패 버튼과 같은 모양이되 문구는 회색이다.
-   ⚠️ 이게 떠 있어도 폴링은 계속 돈다. 결과가 오면 누르지 않아도 그대로 넘어간다. */
-.loading-two-retry {
-  margin-left: 14px; padding: 6px 18px; border: 1px solid #ffe250; border-radius: 999px;
-  background: transparent; color: #ffe250; font: 700 18px/1.5 Pretendard, sans-serif;
-  letter-spacing: -.54px; cursor: pointer; transition: background-color 160ms ease, color 160ms ease;
-}
-.loading-two-retry:hover, .loading-two-retry:focus-visible { background: #ffe250; color: #222; }
