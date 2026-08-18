@@ -58,7 +58,7 @@ export type PoseScaleBasis = 'TORSO' | 'HIP_KNEE'
 export type CaptureSource = 'CAPTURE' | 'UPLOAD'
 export type PoseLandmark = { x: number; y: number; z?: number; visibility?: number }
 export type JobStatus = 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED'
-/** stalled: 아무도 이 잡을 집어가지 않고 있다(워커가 꺼짐). completed 와 독립 필드다. */
+/** stalled 는 서버 모니터링용이다 — 프론트는 읽지 않는다. AnalysisProgress.stalled 주석 참고. */
 export type Job = { job_id: string; session_id: string; kind: string; status: JobStatus; attempts: number; stalled?: boolean; result?: Record<string, unknown> | null; error?: string | null }
 export type JobSummary = { job_id: string; kind: string; status: JobStatus; attempts: number; created_at: string }
 
@@ -248,8 +248,16 @@ export interface AnalysisProgress {
   part: { done: number; failed: number; total: number; status: string }
   overall: { status: string }
   completed: boolean
-  /** 아무도 이 잡을 집어가지 않고 있다(워커가 꺼짐). ⚠️ completed 와 독립이다 —
-   *  true 면 «조금만 더»가 아니라 «처리가 지연되고 있어요 + 다시 시도»로 안내한다. */
+  /**
+   * 워커 풀이 이 잡을 집어가지 않고 있다(서버 판정). completed 와 독립 필드다.
+   *
+   * ⚠️ **프론트는 이 값을 쓰지 않는다 — 화면에 옮기지 말 것.** 서버 사정은 사용자가
+   *    손쓸 수 없어서 로딩 화면에 «지연되고 있어요 + 다시 시도»를 띄웠더니 불안만 줬다.
+   *    (게다가 판정 자체도 한동안 오탐이었다 — 워커가 다른 kind 를 처리 중이면 정상
+   *    대기를 정지로 봤다. 2026-08-19 서버에서 풀 단위 판정으로 수정됨.)
+   *    지금 이 신호의 용도는 **서버 경고 로그**다. 정지는 거기서 감지한다.
+   *    타입만 남겨 두는 이유는 응답에 계속 내려오기 때문이다.
+   */
   stalled?: boolean
 }
 
