@@ -3,7 +3,6 @@ import heroBackground from './assets/onboarding-hero-background-figma.png'
 import heroPhone from './assets/onboarding-hero-phone.png'
 import onboardingScrollCue from './assets/onboarding-scroll-cue.svg'
 import routineFigure from './assets/routine-figure.png'
-import routineMarker from './assets/routine-marker.svg'
 import routinePlatform from './assets/routine-platform.svg'
 import wellnessScreen from './assets/onboarding-wellness-screen.png'
 import wellnessPlatform from './assets/onboarding-wellness-platform.svg'
@@ -34,6 +33,7 @@ import { applyCoachChanges, createRoutine, createWorkoutLog, getActiveRoutine, g
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
+import { viewportScale } from './lib/viewport-scale'
 
 // 부분 신체(상체/하체만) 레퍼런스를 허용하므로 "전신이 보이도록"은 부정확하다.
 // MESSAGES는 교체 가능하게 export되어 있고 evaluate()가 이 표를 그대로 읽는다.
@@ -139,7 +139,7 @@ function restoreView(): AppView {
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const [isVisible, setIsVisible] = useState(false)
-  const [scale, setScale] = useState(() => document.documentElement.clientWidth / 1440)
+  const [scale, setScale] = useState(() => viewportScale(1440))
 
   useEffect(() => {
     const section = sectionRef.current
@@ -156,12 +156,16 @@ function RevealSection({ children, className, label, scaleToViewport = false, de
 
   useEffect(() => {
     if (!scaleToViewport) return
-    const updateScale = () => setScale(document.documentElement.clientWidth / 1440)
+    // ⚠️ resize 는 창 크기뿐 아니라 **확대/축소에도 발생한다** — 둘 다 여기서 처리된다.
+    const updateScale = () => setScale(viewportScale(1440))
+    updateScale()
     window.addEventListener('resize', updateScale)
     return () => window.removeEventListener('resize', updateScale)
   }, [scaleToViewport])
 
-  const stageStyle = scaleToViewport ? { height: `${designHeight * scale}px` } : undefined
+  // ⚠️ 폭도 배율만큼 준다. transform 은 자리 차지를 바꾸지 않아서, 폭을 안 주면
+  //    확대했을 때 늘어난 부분이 잘려나가고 가로 스크롤도 안 생긴다.
+  const stageStyle = scaleToViewport ? { width: `${1440 * scale}px`, height: `${designHeight * scale}px` } : undefined
   const canvasStyle = scaleToViewport ? { transform: `scale(${scale})` } : undefined
 
   return <section ref={sectionRef} aria-label={label} className={`page-stage ${className}-stage ${scaleToViewport ? 'page-stage--scaled' : ''}`} style={stageStyle}>
@@ -223,7 +227,7 @@ function OnboardingThree() {
 function OnboardingFour({ onStart }: { onStart: () => void }) {
   return <RevealSection className="closing-section" label="온보딩 4: REFIT 시작하기" scaleToViewport designHeight={1058}>
     <RefitLogo small /><div className="closing-section__copy motion"><h1>AI가 만드는 <em>맞춤 루틴</em></h1><p>오늘부터 REFIT과 함께, 내가 바라는 건강함을 차곡차곡</p></div>
-    <div className="closing-section__illustration motion motion--delay-1" aria-hidden="true"><img className="closing-section__platform" src={routinePlatform} alt="" /><img className="closing-section__figure" src={routineFigure} alt="" /><img className="closing-section__marker" src={routineMarker} alt="" /></div>
+    <div className="closing-section__illustration motion motion--delay-1" aria-hidden="true"><img className="closing-section__platform" src={routinePlatform} alt="" /><img className="closing-section__figure" src={routineFigure} alt="" /></div>
     <div className="closing-section__button motion motion--delay-2"><StartButton wide onStart={onStart} /></div>
   </RevealSection>
 }

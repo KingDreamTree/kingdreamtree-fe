@@ -2,14 +2,22 @@
 
 /* 온보딩은 1440px 고정 캔버스를 화면 폭에 맞춰 축소·확대한다 (RevealSection scaleToViewport).
    min-width 를 두면 좁은 화면에서 가로 스크롤이 생기고 오른쪽이 잘린다. */
-.onboarding { overflow: hidden; }
+/* ⚠️ overflow:hidden 을 두면 확대했을 때 늘어난 폭이 잘리고 가로 스크롤도 안 생긴다.
+   세로 방향은 원래 스크롤되는 페이지이므로 그대로 둔다. */
+.onboarding { overflow: visible; }
 .page-stage { position: relative; width: 100%; min-width: 1440px; overflow: hidden; background: #fff; }
 .page-stage--scaled { min-width: 0; }
 .hero-section-stage, .onboarding-function-stage, .closing-section-stage { background: #222; }
 .onboarding-wellness-stage { background: #e2e2e2; }
 .page-section { position: relative; width: 1440px; margin: 0 auto; overflow: hidden; }
 .page-stage--scaled .page-section { margin: 0; transform-origin: top left; }
-.hero-section-stage, .hero-section { overflow: visible; }
+/* ⚠️ 무대(page-stage)는 잘라야 한다. 히어로 캐릭터가 설계 폭(1440)보다 72px 크게
+   그려져 있어서, 무대까지 visible 로 두면 그 72px 이 페이지 밖으로 새어 나가
+   **100% 배율에서도 가로 스크롤**이 생긴다. 종전에는 .onboarding 의 overflow:hidden
+   이 그걸 막았는데, 그 방식은 확대했을 때 늘어난 폭까지 잘라버려 오른쪽을 못 본다.
+   무대 폭 = 1440×배율 이므로 여기서 자르면 100% 에서는 종전과 완전히 같은 모습이고,
+   확대했을 때만 페이지가 넓어져 스크롤로 볼 수 있다. */
+.hero-section { overflow: visible; }
 .hero-section-stage { z-index: 1; }
 .hero-section { height: 1024px; }
 .motion { opacity: 0; transform: translateY(42px); transition: opacity 750ms cubic-bezier(.2, .8, .2, 1), transform 750ms cubic-bezier(.2, .8, .2, 1); }
@@ -26,7 +34,7 @@
 .onboarding-wellness { height: 1417px; background: #e2e2e2; color: #3b3b3b; }.onboarding-wellness__subtitle { position: absolute; top: 359px; left: 0; width: 100%; margin: 0; text-align: center; font: 500 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }.onboarding-wellness__title { position: absolute; top: 401px; left: 421px; width: 598px; margin: 0; text-align: center; font: 700 90px/1.5 esamanru, Pretendard, sans-serif; letter-spacing: -2.7px; }.onboarding-wellness__orbit { position: absolute; top: 141.5px; left: 564.5px; width: 390px; height: 179px; }.onboarding-wellness__computer { position: absolute; z-index: 2; top: 628px; left: 380px; width: 752px; height: 550px; }.onboarding-wellness__laptop { position: absolute; top: 81px; left: 39px; width: 674.36px; height: 388.887px; transform: rotate(-15deg); transform-origin: center; }.onboarding-wellness__screen { position: absolute; top: 107px; left: 116px; width: 516px; height: 323px; object-fit: cover; transform: rotate(-15deg); transform-origin: center; }.onboarding-wellness__platform, .onboarding-wellness__shadow { position: absolute; top: 1060px; left: 308px; width: 804.471px; height: 356.145px; }.onboarding-wellness__shadow { z-index: 1; }
 .onboarding-function { height: 1130px; background: #222; color: #f6f6f6; }.onboarding-function__subtitle { position: absolute; top: 323px; left: 0; width: 100%; margin: 0; text-align: center; font: 500 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }.onboarding-function__title { position: absolute; top: 365px; left: 0; width: 100%; margin: 0; text-align: center; font: 700 90px/1.5 esamanru, Pretendard, sans-serif; letter-spacing: -2.7px; }.onboarding-function__cards { position: absolute; top: 644px; left: 141px; display: flex; gap: 24px; }.onboarding-function__card { position: relative; box-sizing: border-box; width: 370px; height: 284px; overflow: hidden; border-radius: 30px; background: #3b3b3b; text-align: center; }.onboarding-function__number { position: absolute; top: 64px; left: 165px; width: 40px; height: 40px; }.onboarding-function__number img { position: absolute; inset: 0; width: 40px; height: 40px; }.onboarding-function__number b { position: relative; display: block; color: #f6f6f6; font: 500 17.966px/40px Pretendard, sans-serif; letter-spacing: -.539px; }.onboarding-function__card h2 { position: absolute; top: 130px; left: 0; width: 100%; margin: 0; font: 600 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; }.onboarding-function__card p { position: absolute; top: 193px; left: 12px; width: 346px; margin: 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
 .closing-section { height: 1058px; text-align: center; }.logo--small { position: absolute; top: 157px; left: 612px; font-size: 58.487px; letter-spacing: -1.755px; }.closing-section__copy { position: absolute; top: 248px; width: 100%; }.closing-section h1 { margin: 0; font: 700 50px/1.5 Pretendard, sans-serif; letter-spacing: -1.5px; }.closing-section h1 em { color: #ffe250; font-style: normal; }.closing-section__copy p { margin: 5px 0 0; font: 500 28px/1.5 Pretendard, sans-serif; letter-spacing: -0.84px; }
-.closing-section__illustration { position: absolute; top: 438px; left: 493px; width: 454px; height: 373px; }.closing-section__platform { position: absolute; top: 239px; left: 0; width: 454px; height: 133px; }.closing-section__figure { position: absolute; top: 0; left: 116px; width: 222px; height: 324px; object-fit: contain; }.closing-section__marker { position: absolute; top: 263px; left: 95px; width: 8px; height: 1px; }.closing-section__button { position: absolute; top: 830px; left: 413px; }.ai-button--wide { width: 616px; margin: 0; }
+.closing-section__illustration { position: absolute; top: 438px; left: 493px; width: 454px; height: 373px; }.closing-section__platform { position: absolute; top: 239px; left: 0; width: 454px; height: 133px; }.closing-section__figure { position: absolute; top: 0; left: 116px; width: 222px; height: 324px; object-fit: contain; }.closing-section__button { position: absolute; top: 830px; left: 413px; }.ai-button--wide { width: 616px; margin: 0; }
 @media (prefers-reduced-motion: reduce) { .motion, .motion--soft, .motion--from-right { opacity: 1; transform: none; transition: none; } }
 
 /* Analysis flow — Figma desktop frames (1440 × 1024). */
@@ -188,9 +196,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-diagnosis > div > span { position: relative; display: block; width: 127px; height: 127px; flex: none; }
 .comparison-analysis-diagnosis > div > span img:first-child { position: absolute; inset: 0; width: 127px; height: 127px; }
 .comparison-analysis-diagnosis > div > span img:last-child { position: absolute; top: 34px; left: 32px; width: 70px; height: 70px; }
-.comparison-analysis-diagnosis > div > span img.comparison-analysis-comment-icon--body { top: 35px; left: 28px; width: 72px; height: 58px; }
-.comparison-analysis-diagnosis > div > span img.comparison-analysis-comment-icon--leg { transform: rotate(180deg); }
-.comparison-analysis-diagnosis > div > span img.comparison-analysis-comment-icon--shoulder { transform: rotate(-18deg); }
 .comparison-analysis-diagnosis section { margin-left: 43px; }
 .comparison-analysis-diagnosis h3 { margin: 2px 0 10px; color: #ffe250; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }
 .comparison-analysis-diagnosis section p { margin: 0; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }
@@ -714,4 +719,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .custom-routine-page__progress strong { min-width: 44px; color: #ffe250; font: 700 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; text-align: right; }
 @media (prefers-reduced-motion: no-preference) {
   .custom-routine-page__progress-gauge > span { transition: width 520ms cubic-bezier(.4, 0, .2, 1); }
+}
+
+/* ── 진단 카드 부위 아이콘 ──────────────────────────────────────────────────
+   종전에는 팔 그림 하나를 돌려 전 부위에 썼다 (--leg 는 rotate(180deg)) — 그래서
+   "왼쪽 종아리"에 손가락이 달렸고 상완과 전완이 똑같아 보였다.
+   이제 BodyPartIcon 이 부위마다 다르게 그린다. 원 안 같은 자리에 얹기만 하면 된다. */
+.comparison-analysis-diagnosis > div > span .comparison-analysis-comment-icon {
+  position: absolute; top: 30px; left: 30px; width: 72px; height: 72px; color: #f6f6f6;
 }
