@@ -67,9 +67,10 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
         <strong>{progress.percent}%</strong>
       </div>}
     </div>
-    <section className="custom-routine-page__cards" aria-label={`${week}주차 운동 루틴`}>{days.map(day => {
-      return <article key={day.day_order}>
-        <h2>DAY {day.day_order}</h2><p>{dayFocus(day)}</p><button type="button" onClick={() => onViewDay(day)}>+상세보기</button>
+    <section className="custom-routine-page__cards" aria-label={`${week}주차 운동 루틴`}>{days.map((day, index) => {
+      const dayNumber = (week - 1) * days.length + index + 1
+      return <article key={`${week}-${day.day_order}`}>
+        <h2>DAY {dayNumber}</h2><p>{dayFocus(day)}</p><button type="button" onClick={() => onViewDay(day)}>+상세보기</button>
       </article>
     })}</section>
 
