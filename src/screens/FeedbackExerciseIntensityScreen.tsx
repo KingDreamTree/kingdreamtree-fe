@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import feedbackCheck from '../assets/feedback-attention-check.svg'
 import feedbackIllustration from '../assets/feedback-loading-message.png'
 import inactiveSendIcon from '../assets/feedback-circle.svg'
@@ -26,10 +26,16 @@ function toolEventLabel(event: { name: string; args: Record<string, unknown> }):
 /** Figma 782:1134 — 피드백 - 운동, 강도. 2턴째부터의 코치 응답을 이 레이아웃으로 보여준다. */
 export function FeedbackExerciseIntensityScreen({ userMessage, coach, onSubmit, onExit }: FeedbackExerciseIntensityScreenProps) {
   const [nextFeedback, setNextFeedback] = useState('')
+  const historyRef = useRef<HTMLElement>(null)
   const isReadyToSubmit = Boolean(nextFeedback.trim())
   const messages = coach?.messages?.length
     ? coach.messages
     : [{ role: 'user', content: userMessage }, { role: 'assistant', content: coach?.reply ?? '코치가 피드백을 확인하고 있어요.' }]
+
+  useEffect(() => {
+    const history = historyRef.current
+    if (history) history.scrollTo({ top: history.scrollHeight, behavior: 'smooth' })
+  }, [messages.length])
 
   const submitFeedback = () => {
     if (!isReadyToSubmit) return
@@ -40,7 +46,7 @@ export function FeedbackExerciseIntensityScreen({ userMessage, coach, onSubmit, 
   return <FixedStepFrame label="피드백 운동 강도"><div className="feedback-exercise-page">
     <header className="feedback-exercise-page__header"><span>운동 완료{coach ? ` · 대화 ${coach.turn}/${coach.max_turns}` : ''}</span><button type="button" onClick={onExit}>나가기 →</button></header>
     <img className="feedback-exercise-page__coach" src={feedbackIllustration} alt="운동과 강도를 조절하는 코치" />
-    <section className="feedback-chat-history" aria-label="피드백 대화">
+    <section ref={historyRef} className="feedback-chat-history" aria-label="피드백 대화">
       {messages.map((message, index) => <p className={`feedback-chat-history__message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`} key={`${message.role}-${index}`}>{message.content}</p>)}
     </section>
     <section className="feedback-exercise-page__reply" aria-label="운동 조절 결과">

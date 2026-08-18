@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import feedbackCheck from '../assets/feedback-attention-check.svg'
 import feedbackIllustration from '../assets/feedback-loading-message.png'
 import inactiveSendIcon from '../assets/feedback-circle.svg'
@@ -27,10 +27,16 @@ function toolEventLabel(event: { name: string; args: Record<string, unknown> }):
 /** Figma 778:1065 — 피드백 대화 (코치 실응답). 대화가 이어지는 동안 이 화면을 반복 사용한다. */
 export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit, onExit }: FeedbackAttentionAreaScreenProps) {
   const [nextFeedback, setNextFeedback] = useState('')
+  const historyRef = useRef<HTMLElement>(null)
   const isReadyToSubmit = Boolean(nextFeedback.trim())
   const messages = coach?.messages?.length
     ? coach.messages
     : [{ role: 'user', content: userMessage }, { role: 'assistant', content: coach?.reply ?? '코치가 피드백을 확인하고 있어요.' }]
+
+  useEffect(() => {
+    const history = historyRef.current
+    if (history) history.scrollTo({ top: history.scrollHeight, behavior: 'smooth' })
+  }, [messages.length])
 
   const submitFeedback = () => {
     if (!isReadyToSubmit) return
@@ -41,7 +47,7 @@ export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit, onEx
   return <FixedStepFrame label="피드백 대화"><div className="feedback-attention-page">
     <header className="feedback-attention-page__header"><span>운동 완료{coach ? ` · 대화 ${coach.turn}/${coach.max_turns}` : ''}</span><button type="button" onClick={onExit}>나가기 →</button></header>
     <img className="feedback-attention-page__coach" src={feedbackIllustration} alt="피드백을 확인한 운동 코치" />
-    <section className="feedback-chat-history" aria-label="피드백 대화">
+    <section ref={historyRef} className="feedback-chat-history" aria-label="피드백 대화">
       {messages.map((message, index) => <p className={`feedback-chat-history__message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`} key={`${message.role}-${index}`}>{message.content}</p>)}
     </section>
     <section className="feedback-attention-page__reply" aria-label="코치 답변">

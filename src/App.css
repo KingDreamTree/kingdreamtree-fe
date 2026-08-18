@@ -489,7 +489,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 /* Keep the conversation in a chat-like viewport. Older messages remain available by scrolling. */
 .feedback-chat-history {
   top: 124px;
-  bottom: 146px;
+  bottom: 205px;
   left: 131px;
   right: 131px;
   box-sizing: border-box;
