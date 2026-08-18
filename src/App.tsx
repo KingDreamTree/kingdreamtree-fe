@@ -294,14 +294,14 @@ function PoseCorners() {
 
 
 function PoseStatus({ result, message, onRetry, onBrowse }: { result: 'loading' | 'failure' | 'success' | 'unavailable'; message?: string; onRetry: () => void; onBrowse: () => void }) {
-  if (result === 'loading') return <div className="pose-status pose-status--loading" aria-live="polite"><span className="loading-dot">•</span><span className="loading-dot">•</span><span className="loading-dot">•</span><p>AI가 일치도를 분석하고 있어요!</p><small>사진을 업로드하려면 클릭하세요</small><button type="button" onClick={onBrowse}>Browse File</button></div>
+  if (result === 'loading') return <div className="pose-status pose-status--loading" aria-live="polite"><span className="loading-dot">•</span><span className="loading-dot">•</span><span className="loading-dot">•</span><p>AI가 일치도를 분석하고 있어요!</p></div>
   const success = result === 'success'
   const unavailable = result === 'unavailable'
   return <div className={`pose-status pose-status--${success ? 'success' : 'failure'}`}>
     <span className="pose-status__symbol">{success ? <img src={poseSuccessCheck} alt="" /> : <><img src={poseFailLineOne} alt="" /><img src={poseFailLineTwo} alt="" /></>}</span>
     <strong>{success ? '사진이 업로드 되었습니다!' : message || (unavailable ? '사진 확인을 잠시 진행할 수 없어요.' : '레퍼런스의 포즈와 일치하지 않아요!')}</strong>
-    <small>{success ? '다음 단계로 넘어가세요' : unavailable ? '같은 사진으로 잠시 후 다시 시도해주세요' : '다시 업로드 해주세요'}</small>
-    {success ? null : <button type="button" onClick={unavailable ? onRetry : onBrowse}>{unavailable ? '다시 시도' : 'Browse File'}</button>}
+    <small>{success ? '다른 사진으로 바꾸려면 재업로드해주세요' : unavailable ? '같은 사진으로 잠시 후 다시 시도해주세요' : '다시 업로드 해주세요'}</small>
+    <button type="button" onClick={unavailable ? onRetry : onBrowse}>{unavailable ? '다시 시도' : '재업로드'}</button>
   </div>
 }
 
