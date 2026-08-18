@@ -165,7 +165,11 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-score__progress { position: absolute; top: 47px; left: 48px; width: 256.85px; height: 255.12px; transform: rotate(-120deg); }
 .comparison-analysis-score > span { position: absolute; top: 114px; left: 111px; color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }
 .comparison-analysis-score > strong { position: absolute; top: 132px; left: 0; width: 320px; color: #f6f6f6; font: 700 63.2px/1.5 Pretendard, sans-serif; letter-spacing: -1.896px; text-align: center; }
-.comparison-analysis-summary { position: absolute; top: 479px; left: 477px; }
+/* ⚠️ top 을 고정값으로 두면 요약 문구 길이에 따라 점수 링과의 높이가 매번 달라진다.
+   (요약 상자는 min-height 169px 에서 내용만큼 자란다.)
+   링의 세로 중심(459 + 350/2 = 634px)에 요약 덩어리의 중심을 맞춘다 — 문구가
+   길든 짧든 둘이 나란히 보인다. */
+.comparison-analysis-summary { position: absolute; top: 634px; left: 477px; transform: translateY(-50%); }
 .comparison-analysis-summary h2 { margin: 0; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }
 .comparison-analysis-summary > div { box-sizing: border-box; width: 832px; height: 169px; margin-top: 14px; padding: 42px 47px; overflow: hidden; border-radius: 18.659px; background: rgb(59 59 59 / .4); }
 .comparison-analysis-summary strong { display: block; color: #ffe250; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }
