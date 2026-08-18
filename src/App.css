@@ -670,21 +670,59 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
    종전에는 셋 다 절대 좌표(291 / 512 / 597px)로 고정돼 있었다. 그런데 «근거»
    문단은 루틴마다 길이가 달라 상자가 세로로 자란다 — 두 줄만 돼도 상자 아래끝이
    537px 이라 512px 의 주차 버튼을 덮었다. 흐름으로 묶어 상자가 얼마나 자라든
-   간격이 유지되게 한다.
-   ⚠️ 화면은 1024px 고정이라 아래로 무한정 밀 수 없다. 그래서
-      · 주차·카드는 margin-top:auto 로 **바닥 쪽에 붙여** 두고
-      · 남는 자리를 목표 상자가 쓰되, 넘치면 상자 안에서 스크롤한다.
-      이렇게 해야 근거가 아무리 길어져도 카드가 화면 밖으로 밀려나지 않는다. */
+   간격이 그대로 유지되게 한다.
+
+   ⚠️ 상자에 높이 제한이나 스크롤을 걸지 않는다. 한 번 그렇게 해봤는데 목표 문단에
+      스크롤바가 생겨서, 읽을 글이 잘린 것처럼 보였다. 내용만큼 자라게 두는 게 맞다. */
+/* ⚠️ position:absolute 로 두면 부모 높이에 안 잡힌다 — 페이지를 height:auto 로 해도
+   카드가 그대로 잘린다. 흐름에 두고 위치는 margin 으로 준다. */
 .custom-routine-page__body {
-  position: absolute; top: 291px; bottom: 96px; left: 131px; width: 1178px;
+  margin: 291px 0 0 131px; width: 1178px;
   display: flex; flex-direction: column; align-items: flex-start;
 }
 .custom-routine-page__goal {
-  position: static; flex: 0 1 auto; overflow: hidden auto;  /* x 를 명시하지 않으면 가로 스크롤바가 같이 생긴다 */
-  margin-bottom: 30px;              /* 주차 버튼과의 최소 간격 — 이게 이번 요청이다 */
-  padding: 22px 40px 24px;          /* 자란 상자가 들어갈 자리를 벌기 위해 소폭 축소 */
+  position: static;
+  margin-bottom: 48px;   /* 주차 줄과의 간격 — 데이터와 무관하게 항상 이만큼이다 */
+  padding: 22px 40px 24px;
 }
 .custom-routine-page__goal h2 { margin-bottom: 10px; }
 .custom-routine-page__goal-section + .custom-routine-page__goal-section { margin-top: 10px; }
-.custom-routine-page__weeks { position: static; flex: none; margin-top: auto; }
-.custom-routine-page__cards { position: static; flex: none; margin-top: 34px; }
+/* ⚠️ nav 자체도 흐름으로 돌려야 한다. 기본 규칙이 position:absolute; top:512px 이라
+   이 한 줄을 빠뜨리면 주차 버튼이 카드 위에 겹쳐 그려진다 (실제로 그랬다). */
+.custom-routine-page__weeks { position: static; margin-top: 0; }
+.custom-routine-page__cards { position: static; margin-top: 34px; }
+
+/* 목표 블록이 길어지면 카드 아래가 **잘려나갔다** — 페이지가 height:1024 + overflow:hidden
+   이라 스크롤조차 안 생긴다. 내용만큼 자라게 두고, 넘친 높이는 FixedStepFrame(fitContent)
+   이 배율로 흡수한다. 넘치지 않으면 종전과 완전히 같다.
+   ⚠️ display:flow-root 가 없으면 __body 의 margin-top 이 부모 밖으로 빠져나가(마진 상쇄)
+      목표 블록이 제목 위로 올라붙는다. 실제로 그랬다. */
+.custom-routine-page { display: flow-root; height: auto; min-height: 1024px; overflow: visible; padding-bottom: 24px; }
+/* 안내문구는 bottom 기준이었는데 높이가 가변이면 기준점이 흔들린다 — 흐름으로 내린다 */
+.custom-routine-page__disclaimer { position: static; margin: 18px 0 0 131px; }
+
+/* ── 맞춤 루틴: 진행률을 주차 줄 오른쪽으로 ─────────────────────────────────
+   종전에는 페이지 맨 아래 회색 한 줄이라 눈에 안 들어왔다. 주차 줄과 한 행에 두어
+   «무엇을 고르는 줄인가»와 «어디까지 왔나»를 같이 읽게 한다.
+   주차 버튼은 왼쪽, 진행률은 오른쪽 끝 — 가운데가 비는 게 아니라 한 행이 두 역할로
+   나뉜 것으로 읽힌다. */
+.custom-routine-page__weeks-row { position: static; display: flex; width: 100%; align-items: center; }
+.custom-routine-page__weeks { margin-top: 0; }
+.custom-routine-page__progress {
+  position: static; bottom: auto; left: auto;
+  display: flex; flex: none; align-items: center; gap: 14px; margin: 0 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+/* «다음에 할 것»과 «어디까지 왔나»는 다른 정보다 — 사이를 조금 더 벌려 두 덩어리로 읽히게 한다 */
+.custom-routine-page__progress-next { margin-right: 4px; }
+.custom-routine-page__progress-next { color: #b0b0b0; font: 500 15px/1.5 Pretendard, sans-serif; letter-spacing: -.45px; white-space: nowrap; }
+/* 게이지 — 트랙은 카드 테두리와 같은 밝기라 배경에 묻히지 않으면서 튀지도 않는다 */
+.custom-routine-page__progress-gauge { display: block; width: 168px; height: 8px; overflow: hidden; border-radius: 999px; background: rgb(246 246 246 / .14); }
+.custom-routine-page__progress-gauge > span { display: block; height: 100%; min-width: 8px; border-radius: 999px; background: #ffe250; }
+.custom-routine-page__progress-count { color: #f6f6f6; font: 700 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; white-space: nowrap; }
+/* 분모는 한 단계 낮춰 «지금 몇 회»가 먼저 읽히게 한다 */
+.custom-routine-page__progress-count i { color: #8e8e8e; font: 500 14px/1.5 Pretendard, sans-serif; font-style: normal; }
+.custom-routine-page__progress strong { min-width: 44px; color: #ffe250; font: 700 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; text-align: right; }
+@media (prefers-reduced-motion: no-preference) {
+  .custom-routine-page__progress-gauge > span { transition: width 520ms cubic-bezier(.4, 0, .2, 1); }
+}

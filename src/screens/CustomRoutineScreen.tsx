@@ -30,7 +30,7 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
     ? `${focusAreas.join('·')} 개선을 우선순위로 두고, 주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정에 맞춰 구성했어요.`
     : `주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정과 각 운동의 세트·반복·휴식 구성을 바탕으로 만들었어요.`)
 
-  return <FixedStepFrame label="맞춤 루틴"><div className="custom-routine-page">
+  return <FixedStepFrame label="맞춤 루틴" fitContent><div className="custom-routine-page">
     <p className="custom-routine-page__eyebrow">맞춤루틴 제공</p>
       <h1>목표 체형 레퍼런스</h1>
     <button className="custom-routine-page__adjust" type="button" onClick={onAdjustDays}><img src={previousArrow} alt="" />운동 일수 조정</button>
@@ -55,7 +55,22 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
     </section>
 
     {/* 주기 모델: Day 1..N을 4주기 반복 — 주차가 달라도 Day 구성은 같고, 진행 중인 주기만 표시가 다르다 */}
-    <nav className="custom-routine-page__weeks" aria-label="루틴 주차 선택">{Array.from({ length: routine?.total_cycles ?? 4 }, (_, index) => index + 1).map(item => <button className={week === item ? 'is-selected' : ''} type="button" key={item} onClick={() => setWeek(item)}>{item}주차</button>)}</nav>
+    <div className="custom-routine-page__weeks-row">
+      <nav className="custom-routine-page__weeks" aria-label="루틴 주차 선택">{Array.from({ length: routine?.total_cycles ?? 4 }, (_, index) => index + 1).map(item => <button className={week === item ? 'is-selected' : ''} type="button" key={item} onClick={() => setWeek(item)}>{item}주차</button>)}</nav>
+      {/* 진행률은 페이지 맨 아래에 한 줄로 있어서 눈에 안 들어왔다. 주차 줄 오른쪽으로
+          올려 «무엇을 고르는 줄인가»와 «어디까지 왔나»를 한눈에 같이 보게 한다.
+          ⚠️ nav 안에 넣지 않는다 — 진행률은 고를 수 있는 항목이 아니다. */}
+      {progress && <div className="custom-routine-page__progress">
+        <span className="custom-routine-page__progress-next">{progress.cycle_no}주차 Day {progress.next_day_order}</span>
+        <span className="custom-routine-page__progress-gauge" role="progressbar"
+          aria-valuenow={progress.percent} aria-valuemin={0} aria-valuemax={100}
+          aria-label={`전체 ${progress.total_count}회 중 ${progress.completed_count}회 완료`}>
+          <span style={{ width: `${Math.max(0, Math.min(100, progress.percent))}%` }} />
+        </span>
+        <span className="custom-routine-page__progress-count">{progress.completed_count}<i>/{progress.total_count}회</i></span>
+        <strong>{progress.percent}%</strong>
+      </div>}
+    </div>
     <section className="custom-routine-page__cards" aria-label={`${week}주차 운동 루틴`}>{days.map(day => {
       return <article key={day.day_order}>
         <h2>DAY {day.day_order}</h2><p>{dayFocus(day)}</p><button type="button" onClick={() => onViewDay(day)}>+상세보기</button>
@@ -64,7 +79,6 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
 
     </div>
 
-    {progress && <p className="custom-routine-page__progress">진행 {progress.completed_count}/{progress.total_count}회 · {progress.cycle_no}주차 Day {progress.next_day_order} 예정 ({progress.percent}%)</p>}
     {routine?.disclaimer && <p className="custom-routine-page__disclaimer">{routine.disclaimer}</p>}
   </div></FixedStepFrame>
 }
