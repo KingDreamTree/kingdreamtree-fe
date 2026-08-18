@@ -66,7 +66,6 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
     <h1>{today?.day.title ?? '오늘 해야 하는 루틴이에요'}</h1>
     <p className="today-routine-page__notice">완료 버튼을 눌러야 다음 스텝으로 이동할 수 있어요!</p>
     <img className="today-routine-page__progress" src={todayRoutineProgressLine} alt={`운동 ${Math.min(step + 1, exercises.length)} / ${exercises.length} 단계`} />
-    <button className="today-routine-page__finish" type="button" disabled={!isWorkoutComplete} onClick={onFinish}>운동마치기</button>
 
     {/* ⚠️ key={step} 이 이 전환의 핵심이다. 키가 없으면 두 카드가 **같은 DOM 노드를
         재사용**하는데, step 이 바뀌며 is-promoting/is-exiting 이 떨어지는 순간 전환이
@@ -89,7 +88,7 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
       <p data-next-step={`Step ${step + 2}/${exercises.length}`}>Next →</p><h2>{next.name}</h2><span>{exerciseDose(next)}</span><img src={next.image_url ?? todayRoutineNextExercise} alt={`다음 ${next.name} 동작`} />
     </aside>}
 
-    <button className={`today-routine-page__complete ${isWorkoutComplete ? 'is-complete' : ''}`} type="button" disabled={isTransitioning || isWorkoutComplete || !current} onClick={completeSet}>세트 완료</button>
+    <button className={`today-routine-page__complete ${isWorkoutComplete ? 'is-complete' : ''}`} type="button" disabled={isTransitioning || !current} onClick={isWorkoutComplete ? onFinish : completeSet}>운동마치기</button>
     {today?.disclaimer && <p className="today-routine-page__disclaimer">{today.disclaimer}</p>}
   </div></FixedStepFrame>
 }
