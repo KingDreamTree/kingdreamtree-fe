@@ -32,7 +32,7 @@ export function LoadingOneScreen({ phase, isComplete, onComplete }: LoadingOneSc
   useEffect(() => {
     if (progress !== 100 || hasFinished.current) return
     hasFinished.current = true
-    const transitionTimer = window.setTimeout(onComplete, 250)
+    const transitionTimer = window.setTimeout(onComplete, 650)
     return () => window.clearTimeout(transitionTimer)
   }, [onComplete, progress])
 
