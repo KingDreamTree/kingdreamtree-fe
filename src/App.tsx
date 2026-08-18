@@ -66,27 +66,41 @@ import './App.css'
 type SectionProps = { children: ReactNode; className: string; label: string; scaleToViewport?: boolean; designHeight?: number }
 type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' | 'pose-analyzing' | 'pose-failure' | 'pose-unavailable' | 'pose-success' | 'inbody-upload' | 'inbody-uploaded' | 'inbody-form' | 'inbody-range-error' | 'inbody-warning' | 'inbody-fixed' | 'inbody-unreadable' | 'inbody-loading' | 'comparison' | 'exercise-days' | 'loading-two' | 'custom-routine' | 'custom-routine-detail' | 'today-routine' | 'feedback' | 'feedback-loading' | 'feedback-attention-area' | 'feedback-exercise-intensity' | 'feedback-reflection' | 'feedback-applied' | 'feedback-kept'
 
+/**
+ * 등장 애니메이션 발동 조건.
+ *
+ * ⚠️ 종전에는 `threshold: 0.18` 이었는데, 섹션이 1058~1417px 로 뷰포트보다 커서
+ *    18% 는 **화면 아래 21~28% 만 걸친 시점**이었다. 거기서 750~1100ms(+지연 360ms)
+ *    가 시작되니, 사용자가 섹션을 다 내리기도 전에 애니메이션이 끝나 있었다.
+ *
+ * 그래서 면적 비율 대신 **위치**로 잡는다 — 아래쪽 45% 를 잘라낸 가상의 뷰포트에
+ * 섹션 윗변이 들어올 때(= 화면 아래 절반쯤을 채울 때) 시작한다. 섹션 높이에
+ * 영향받지 않으므로 섹션마다 체감이 같다.
+ */
+const REVEAL_OBSERVER: IntersectionObserverInit = { threshold: 0, rootMargin: '0px 0px -45% 0px' }
+
 /** Reveals a design section once it reaches the viewport. */
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const [isVisible, setIsVisible] = useState(false)
-  const [scale, setScale] = useState(() => Math.max(1, document.documentElement.clientWidth / 1440))
+  const [scale, setScale] = useState(() => document.documentElement.clientWidth / 1440)
 
   useEffect(() => {
     const section = sectionRef.current
     if (!section) return
     const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return
+      // 이미 지나친 섹션(새로고침 스크롤 복원)도 즉시 드러낸다 — 안 그러면 영영 opacity 0
+      if (!entry.isIntersecting && entry.boundingClientRect.top >= 0) return
       setIsVisible(true)
       observer.unobserve(entry.target)
-    }, { threshold: 0.18 })
+    }, REVEAL_OBSERVER)
     observer.observe(section)
     return () => observer.disconnect()
   }, [])
 
   useEffect(() => {
     if (!scaleToViewport) return
-    const updateScale = () => setScale(Math.max(1, document.documentElement.clientWidth / 1440))
+    const updateScale = () => setScale(document.documentElement.clientWidth / 1440)
     window.addEventListener('resize', updateScale)
     return () => window.removeEventListener('resize', updateScale)
   }, [scaleToViewport])
@@ -122,7 +136,7 @@ function OnboardingOne() {
 }
 
 function OnboardingTwo() {
-  return <RevealSection className="onboarding-wellness" label="온보딩 2: WELLNESS">
+  return <RevealSection className="onboarding-wellness" label="온보딩 2: WELLNESS" scaleToViewport designHeight={1417}>
     <p className="onboarding-wellness__subtitle motion">리핏이 선사하는 특별한 경험</p>
     <h1 className="onboarding-wellness__title motion motion--delay-1">WELLNESS</h1>
     <img className="onboarding-wellness__orbit motion motion--delay-1" src={wellnessOrbit} alt="" />
@@ -141,7 +155,7 @@ function OnboardingThree() {
     { number: '2', icon: functionStep, title: '맞춤형 루틴', description: '결과를 바탕으로 나에게 맞는 루틴 생성' },
     { number: '3', icon: functionStep, title: '강도 조절', description: '날마다 피드백을 통해 바뀌는 루틴' },
   ]
-  return <RevealSection className="onboarding-function" label="온보딩 3: 기능 소개">
+  return <RevealSection className="onboarding-function" label="온보딩 3: 기능 소개" scaleToViewport designHeight={1130}>
     <p className="onboarding-function__subtitle motion">리핏만이 제공하는 기능</p>
     <h1 className="onboarding-function__title motion motion--delay-1">FUNCTION</h1>
     <div className="onboarding-function__cards">{cards.map((card, index) => <article className={`onboarding-function__card motion motion--delay-${index + 1}`} key={card.number}>
@@ -151,7 +165,7 @@ function OnboardingThree() {
 }
 
 function OnboardingFour({ onStart }: { onStart: () => void }) {
-  return <RevealSection className="closing-section" label="온보딩 4: REFIT 시작하기">
+  return <RevealSection className="closing-section" label="온보딩 4: REFIT 시작하기" scaleToViewport designHeight={1058}>
     <RefitLogo small /><div className="closing-section__copy motion"><h1>AI가 만드는 <em>맞춤 루틴</em></h1><p>오늘부터 REFIT과 함께, 내가 바라는 건강함을 차곡차곡</p></div>
     <div className="closing-section__illustration motion motion--delay-1" aria-hidden="true"><img className="closing-section__platform" src={routinePlatform} alt="" /><img className="closing-section__figure" src={routineFigure} alt="" /><img className="closing-section__marker" src={routineMarker} alt="" /></div>
     <div className="closing-section__button motion motion--delay-2"><StartButton wide onStart={onStart} /></div>
@@ -193,7 +207,7 @@ function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFi
       <PreviousButton onClick={onPrevious} />
       <ReferenceHints />
       <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { pick(event.currentTarget.files); event.currentTarget.value = '' }} />
-      <button type="button" className={`reference-dropzone ${ready ? 'is-ready' : ''}`} disabled={busy}
+      <button type="button" className={`reference-dropzone ${ready ? 'is-ready' : ''}`} disabled={busy || showNotice}
         onClick={() => inputRef.current?.click()}
         onDragOver={event => event.preventDefault()}
         onDrop={event => { event.preventDefault(); pick(event.dataTransfer.files) }}>
@@ -205,12 +219,16 @@ function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFi
       </button>
       {error && <p className="reference-error" role="alert">{error}</p>}
       <button className={`reference-start ${ready ? 'is-ready' : ''}`} type="button" disabled={!ready || busy} onClick={onStart}>AI 분석 비교 시작 →</button>
-      {showNotice && <section className="reference-notice" role="dialog" aria-modal="true" aria-labelledby="reference-notice-title">
-        <span className="reference-notice__icon"><img src={referenceInfo} alt="" /></span>
-        <h2 id="reference-notice-title">레퍼런스 주의사항 안내</h2>
-        <p>해당 레퍼런스 이미지에 있는 부위에 대한 루틴만 제공되오니<br />신중하게 업로드해주시길 바랍니다.</p>
-        <button type="button" onClick={onConfirm}>확인</button>
-      </section>}
+      {showNotice && <>
+        {/* 막이 뒤를 덮어 시선을 모으고, 확인을 누르기 전에는 업로드가 눌리지 않게 한다 */}
+        <div className="reference-notice-veil" aria-hidden="true" />
+        <section className="reference-notice" role="dialog" aria-modal="true" aria-labelledby="reference-notice-title">
+          <span className="reference-notice__icon"><img src={referenceInfo} alt="" /></span>
+          <h2 id="reference-notice-title">레퍼런스 주의사항 안내</h2>
+          <p>해당 레퍼런스 이미지에 있는 부위에 대한 루틴만 제공되오니<br />신중하게 업로드해주시길 바랍니다.</p>
+          <button type="button" autoFocus onClick={onConfirm}>확인</button>
+        </section>
+      </>}
   </div></FixedStepFrame>
 }
 
