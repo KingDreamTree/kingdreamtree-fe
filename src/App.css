@@ -726,3 +726,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 @media (prefers-reduced-motion: no-preference) {
   .custom-routine-page__progress-gauge > span { transition: width 520ms cubic-bezier(.4, 0, .2, 1); }
 }
+.today-routine-page__progress span { display: block; flex: 1 1 0; height: 5px; border-radius: 999px; background: #3b3b3b; transition: background-color 220ms ease, box-shadow 220ms ease; }
+.today-routine-page__progress span.is-active { background: #f6f6f6; box-shadow: 0 0 8px rgb(246 246 246 / .18); }
+.today-routine-page__progress span.is-complete { background: #ffe250; box-shadow: 0 0 8px rgb(255 226 80 / .24); }
