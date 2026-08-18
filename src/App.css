@@ -748,3 +748,34 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
       창 밖으로 밀려 나가 **스크롤해도 못 보는 영역**이 생긴다.
       safe 는 «넘치면 시작점 정렬»로 알아서 물러선다. */
 .step-page--fit { align-items: safe center; overflow-x: hidden; overflow-y: auto; }
+
+/* ── 오늘 루틴 [세트 완료] / [운동 마치기] ─────────────────────────────────
+   온보딩 [AI 분석 진단하기] 와 같은 결로 — 평소엔 테두리만, 올리거나 누르면 노랗게 찬다.
+   ⚠️ 테두리를 0 → 1px 로 주므로 box-sizing 을 같이 준다. 안 그러면 버튼이 2px 커진다
+      (이 프로젝트엔 전역 box-sizing 리셋이 없다). */
+.today-routine-page__complete {
+  box-sizing: border-box; border: 1px solid #f6f6f6; background: transparent; color: #f6f6f6;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease,
+    box-shadow 180ms ease, opacity 200ms ease;
+}
+.today-routine-page__complete:hover:not(:disabled),
+.today-routine-page__complete:active:not(:disabled),
+.today-routine-page__complete:focus-visible:not(:disabled) {
+  border-color: #ffe250; background: #ffe250; color: #222;
+  box-shadow: 0 0 22px rgb(255 226 80 / .85), 0 0 42px rgb(255 226 80 / .42);
+}
+
+/* ── 상세보기 정보 패널의 동작 이미지 ──────────────────────────────────────
+   종전에는 절대 배치(bottom: -10px)라 이미지가 패널 아래로 삐져나가고, 위로는
+   «세트 사이 휴식» 줄과 거의 붙어 있었다.
+   패널 크기(424×485)는 그대로 두고, 이미지를 흐름 맨 아래에 놓아 남는 자리를 채운다.
+   ⚠️ 높이를 고정값으로 주지 않는다. 운동명이 두 줄이 되면 그만큼 자리가 줄어드는데,
+      고정 높이면 그때 이미지 아래가 잘린다(패널이 overflow: hidden 이다).
+      flex 로 «남은 만큼»을 갖게 하고 contain 으로 맞추면 몇 줄이든 안 잘린다.
+   ⚠️ object-position 을 left 로 준다 — 왼쪽 정렬이라 글자와 시작점이 맞는다. */
+.custom-routine-detail-page__info { display: flex; flex-direction: column; }
+.custom-routine-detail-page__info > img {
+  position: static; right: auto; bottom: auto;
+  width: 100%; height: auto; max-width: 194px; min-height: 0; flex: 1 1 auto;
+  margin-top: 30px; object-fit: contain; object-position: left center;
+}
