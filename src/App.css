@@ -688,3 +688,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .custom-routine-page__goal-section + .custom-routine-page__goal-section { margin-top: 10px; }
 .custom-routine-page__weeks { position: static; flex: none; margin-top: auto; }
 .custom-routine-page__cards { position: static; flex: none; margin-top: 34px; }
+.today-routine-page__progress { display: flex; gap: 14px; align-items: center; }
+.today-routine-page__progress span { display: block; flex: 1 1 0; height: 5px; border-radius: 999px; background: #3b3b3b; transition: background-color 220ms ease, box-shadow 220ms ease; }
+.today-routine-page__progress span.is-active { background: #f6f6f6; box-shadow: 0 0 8px rgb(246 246 246 / .18); }
+.today-routine-page__progress span.is-complete { background: #ffe250; box-shadow: 0 0 8px rgb(255 226 80 / .24); }

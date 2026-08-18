@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import todayRoutineExercise from '../assets/today-routine-dumbbell-bench-press.png'
 import todayRoutineNextExercise from '../assets/today-routine-next-exercise.png'
-import todayRoutineProgressLine from '../assets/today-routine-progress-line.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { PreviousButton } from '../components/PreviousButton'
 import type { RoutineExercise, TodayRoutine } from '../lib/api'
@@ -63,7 +62,9 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
     <p className="today-routine-page__eyebrow">오늘의 루틴 {today ? `· ${today.progress.cycle_no}주차 Day ${today.day.day_order}` : ''}</p>
     <h1>{today?.day.title ?? '오늘 해야 하는 루틴이에요'}</h1>
     <p className="today-routine-page__notice">{isLastStep ? '운동마치기 버튼을 누르면 피드백 화면으로 넘어갈 수 있어요!' : '완료 버튼을 눌러야 다음 스텝으로 이동할 수 있어요!'}</p>
-    <img className="today-routine-page__progress" src={todayRoutineProgressLine} alt={`운동 ${Math.min(step + 1, exercises.length)} / ${exercises.length} 단계`} />
+    <div className="today-routine-page__progress" role="progressbar" aria-label={`운동 ${Math.min(step + 1, exercises.length)} / ${exercises.length} 단계`} aria-valuemin={0} aria-valuemax={exercises.length} aria-valuenow={Math.min(step + 1, exercises.length)}>
+      {exercises.map((exercise, index) => <span className={index < step ? 'is-complete' : index === step ? 'is-active' : ''} key={`${exercise.name}-${index}`} />)}
+    </div>
 
     {/* ⚠️ key={step} 이 이 전환의 핵심이다. 키가 없으면 두 카드가 **같은 DOM 노드를
         재사용**하는데, step 이 바뀌며 is-promoting/is-exiting 이 떨어지는 순간 전환이
