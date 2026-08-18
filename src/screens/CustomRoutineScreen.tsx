@@ -22,6 +22,11 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
   const progress = routine?.progress ?? null
   const [week, setWeek] = useState(progress?.cycle_no ?? 1)
   const days = routine?.days ?? []
+  const focusAreas = routine?.focus_areas?.filter(Boolean) ?? []
+  const routineSummary = routine?.goal ?? `주 ${routine?.exercise_days_per_week ?? '-'}일 운동으로 목표 체형에 가까워지는 ${routine?.total_cycles ?? 4}주 루틴입니다.`
+  const routineEvidence = focusAreas.length > 0
+    ? `${focusAreas.join('·')} 개선을 우선순위로 두고, 주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정에 맞춰 구성했어요.`
+    : `주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정과 각 운동의 세트·반복·휴식 구성을 바탕으로 만들었어요.`
 
   return <FixedStepFrame label="맞춤 루틴"><div className="custom-routine-page">
     <p className="custom-routine-page__eyebrow">맞춤루틴 제공</p>
@@ -31,7 +36,14 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
 
     <section className="custom-routine-page__goal">
       <h2>{routine?.total_cycles ?? 4}주간 핵심 목표</h2>
-      <p>{routine?.goal ?? `주 ${routine?.exercise_days_per_week ?? '-'}일 플랜으로 레퍼런스와의 격차를 줄이는 루틴입니다.`}</p>
+      <div className="custom-routine-page__goal-section">
+        <h3>루틴 요약</h3>
+        <p>{routineSummary}</p>
+      </div>
+      <div className="custom-routine-page__goal-section">
+        <h3>근거</h3>
+        <p>{routineEvidence}</p>
+      </div>
       {routine?.notice && <p className="custom-routine-page__notice">{routine.notice}</p>}
     </section>
 
