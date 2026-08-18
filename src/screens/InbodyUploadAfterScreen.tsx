@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import inbodyCalendar from '../assets/inbody-calendar.svg'
 import inbodyPreviousArrow from '../assets/inbody-previous-arrow.svg'
 import inbodyRequiredDot from '../assets/inbody-required-dot.svg'
+import { InbodyDateField } from '../components/InbodyDateField'
 import { InbodyGenderSelector } from '../components/InbodyGenderSelector'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import type { InbodyDetail, InbodySegmentDto, InbodySegmentKey } from '../lib/api'
@@ -34,6 +34,14 @@ const SEGMENT_ORDER: Array<{ key: InbodySegmentKey; label: string }> = [
   { key: 'LEFT_LEG', label: '왼다리' },
 ]
 
+/** 날짜 입력(type="date")은 YYYY-MM-DD 만 표시할 수 있다. OCR 이 점·슬래시로 주는 경우가
+ *  있어 여기서 맞춰준다 — 형식이 아예 다르면 빈 칸으로 두고 사용자가 달력에서 고르게 한다. */
+const asDateValue = (value: unknown) => {
+  const text = String(value ?? '').trim()
+  const matched = text.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/)
+  return matched ? `${matched[1]}-${matched[2].padStart(2, '0')}-${matched[3].padStart(2, '0')}` : ''
+}
+
 const asText = (value: unknown) => (value === null || value === undefined ? '' : String(value))
 const asNumberOrNull = (text: string) => {
   const trimmed = text.trim()
@@ -49,7 +57,7 @@ export function InbodyUploadAfterScreen({ inbody, onConfirm, onPrevious }: Inbod
     for (const { key } of COMPOSITION_FIELDS) out[key] = asText(source[key])
     out.height = asText(source.height)
     out.age = asText(source.age)
-    out.measured_at = asText(inbody?.measured_at)
+    out.measured_at = asDateValue(inbody?.measured_at)
     return out
   }, [inbody])
 
@@ -96,17 +104,16 @@ export function InbodyUploadAfterScreen({ inbody, onConfirm, onPrevious }: Inbod
   }
 
   return <FixedStepFrame label="인바디-업로드 후"><div className="inbody-after-page">
-    <p className="step-label">Step 3/3</p><h1>인바디 정보 입력</h1><p className="step-description">AI가 인식한 결과입니다. 틀린 부분이 있다면 터치하여 수정해 주세요.</p>
-    <section className="inbody-after-smi"><span>SMI <small>(kg/m²)</small></span><strong>{inbody?.smi ?? '—'}</strong><small>* 골격근량 ÷ 신장² (서버 계산)</small></section>
+    <p className="step-label">Step 3/3</p><h1>인바디 정보 입력</h1><p className="step-description">현재 값으로 비교 분석이 진행되니 틀린 부분이 있으면 수정해주세요.</p>
     <section className="inbody-after-basic"><h2>1. 기본 정보</h2>
       {renderInput('height', '신장', 'cm', true)}
       {renderInput('age', '나이', '세')}
       <label className="inbody-after-field"><span>성별</span><InbodyGenderSelector className="inbody-after-gender" value={gender} onChange={setGender} /></label>
-      <label className="inbody-after-field"><span>측정일</span><div className="inbody-after-date"><input aria-label="측정일" value={fields.measured_at ?? ''} onChange={event => setField('measured_at', event.target.value)} placeholder="YYYY-MM-DD" /><img src={inbodyCalendar} alt="달력" /></div></label>
+      <div className="inbody-after-field"><span>측정일</span><InbodyDateField value={fields.measured_at ?? ''} onChange={next => setField('measured_at', next)} /></div>
     </section>
     <section className="inbody-after-column inbody-after-composition"><h2>2. 체성분</h2>{COMPOSITION_FIELDS.map(field => renderInput(field.key, field.label, field.unit))}</section>
     <section className="inbody-after-column inbody-after-muscle"><h2>3. 부위별 근육량</h2>{SEGMENT_ORDER.map(({ key, label }) => <label className="inbody-after-field" key={`lean-${key}`}><span>{label}</span><input aria-label={`${label} 근육량`} value={lean[key] ?? ''} onChange={event => setLean(prev => ({ ...prev, [key]: event.target.value }))} /></label>)}</section>
     <section className="inbody-after-column inbody-after-fat"><h2>4. 부위별 체지방량</h2>{SEGMENT_ORDER.map(({ key, label }) => <label className="inbody-after-field" key={`fat-${key}`}><span>{label}</span><input aria-label={`${label} 체지방량`} value={fat[key] ?? ''} onChange={event => setFat(prev => ({ ...prev, [key]: event.target.value }))} /></label>)}</section>
-    <button className="inbody-after-confirm" type="button" onClick={submit}>확인 완료</button><button className="inbody-after-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button><p className="inbody-after-note">* 이 값으로 진행 및 확인 기록이 저장됩니다.</p>
+    <button className="inbody-after-confirm" type="button" onClick={submit}>확인 완료</button><button className="inbody-after-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button>
   </div></FixedStepFrame>
 }
