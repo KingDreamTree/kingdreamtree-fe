@@ -439,6 +439,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .previous-button img { width: 18px; height: 16px; transform: rotate(-90deg); }
 .previous-button:hover { color: #ccc; }
 .previous-button:focus-visible { outline: 2px solid #ffe250; outline-offset: 4px; }
+.comparison-analysis-header .previous-button { top: -48px; left: 1087px; }
 
 /* 레퍼런스와 현재 체형 사진은 원본 비율을 유지해 전체가 보이도록 표시합니다. */
 .comparison-analysis-photo__canvas { object-fit: contain; }
