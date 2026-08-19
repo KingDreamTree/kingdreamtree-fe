@@ -378,23 +378,28 @@ async function waitForJob(jobId: string, onStatus?: (status: Job['status']) => v
   throw new Error('The requested job timed out.')
 }
 
-function hasInbodyExtraction(detail: InbodyDetail): boolean {
-  return Object.values(detail.fields).some(value => value !== null && value !== undefined && value !== '') || detail.smi !== null || detail.segments.some(segment => segment.lean_mass !== null || segment.fat_mass !== null)
-}
-
-async function waitForInbodyDetail(inbodyId: string, jobId: string | null): Promise<InbodyDetail> {
+/**
+ * inbody.status 를 기다린다 — **완료 판정은 이 값 하나뿐이어야 한다.**
+ *
+ * ⚠️ 예전엔 "fields·smi·segments 중 아무거나 값이 있으면 완료"로 추측했다.
+ *    OCR_INBODY 핸들러가 컬럼(fields)과 segments 를 **두 번의 별도 DB 쓰기**로
+ *    커밋하므로(worker/handlers/ocr.py), 그 사이 타이밍에 폴링이 걸리면
+ *    한쪽만 채워진 반쪽짜리 스냅샷을 "완료"로 오판해 폴링을 멈춘다 — 이후
+ *    다시 조회하지 않으니 화면은 그 반쪽 상태에 영구히 갇힌다(실측: 체성분은
+ *    비어 있는데 부위별 근육량만 채워진 확인 화면). status='DONE'은 두 쓰기가
+ *    다 끝난 뒤에만 찍히므로 이것만 신뢰한다.
+ */
+async function waitForInbodyDetail(inbodyId: string): Promise<InbodyDetail> {
   let lastReadError: unknown = null
   for (let attempt = 0; attempt < 120; attempt += 1) {
+    let detail: InbodyDetail | null = null
     try {
-      const detail = await getInbody(inbodyId)
-      if (hasInbodyExtraction(detail)) return detail
+      detail = await getInbody(inbodyId)
     } catch (error) {
       lastReadError = error
     }
-    if (jobId) {
-      const job = await getJob(jobId)
-      if (job.status === 'FAILED') throw new Error(job.error || 'The requested job failed.')
-    }
+    if (detail?.status === 'DONE') return detail
+    if (detail?.status === 'FAILED') throw new Error('인바디 추출에 실패했습니다.')
     await new Promise(resolve => window.setTimeout(resolve, 1500))
   }
   if (lastReadError instanceof Error) throw lastReadError
@@ -771,7 +776,7 @@ function App() {
   const openInbodyConfirmation = async () => {
     if (!inbodyId) return
     try {
-      const detail = await waitForInbodyDetail(inbodyId, inbodyJobId)
+      const detail = await waitForInbodyDetail(inbodyId)
       setInbodyData(detail)
       setView('inbody-form')
     } catch (error) {

@@ -21,9 +21,6 @@ const COMPOSITION_FIELDS: Array<{ key: string; label: string; unit?: string }> =
   { key: 'skeletal_muscle_mass', label: '골격근량', unit: 'kg' },
   { key: 'body_fat_percentage', label: '체지방률', unit: '%' },
   { key: 'body_fat_mass', label: '체지방량', unit: 'kg' },
-  // ⚠️ 백엔드 컬럼명은 bmr_kcal 이다 (inbody.fields / PATCH 허용 목록 공통).
-  //    basal_metabolic_rate 로 보내면 PATCH 전체가 400으로 반려된다.
-  { key: 'bmr_kcal', label: '기초대사량', unit: 'kcal' },
 ]
 
 const SEGMENT_ORDER: Array<{ key: InbodySegmentKey; label: string }> = [
