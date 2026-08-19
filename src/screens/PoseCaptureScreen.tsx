@@ -190,7 +190,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       if (error instanceof RefitApiError && error.status === 503) {
         setPhase({ kind: 'retry', message: RETRY_MESSAGE })
       } else if (error instanceof RefitApiError) {
-        setPhase({ kind: 'rejected', message: userFacingMessage(error, '사진을 처리하지 못했어요. 같은 포즈로 다시 촬영해주세요.') })
+        setPhase({ kind: 'rejected', message: userFacingMessage(error, '사진을 처리하지 못했어요. 같은 포즈로 다시 촬영해 주세요.') })
       } else {
         setPhase({ kind: 'retry', message: RETRY_MESSAGE })
       }
@@ -238,7 +238,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       // 서버 ±10 검증과 같은 안전망 — 걸리면 좌표 단위 버그이므로 재촬영만 유도
       if (findOutOfRangeLandmark(lm) !== null) {
         capturedRef.current = false
-        setPhase({ kind: 'rejected', message: '사진을 처리하지 못했어요. 다시 촬영해주세요.' })
+        setPhase({ kind: 'rejected', message: '사진을 처리하지 못했어요. 다시 촬영해 주세요.' })
         return
       }
       const canvas = document.createElement('canvas')
@@ -462,7 +462,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     {phase.kind === 'rejected' && <div className="pose-status pose-status--failure">
       <span className="pose-status__symbol"><img src={poseFailLineOne} alt="" /><img src={poseFailLineTwo} alt="" /></span>
       <strong>{phase.message}</strong>
-      <small>같은 포즈로 다시 촬영해주세요</small>
+      <small>같은 포즈로 다시 촬영해 주세요</small>
       <button type="button" onClick={retake}>다시 찍기</button>
     </div>}
 

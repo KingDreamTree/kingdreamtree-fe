@@ -556,7 +556,7 @@ export function oksScore(
  *  ⚠️ export 해 둔 이유 — 화면 톤에 맞게 갈아끼울 수 있게. evaluate() 가
  *     이 표를 그대로 읽으므로, 바꾸면 message 도 같이 바뀐다. */
 export const MESSAGES = {
-  MULTI_PERSON: "혼자 나오도록 촬영해주세요.",
+  MULTI_PERSON: "혼자 나오도록 촬영해 주세요.",
   NOT_ENOUGH_JOINTS: "전신이 보이도록 서주세요.",
   REF_PARTS_MISSING: "레퍼런스에 나온 부위가 모두 보이도록 서주세요.",
   FRAMING: "레퍼런스와 촬영 거리가 너무 다릅니다.",

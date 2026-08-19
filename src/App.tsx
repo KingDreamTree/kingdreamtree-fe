@@ -39,7 +39,7 @@ import { viewportScale } from './lib/viewport-scale'
 // MESSAGES는 교체 가능하게 export되어 있고 evaluate()가 이 표를 그대로 읽는다.
 MESSAGES.NOT_ENOUGH_JOINTS = '레퍼런스에 나온 부위가 보이도록 서주세요.'
 
-const SCALE_BASIS_GUIDE = '레퍼런스와 같은 부위가 나오도록 촬영해주세요. 계속 어려우면 레퍼런스를 다시 등록해주세요.'
+const SCALE_BASIS_GUIDE = '레퍼런스와 같은 부위가 나오도록 촬영해 주세요. 계속 어려우면 레퍼런스를 다시 등록해 주세요.'
 import { InbodyUploadAfterScreen, type InbodyPatch } from './screens/InbodyUploadAfterScreen'
 import { InbodyUploadBeforeScreen } from './screens/InbodyUploadBeforeScreen'
 import { InbodyUploadSuccessScreen } from './screens/InbodyUploadSuccessScreen'
