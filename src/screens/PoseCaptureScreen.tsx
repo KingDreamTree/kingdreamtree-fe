@@ -453,7 +453,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     {phase.kind === 'done' && <>
       <div className="pose-status pose-status--success">
         <span className="pose-status__symbol"><img src={poseSuccessCheck} alt="" /></span>
-        <strong>사진이 업로드 되었습니다!</strong>
+        <strong>사진이 업로드되었습니다!</strong>
         <small>다음 단계로 넘어가세요</small>
       </div>
       <button className="pose-next" type="button" onClick={onNext}>다음 단계</button>
