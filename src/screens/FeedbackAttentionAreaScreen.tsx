@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import feedbackCheck from '../assets/feedback-attention-check.svg'
 import feedbackIllustration from '../assets/feedback-loading-message.png'
 import inactiveSendIcon from '../assets/feedback-circle.svg'
@@ -35,6 +35,7 @@ export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit, onEx
   //    방금 보낸 내 메시지를 여기서 낙관적으로 먼저 그리고, 응답이 오면(coach가
   //    바뀌면) 지운다 — 그 시점엔 coach.messages 에 이미 들어있으므로 안 겹친다.
   const [pendingText, setPendingText] = useState<string | null>(null)
+  const historyRef = useRef<HTMLElement>(null)
   const isReadyToSubmit = Boolean(nextFeedback.trim())
   const baseMessages = coach?.messages?.length
     ? coach.messages
@@ -44,6 +45,12 @@ export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit, onEx
 
   const messages = pendingText ? [...baseMessages, { role: 'user', content: pendingText }] : baseMessages
 
+  // 카톡처럼 입력창은 하단에 고정, 이력만 안에서 스크롤 — 새 메시지가 오면 맨 아래로.
+  useEffect(() => {
+    const history = historyRef.current
+    if (history) history.scrollTo({ top: history.scrollHeight, behavior: 'smooth' })
+  }, [messages.length, pendingText])
+
   const submitFeedback = () => {
     if (!isReadyToSubmit) return
     setPendingText(nextFeedback.trim())
@@ -52,25 +59,19 @@ export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit, onEx
   }
   const enterToSubmit = useEnterToSubmit(submitFeedback)
 
-  return <FixedStepFrame label="피드백 대화" fitContent><div className="feedback-attention-page">
+  return <FixedStepFrame label="피드백 대화"><div className="feedback-attention-page">
     <header className="feedback-attention-page__header"><span>운동 완료{coach ? ` · 대화 ${coach.turn}/${coach.max_turns}` : ''}</span><button type="button" onClick={onExit}>나가기 →</button></header>
-    {/* ⚠️ 대화 이력·입력창은 흐름(flow)에 둔다 — 예전엔 페이지가 height:1024 고정
-        + 이력만 안에서 스크롤이라, 몇 턴만 쌓여도 좁은 상자 안에 눌려 있었다.
-        FixedStepFrame(fitContent)이 내용만큼 액자를 늘려주므로, 여기서는 그냥
-        흐르게만 두면 대화가 늘어난 만큼 화면 자체가 늘어난다. */}
-    <div className="feedback-attention-page__body">
-      <section className="feedback-chat-history" aria-label="피드백 대화">
-        {messages.map((message, index) => <div className={`feedback-chat-history__row ${message.role === 'user' ? 'is-user' : 'is-assistant'}`} key={`${message.role}-${index}`}>
-          {message.role === 'assistant' && <img className="feedback-chat-history__avatar" src={feedbackIllustration} alt="" />}
-          <p className={`feedback-chat-history__message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}>{message.content}</p>
-        </div>)}
-        {pendingText && <div className="feedback-chat-history__row is-assistant">
-          <img className="feedback-chat-history__avatar" src={feedbackIllustration} alt="" />
-          <p className="feedback-chat-history__message is-assistant is-typing">코치가 답장을 작성하고 있어요…</p>
-        </div>}
-        {coach?.tool_events?.map((event, index) => <div className="feedback-chat-history__tool-event" key={`${event.name}-${index}`}><span><img src={feedbackCheck} alt="" /></span><strong>{toolEventLabel(event)}</strong></div>)}
-      </section>
-      <form className="feedback-attention-page__input" onSubmit={event => { event.preventDefault(); submitFeedback() }}><label className="sr-only" htmlFor="attention-feedback-message">새 피드백</label><input id="attention-feedback-message" value={nextFeedback} onChange={event => setNextFeedback(event.target.value)} {...enterToSubmit} placeholder="코치에게 답해 주세요." /><button type="submit" disabled={!isReadyToSubmit} aria-label="피드백 보내기"><img src={isReadyToSubmit ? sendIcon : inactiveSendIcon} alt="" /></button></form>
-    </div>
+    <section ref={historyRef} className="feedback-chat-history" aria-label="피드백 대화">
+      {messages.map((message, index) => <div className={`feedback-chat-history__row ${message.role === 'user' ? 'is-user' : 'is-assistant'}`} key={`${message.role}-${index}`}>
+        {message.role === 'assistant' && <img className="feedback-chat-history__avatar" src={feedbackIllustration} alt="" />}
+        <p className={`feedback-chat-history__message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}>{message.content}</p>
+      </div>)}
+      {pendingText && <div className="feedback-chat-history__row is-assistant">
+        <img className="feedback-chat-history__avatar" src={feedbackIllustration} alt="" />
+        <p className="feedback-chat-history__message is-assistant is-typing">코치가 답장을 작성하고 있어요…</p>
+      </div>}
+      {coach?.tool_events?.map((event, index) => <div className="feedback-chat-history__tool-event" key={`${event.name}-${index}`}><span><img src={feedbackCheck} alt="" /></span><strong>{toolEventLabel(event)}</strong></div>)}
+    </section>
+    <form className="feedback-attention-page__input" onSubmit={event => { event.preventDefault(); submitFeedback() }}><label className="sr-only" htmlFor="attention-feedback-message">새 피드백</label><input id="attention-feedback-message" value={nextFeedback} onChange={event => setNextFeedback(event.target.value)} {...enterToSubmit} placeholder="코치에게 답해 주세요." /><button type="submit" disabled={!isReadyToSubmit} aria-label="피드백 보내기"><img src={isReadyToSubmit ? sendIcon : inactiveSendIcon} alt="" /></button></form>
   </div></FixedStepFrame>
 }
