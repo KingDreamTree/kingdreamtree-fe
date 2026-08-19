@@ -14,6 +14,7 @@ function exerciseDose(exercise: RoutineExercise | undefined): string {
   if (exercise.sets) parts.push(`${exercise.sets}세트`)
   if (exercise.reps) parts.push(`x ${exercise.reps}회`)
   if (exercise.rir !== null && exercise.rir !== undefined) parts.push(`· ${exercise.rir}회 더 할 수 있는 강도`)
+  if (exercise.rest_sec) parts.push(`· 휴식 ${exercise.rest_sec}초`)
   return parts.join(' ') || '자유 진행'
 }
 
