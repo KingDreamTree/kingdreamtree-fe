@@ -293,8 +293,8 @@ function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFi
         <div className="reference-notice-veil" aria-hidden="true" />
         <section className="reference-notice" role="dialog" aria-modal="true" aria-labelledby="reference-notice-title">
           <span className="reference-notice__icon"><img src={referenceInfo} alt="" /></span>
-          <h2 id="reference-notice-title">레퍼런스 주의사항 안내</h2>
-          <p>해당 레퍼런스 이미지에 있는 부위에 대한 루틴만 제공되오니<br />신중하게 업로드해주시길 바랍니다.</p>
+        <h2 id="reference-notice-title">레퍼런스 주의 사항 안내</h2>
+        <p>해당 레퍼런스 이미지에 있는 부위에 대한 루틴만 제공되오니<br />신중하게 업로드해 주시길 바랍니다.</p>
           <button type="button" autoFocus onClick={onConfirm}>확인</button>
         </section>
       </>}
