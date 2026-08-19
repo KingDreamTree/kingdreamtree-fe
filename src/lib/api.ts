@@ -158,9 +158,12 @@ export function uploadReferencePhoto(sessionId: string, input: {
   poseScaleBasis: PoseScaleBasis
   posePersonAreaRatio?: number | null
   multiPerson?: boolean
+  /** 'quick' = 웹캠 퀵 진단 경로 — 서버가 세그 잡을 걸지 않는다 (job_id null). */
+  pipeline?: 'full' | 'quick'
 }) {
   const form = new FormData()
   form.set('file', input.file)
+  if (input.pipeline) form.set('pipeline', input.pipeline)
   form.set('pose_landmarks', JSON.stringify(input.poseLandmarks))
   form.set('pose_scale_basis', input.poseScaleBasis)
   if (input.posePersonAreaRatio != null) form.set('pose_person_area_ratio', String(input.posePersonAreaRatio))
@@ -179,9 +182,12 @@ export function uploadUserPhoto(sessionId: string, input: {
   poseOks?: number | null
   posePersonAreaRatio?: number | null
   multiPerson?: boolean
+  /** 'quick' = 웹캠 퀵 진단 경로 — 서버가 세그 잡을 걸지 않는다 (job_id null). */
+  pipeline?: 'full' | 'quick'
 }) {
   const form = new FormData()
   form.set('file', input.file)
+  if (input.pipeline) form.set('pipeline', input.pipeline)
   form.set('capture_source', input.captureSource)
   form.set('pose_landmarks', JSON.stringify(input.poseLandmarks))
   form.set('pose_similarity', String(input.poseSimilarity))
@@ -414,6 +420,8 @@ export function patchInbody(inbodyId: string, body: { fields?: Record<string, un
 export function deleteInbody(inbodyId: string) { return request<void>(`/inbody/${inbodyId}`, { method: 'DELETE' }) }
 /** force=true — 이미 끝난 분석을 무시하고 다시 돌린다. 실패 후 «다시 시도» 전용. */
 export function startAnalysis(sessionId: string, force = false) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis${force ? '?force=true' : ''}`, { method: 'POST' }) }
+/** 퀵 진단(웹캠) — 세그 없이 원본 2장 전체 비교. 부위 카드·점수 없음. 진행은 getAnalysisProgress 의 completed 로 본다. */
+export function startQuickAnalysis(sessionId: string, force = false) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis?mode=quick${force ? '&force=true' : ''}`, { method: 'POST' }) }
 export function getAnalysisProgress(sessionId: string) { return request<AnalysisProgress>(`/sessions/${sessionId}/analysis/progress`) }
 export function getAnalysis(sessionId: string) { return request<AnalysisResult>(`/sessions/${sessionId}/analysis`) }
 export function createRoutine(sessionId: string, exerciseDaysPerWeek: number) {
