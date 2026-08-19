@@ -815,3 +815,15 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-routine { position: static; display: block; margin: 52px auto 0; }
 .comparison-analysis-disclaimer { position: static; margin: 42px 0 0 131px; }
 
+/* ── 퀵 진단(웹캠) 변형 — 점수 링·부위 카드·사진 비교·부위 진단이 설계상 없다 ──
+   이 페이지는 Figma 절대좌표 레이아웃이라 요소를 빼면 자리가 «비는» 게 아니라
+   구멍으로 남는다. 퀵에서는 남는 블록(요약 → 버튼 → 고지)을 흐름으로 이어
+   위로 끌어올린다. margin 420px = 헤더(top 197 + 높이 ~164px) 아래 여백. */
+.comparison-analysis-page--quick { min-height: 0; }
+/* 바깥 viewport 의 min-height 2691px 도 같이 줄인다 — 안 그러면 짧은 퀵 페이지
+   아래로 빈 검은 영역 ~1700px 이 스크롤로 남는다. */
+.comparison-analysis-viewport:has(.comparison-analysis-page--quick) { min-height: 100vh; }
+.comparison-analysis-page--quick .comparison-analysis-summary { position: static; width: 1178px; margin: 420px auto 0; transform: none; }
+.comparison-analysis-page--quick .comparison-analysis-summary > div { width: auto; }
+.comparison-analysis-page--quick .comparison-analysis-footer { margin-top: 88px; }
+

@@ -132,6 +132,12 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
     : topPart?.name_ko ?? null
   const headline = priorityName ? `${priorityName} 중심 개선 필요` : '개선 포인트 요약'
 
+  // 퀵 진단(웹캠) 세션 — 세그가 없어 부위 카드·점수가 **설계상 없다** (백엔드
+  // docs/quick-pipeline.md). 모드 플래그를 따로 받지 않는다: 진단은 완료(overall 有)
+  // 인데 부위가 0건이면 퀵이다. 풀 모드 로딩 중간 상태는 이 화면에 오지 않는다
+  // (isAnalysisRenderable 이 DONE 만 통과시킨다).
+  const isQuick = overall != null && parts.length === 0
+
   const disclaimer = analysis?.disclaimer
   const disclaimerBoundary = '상담하세요.'
   const disclaimerBoundaryIndex = disclaimer?.indexOf(disclaimerBoundary) ?? -1
@@ -140,7 +146,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
     : disclaimer
 
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
-    <section className="comparison-analysis-page">
+    <section className={isQuick ? 'comparison-analysis-page comparison-analysis-page--quick' : 'comparison-analysis-page'}>
       <div className="comparison-analysis-top-rule" aria-hidden="true" />
       {/* 이 화면은 FixedStepFrame 을 쓰지 않아 로고가 빠져 있었다 — 여기서만
           온보딩으로 돌아갈 길이 없었다. */}
@@ -153,7 +159,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
       </header>
 
       {/* 산출 근거(score_rationale)는 본문에 그리면 링과 겹쳐서 툴팁으로만 제공 */}
-      <section className="comparison-analysis-score" aria-label={`유사도 점수 ${score ?? '미산출'}점`} title={overall?.score_rationale ?? undefined}>
+      {!isQuick && <section className="comparison-analysis-score" aria-label={`유사도 점수 ${score ?? '미산출'}점`} title={overall?.score_rationale ?? undefined}>
         <img className="comparison-analysis-score__track" src={comparisonScoreTrack} alt="" />
         <svg className="comparison-analysis-score__fill" viewBox="0 0 300 300" aria-hidden="true">
           <circle cx="150" cy="150" r={SCORE_RING_RADIUS} fill="none" stroke="#FFE250" strokeWidth="24.83" strokeLinecap="round"
@@ -162,7 +168,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
         </svg>
         <span>유사도 점수</span>
         <strong>{score ?? '—'}점</strong>
-      </section>
+      </section>}
 
       <section className="comparison-analysis-summary" aria-labelledby="comparison-summary-title">
         <h2 id="comparison-summary-title">AI 핵심 요약</h2>
@@ -176,32 +182,33 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
             (되살릴 일이 생기면 analysis.overall.strengths / cautions / analysis.excluded 다.) */}
       </section>
 
-      <p className="comparison-analysis-count">총 <em>{parts.length}건</em>의 부위별 진단 결과</p>
+      {!isQuick && <p className="comparison-analysis-count">총 <em>{parts.length}건</em>의 부위별 진단 결과</p>}
 
       {/* 촬영본은 거울 방향으로 저장되므로(2026-08-18 개정) 두 사진 모두 부위명
           그대로 칠하면 시각적으로 같은 편이 붙는다 — 교차·표시 반전 없음. */}
-      <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
+      {/* 퀵은 세그멘테이션이 없어 캔버스가 빈 검은 상자 두 개로 남는다 — 통째로 뺀다 */}
+      {!isQuick && <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
         <PhotoWithOverlay seg={segmentation?.user ?? null} selected={selected} label="현재 체형" />
         <PhotoWithOverlay seg={segmentation?.reference ?? null} selected={selected} label="목표 레퍼런스" />
-      </section>
+      </section>}
 
       {/* 별표 대신 강조색 점을 앞에 두는 칩 — 각주가 아니라 안내로 읽히게 한다.
           점은 CSS ::before 로 그린다 (문자로 넣으면 스크린리더가 읽어버린다). */}
-      <p className="comparison-analysis-help">부위를 선택하면 맞춤 솔루션을 볼 수 있어요</p>
-      <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
+      {!isQuick && <p className="comparison-analysis-help">부위를 선택하면 맞춤 솔루션을 볼 수 있어요</p>}
+      {!isQuick && <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
         {parts.map(part => <button
           className={part.class_name === selected?.class_name ? 'is-selected' : ''}
           type="button" key={part.class_name}
           aria-pressed={part.class_name === selected?.class_name}
           onClick={() => setSelectedClass(part.class_name)}>{part.name_ko ?? part.class_name}</button>)}
-      </nav>
+      </nav>}
 
       {/* ⚠️ 진단 블록 · 버튼 · 안내문구는 **한 흐름으로 묶어야 한다.** 종전에는 셋 다
           절대 좌표(2092 / 2410 / 2530px)로 고정돼 있었는데, 진단 카드는 differences
           줄이 붙으면 세로로 자란다. 그만큼 버튼과의 간격만 줄어들었다(52px → 19px).
           흐름으로 두면 블록이 얼마나 자라든 아래가 같이 밀려 내려간다. */}
       <div className="comparison-analysis-footer">
-      <section className="comparison-analysis-diagnosis" aria-labelledby="comparison-diagnosis-title">
+      {!isQuick && <section className="comparison-analysis-diagnosis" aria-labelledby="comparison-diagnosis-title">
         <h2 id="comparison-diagnosis-title">
           <em>{selected?.name_ko ?? selected?.class_name ?? '부위'}</em>의 진단 결과
           {/* 차이 정도를 색으로도 읽히게 한다 — 노랑(차이 없음) → 빨강(큰 차이).
@@ -221,7 +228,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
             {selected?.differences?.length ? <p className="comparison-analysis-differences">{selected.differences.join(' · ')}</p> : null}
           </section>
         </div>
-      </section>
+      </section>}
 
       <button className="comparison-analysis-routine" type="button" onClick={onCreateRoutine}>맞춤 루틴 생성 →</button>
 
