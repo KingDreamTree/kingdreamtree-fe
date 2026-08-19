@@ -582,20 +582,26 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .feedback-attention-page__header > button:hover,
 .feedback-exercise-page__header button:hover { color: #ccc; }
 
-/* ⚠️ 대화창은 고정 높이 + 내부 스크롤이 아니라 **내용만큼 자라야 한다**
-   (2026-08-18 정정). 몇 턴만 쌓여도 좁은 상자 안에 눌려 보이는 문제가 있었다.
-   화면 전체는 FixedStepFrame(fitContent)이 내용 높이만큼 액자를 늘려주므로,
-   여기서는 스크롤 상자를 만들지 않고 그냥 흐르게 둔다 — position:static,
-   overflow 없음. 대화 상한(대화 X/8)이 있어 무한정 길어지지 않는다. */
-.feedback-attention-page { display: flow-root; height: auto; min-height: 1024px; overflow: visible; padding-bottom: 24px; }
-.feedback-attention-page__body { margin: 124px 131px 0; display: flex; flex-direction: column; }
+/* 대화창은 고정 액자 안에서 카톡처럼 — 이력만 안에서 스크롤되고 입력창은
+   하단에 고정된다(2026-08-19 정정). "페이지 전체가 늘어나는" 시도(2026-08-18)는
+   입력창이 대화 길이에 따라 화면 여기저기로 흘러다니는 게 더 어색했다. */
 .feedback-chat-history {
-  position: static;
+  top: 124px;
+  bottom: 146px;
+  left: 131px;
+  right: 131px;
   box-sizing: border-box;
   gap: 14px;
-  padding: 0;
+  padding: 12px 8px 24px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
   pointer-events: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #707070 transparent;
 }
+.feedback-chat-history::-webkit-scrollbar { width: 6px; }
+.feedback-chat-history::-webkit-scrollbar-track { background: transparent; }
+.feedback-chat-history::-webkit-scrollbar-thumb { border-radius: 999px; background: #707070; }
 /* 아바타 + 말풍선을 한 줄로 — 대화가 쌓여도 아바타가 그 메시지 옆에 그대로 붙어 있다. */
 .feedback-chat-history__row { display: flex; max-width: 100%; align-items: flex-end; gap: 10px; }
 .feedback-chat-history__row.is-user { align-self: flex-end; }
@@ -605,7 +611,13 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   flex: 0 0 auto;
   width: fit-content;
   min-width: 0;
-  max-width: min(70%, 650px);
+  /* ⚠️ %는 쓰면 안 된다 — 부모(.feedback-chat-history__row, 아바타 옆에 붙이려고
+     PR141에서 추가)가 자기 자신도 shrink-to-fit(가로폭 auto)이라, max-width의
+     %가 참조할 확정된 컨테이너 폭이 없다. 그 상태에서 min(82%, 760px)를 주면
+     %가 content 폭보다 작은 값으로 풀려 "벤치프레스요" 같은 6글자짜리도 줄바꿈
+     됐다(실측 2026-08-19: %포함 시 126px/94px(2줄), px만 154px/61px(1줄)).
+     페이지 자체가 1440px 고정 설계라 반응형 %가 필요하지도 않다 — 그냥 px. */
+  max-width: 760px;
   padding: 14px 22px;
   border-radius: 18px;
   line-height: 1.5;
@@ -622,12 +634,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .feedback-chat-history__tool-event span { display: grid; width: 22px; height: 22px; place-items: center; border: .5px solid #4bc27d; border-radius: 50%; background: rgb(75 194 125 / .2); }
 .feedback-chat-history__tool-event span img { width: 9.917px; height: 7px; }
 .feedback-chat-history__tool-event strong { color: #4bc27d; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
-/* 입력창도 하단 고정 대신 대화 이력 바로 아래 흐름으로 — 대화가 길어진 만큼
-   자연스럽게 밀려 내려간다. 너비·중앙 정렬은 기존과 같은 830px 유지. */
-.feedback-attention-page__input { position: static; top: auto; left: auto; margin: 24px auto 0; }
-.feedback-attention-page__coach,
-.feedback-exercise-page__coach { z-index: 1; }
-.feedback-chat-history { z-index: 2; }
 
 /* ── 비교 분석: 안내 문구와 부위 목록 아래 간격 ─────────────────────────────
    안내는 별표로 시작하는 각주였다. 그 모양이 "덧붙인 말"처럼 보여서 고쳤는데,
