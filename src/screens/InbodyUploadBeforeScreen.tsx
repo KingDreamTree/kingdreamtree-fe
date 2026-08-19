@@ -45,7 +45,7 @@ export function InbodyUploadBeforeScreen({ onUpload, onComplete, onSkip, onPrevi
       <div className="inbody-upload-before-page">
         <p className="step-label">Step 3/3</p>
         <h1>인바디 정보 입력</h1>
-        <p className="step-description">정확한 분석을 위해 최근 인바디 측정 결과를 입력해주세요</p>
+        <p className="step-description">정확한 분석을 위해 최근 인바디 측정 결과를 입력해 주세요</p>
         <PreviousButton onClick={onPrevious} />
 
         <button className="inbody-before-skip" type="button" onClick={onSkip}>건너뛰기</button>
