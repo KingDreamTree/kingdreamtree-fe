@@ -10,6 +10,11 @@ export const API_BASE_URL = (configuredBaseUrl || 'https://api.refit.live/api/v1
 
 const USER_ID_KEY = 'refit.user-id'
 const ACTIVE_SESSION_KEY = 'refit.active-session-id'
+// 마지막 사용자 사진이 어느 파이프라인으로 올라갔는가 (웹캠 촬영=quick · 갤러리=full).
+// ⚠️ localStorage 인 이유: 분석 대기 중 새로고침하면 state 는 'full' 로 초기화되는데,
+//    퀵 세션(세그 잡 없음)에 full 분석을 걸면 세그 대기 409 를 «기다리라»로 읽는
+//    kickOff 가 영원히 돈다. 세션 복원과 같은 수명으로 남긴다.
+const ANALYSIS_MODE_KEY = 'refit.analysis-mode'
 
 export type ApiErrorPayload = {
   code?: string
@@ -88,9 +93,15 @@ async function request<T>(path: string, init: RequestInit = {}, requiresUser = t
 export function getStoredUserId() { return localStorage.getItem(USER_ID_KEY) }
 export function getStoredSessionId() { return localStorage.getItem(ACTIVE_SESSION_KEY) }
 
+export type AnalysisMode = 'full' | 'quick'
+/** 저장값이 없거나 이상하면 full — 기존 세그 파이프라인이 언제나 기본이다. */
+export function getStoredAnalysisMode(): AnalysisMode { return localStorage.getItem(ANALYSIS_MODE_KEY) === 'quick' ? 'quick' : 'full' }
+export function setStoredAnalysisMode(mode: AnalysisMode) { localStorage.setItem(ANALYSIS_MODE_KEY, mode) }
+
 export function clearStoredIdentity() {
   localStorage.removeItem(USER_ID_KEY)
   localStorage.removeItem(ACTIVE_SESSION_KEY)
+  localStorage.removeItem(ANALYSIS_MODE_KEY)
 }
 
 export async function createUser() {

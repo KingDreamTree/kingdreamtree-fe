@@ -5,7 +5,7 @@ import { PoseScore } from '../components/PoseScore'
 import { createHoldGate, evaluate, IDX, MESSAGES, mirrorLandmarks, SEGMENTS, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
 import { loadVideoLandmarker } from '../lib/landmarkers'
 import { areaRatio, chooseScaleBasis, findOutOfRangeLandmark } from '../lib/pose-detector'
-import { RefitApiError, uploadUserPhoto, userFacingMessage } from '../lib/api'
+import { RefitApiError, setStoredAnalysisMode, uploadUserPhoto, userFacingMessage } from '../lib/api'
 import poseCornerTopLeft from '../assets/pose-corner-top-left.svg'
 import poseCornerTopRight from '../assets/pose-corner-top-right.svg'
 import poseCornerBottomLeft from '../assets/pose-corner-bottom-left.svg'
@@ -184,7 +184,11 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
         poseOks: payload.result.oks,
         posePersonAreaRatio: areaRatio(payload.lm, 1, 1),
         multiPerson: payload.multiPerson,
+        // 웹캠 경로 = 퀵 파이프라인. 서버가 세그 잡을 걸지 않는다(Sapiens2 미사용) —
+        // 분석 시작도 mode=quick 이어야 하므로 업로드 성공과 같은 순간에 모드를 기록한다.
+        pipeline: 'quick',
       })
+      setStoredAnalysisMode('quick')
       setPhase({ kind: 'done' })
     } catch (error) {
       if (error instanceof RefitApiError && error.status === 503) {

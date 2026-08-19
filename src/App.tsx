@@ -29,7 +29,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -619,6 +619,9 @@ function App() {
         return
       }
       await uploadUserPhoto(sessionId, { file, captureSource: 'UPLOAD', poseLandmarks: userPose.landmarks, poseSimilarity: result.pose_similarity, framingScore: result.framing_score, poseScaleBasis: userPose.scaleBasis, facingDelta: result.facing_delta, poseOks: result.oks, posePersonAreaRatio: userPose.personAreaRatio, multiPerson: userPose.multiPerson })
+      // 갤러리 업로드 = 기존 세그 파이프라인. 웹캠(quick)을 쓰다 갤러리로 갈아탔으면
+      // 마지막으로 올라간 사진이 기준이므로 여기서 full 로 되돌린다.
+      setStoredAnalysisMode('full')
       setView('pose-success')
     } catch (error) {
       const unavailable = error instanceof RefitApiError && error.status === 503
@@ -652,6 +655,10 @@ function App() {
     const run = analysisRunRef.current + 1
     analysisRunRef.current = run
     const alive = () => analysisRunRef.current === run
+    // 웹캠 촬영(quick)인지 갤러리 업로드(full)인지는 마지막 사용자 사진 업로드가 기록했다.
+    // 퀵은 세그·부위 진단이 없다: 시작은 mode=quick, 부위 신호·세그 조회를 건너뛴다.
+    // 결과 화면은 모드 플래그 없이 데이터로 분기한다 (부위 0건 · 점수 null).
+    const quick = getStoredAnalysisMode() === 'quick'
 
     setAnalysisPhase(0)
     // ⚠️ 단계는 **앞으로만 간다.** 조회 실패나 재시동으로 되돌리면 게이지가 뒤로 흐르는데,
@@ -673,7 +680,7 @@ function App() {
     const kickOff = async (retry: boolean) => {
       for (;;) {
         if (!alive()) return false
-        try { await startAnalysis(sessionId, retry); return true } catch (error) {
+        try { await (quick ? startQuickAnalysis(sessionId, retry) : startAnalysis(sessionId, retry)); return true } catch (error) {
           if (error instanceof RefitApiError && error.code === 'INSUFFICIENT_PARTS') throw error
           if (!(error instanceof RefitApiError) || error.status !== 409) failures += 1
           await waitTick()
@@ -697,7 +704,8 @@ function App() {
           try { progress = await getAnalysisProgress(sessionId); failures = 0 }
           catch { failures += 1; await waitTick(); continue }
           // part.total 은 «부위 진단이 끝났다»는 신호로만 쓴다 (0 → 9 로 한 번에 뛴다).
-          if (progress.part.total > 0) advancePhase(2)
+          // 퀵은 부위 단계가 아예 없어 항상 0 이다 — 이 신호를 기다리지 않는다.
+          if (quick || progress.part.total > 0) advancePhase(2)
           if (progress.completed) break
           await waitTick()
         }
@@ -726,7 +734,8 @@ function App() {
         if (isAnalysisRenderable(analysis)) {
           setAnalysisData(analysis)
           // 사진이 없어도 수치·문구는 읽을 수 있다 — 한 번 더 시도하고 없으면 그냥 간다.
-          setSegmentationData(await fetchSegmentation(sessionId) ?? await fetchSegmentation(sessionId))
+          // 퀵은 세그멘테이션이 아예 없다 — 조회해 봐야 10초 타임아웃만 기다린다.
+          setSegmentationData(quick ? null : (await fetchSegmentation(sessionId) ?? await fetchSegmentation(sessionId)))
           if (!alive()) return
           setIsAnalysisReady(true)   // 막대가 100% 를 찍은 뒤 로딩 화면이 전환한다
           return
