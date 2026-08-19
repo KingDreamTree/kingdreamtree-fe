@@ -313,7 +313,7 @@ function PoseStatus({ result, message, onRetry, onBrowse }: { result: 'loading' 
   return <div className={`pose-status pose-status--${success ? 'success' : 'failure'}`}>
     <span className="pose-status__symbol">{success ? <img src={poseSuccessCheck} alt="" /> : <><img src={poseFailLineOne} alt="" /><img src={poseFailLineTwo} alt="" /></>}</span>
     <strong>{success ? '사진이 업로드 되었습니다!' : message || (unavailable ? '사진 확인을 잠시 진행할 수 없어요.' : '레퍼런스의 포즈와 일치하지 않아요!')}</strong>
-    <small>{success ? '다른 사진으로 바꾸려면 재업로드해주세요' : unavailable ? '같은 사진으로 잠시 후 다시 시도해주세요' : '다시 업로드 해주세요'}</small>
+    <small>{success ? '다른 사진으로 바꾸려면 재업로드해 주세요' : unavailable ? '같은 사진으로 잠시 후 다시 시도해 주세요' : '다시 업로드해 주세요'}</small>
     <button type="button" onClick={unavailable ? onRetry : onBrowse}>{unavailable ? '다시 시도' : '재업로드'}</button>
   </div>
 }
