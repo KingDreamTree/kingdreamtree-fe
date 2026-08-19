@@ -392,7 +392,6 @@ export interface InbodySegmentDto { segment: InbodySegmentKey; lean_mass: number
 export interface InbodyDetail {
   inbody_id: string
   status: string
-  device_type: string | null
   measured_at: string | null
   /** inbody 테이블 컬럼 (weight, bmi, height, age, gender, skeletal_muscle_mass, body_fat_percentage, …) */
   fields: Record<string, unknown>
