@@ -859,3 +859,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   object-fit: contain;
   object-position: center bottom;
 }
+/* 상세 정보의 운동 강도 값은 한 줄로 읽히도록 줄바꿈을 막는다. */
+.custom-routine-detail-page__info dl > div {
+  white-space: nowrap;
+}
