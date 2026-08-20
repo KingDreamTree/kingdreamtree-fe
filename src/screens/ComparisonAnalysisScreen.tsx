@@ -176,7 +176,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
         <PhotoWithOverlay seg={segmentation?.reference ?? null} selected={selected} label="목표 레퍼런스" />
       </section>
 
-      <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요. 왼팔/오른팔 구분은 사진에 보이는 방향 기준이에요.</p>
+      <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요.</p>
       <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
         {parts.map(part => <button
           className={part.class_name === selected?.class_name ? 'is-selected' : ''}
