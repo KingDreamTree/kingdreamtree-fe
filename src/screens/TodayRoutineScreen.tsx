@@ -35,6 +35,11 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
 
   const current = exercises[step]
   const next = exercises[step + 1]
+  const routineFocus = today?.day.title?.trim() || '운동'
+  useEffect(() => {
+    const heading = document.querySelector<HTMLElement>('.today-routine-page > h1')
+    if (heading) heading.textContent = `오늘은 ${routineFocus}하는 날!`
+  }, [routineFocus])
   const isLastStep = step >= exercises.length - 1
   // 다음 카드가 **마지막 스텝**이면 현재 자리는 전체 폭(1178px)이다. 이걸 안 알려주면
   // 824px 까지만 커졌다가 교체되는 순간 1178px 로 튄다.
