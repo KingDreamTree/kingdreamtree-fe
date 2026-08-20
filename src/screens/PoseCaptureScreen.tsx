@@ -228,7 +228,9 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
 
       const next: Hud = {
         message: messageOverride ?? (result ? result.message : MESSAGES.NOT_ENOUGH_JOINTS),
-        score: smooth.hasScore ? Math.round(smooth.score * 10) / 10 : null,
+        // 자세가 잠시 끊겨도 실시간 점수 HUD를 숨기지 않고 0점으로 유지한다.
+        // 저점 구간도 사용자가 현재 점수를 확인할 수 있어야 한다.
+        score: smooth.hasScore ? Math.round(smooth.score * 10) / 10 : 0,
         progress: Math.round(smooth.progress * 200) / 200,
       }
       const prev = hudRef.current
@@ -453,7 +455,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       onChange={event => { const file = event.currentTarget.files?.[0]; if (file) onBrowse(file); event.currentTarget.value = '' }} />
     {(phase.kind === 'live' || phase.kind === 'camera-error') && <button className="pose-gallery" type="button" onClick={() => fileInputRef.current?.click()}>갤러리에서 업로드</button>}
 
-    {hud.score !== null && phase.kind === 'live' && <PoseScore score={hud.score} />}
+    {phase.kind === 'live' && <PoseScore score={hud.score ?? 0} />}
 
     {phase.kind === 'done' && <>
       <div className="pose-status pose-status--success">
