@@ -946,3 +946,19 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   transform: none;
   z-index: 5;
 }
+/* 비교 분석의 이전 단계는 보조 내비게이션처럼 작게 표시 */
+.comparison-analysis-header .previous-button {
+  height: 21px;
+  gap: 4px;
+  font-size: 14px;
+  line-height: 21px;
+  letter-spacing: -.42px;
+}
+.comparison-analysis-header .previous-button img {
+  width: 14px;
+  height: 13px;
+  transform: translateY(1px);
+}
+.comparison-analysis-header .previous-button span {
+  line-height: 21px;
+}
