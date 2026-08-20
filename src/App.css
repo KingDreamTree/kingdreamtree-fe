@@ -1035,7 +1035,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 /* 비교 분석 진단 결과는 부위 선택 영역 아래에 고정 배치 */
 .comparison-analysis-page > .comparison-analysis-diagnosis {
   position: absolute;
-  top: 2070px;
+  top: 2040px;
   left: 129px;
   margin: 0;
 }
