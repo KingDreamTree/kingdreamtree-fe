@@ -248,6 +248,10 @@ export interface AnalysisOverall {
   cautions: string[]
   /** 두 사진을 직접 본 전체 형태 판단 — summary 보다 구체적인 실루엣 서술 */
   silhouette: string | null
+  /** 이번 비교에서 못 본 부위 + 사유. 규칙이 DB 에서 만든다 — LLM 문장이 아니다
+   *  (백엔드 handlers/vlm.py `_comparison_limitations`). "왼쪽 팔뚝: 대부분
+   *  옷에 가려져 있어 비교에서 뺐습니다" 처럼 부위명이 이미 문장 안에 있다. */
+  comparison_limitations: string[]
   status: string
 }
 
