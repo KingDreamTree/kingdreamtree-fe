@@ -6,21 +6,48 @@ import { PreviousButton } from '../components/PreviousButton'
 import { ExerciseMedia } from '../components/ExerciseMedia'
 import type { RoutineDay } from '../lib/api'
 
-function exerciseDurationMin(exercise: RoutineDay['exercises'][number]): number {
-  if (exercise.exercise_kind === 'CARDIO') return (exercise.duration_min ?? 0) + 1
-  const sets = exercise.sets ?? 0
-  const reps = exercise.reps ?? 0
-  const restSeconds = exercise.rest_sec ?? 0
-  // 반복 수행 시간(1회 4초) + 세트 사이 휴식 + 운동별 준비·정리 여유 1분
-  return Math.ceil((sets * reps * 4 + Math.max(sets - 1, 0) * restSeconds) / 60) + 1
+const DEFAULT_REP_SECONDS = 3
+const DEFAULT_TRANSITION_SECONDS = 60
+const INITIAL_SETUP_SECONDS = 2 * 60
+
+type RoutineExercise = RoutineDay['exercises'][number]
+
+function isTimeBasedExercise(exercise: RoutineExercise): boolean {
+  return exercise.exercise_kind.toUpperCase() === 'CARDIO'
+    || (exercise.duration_min !== null && exercise.duration_min > 0 && !exercise.reps)
+}
+
+function defaultRestSeconds(exercise: RoutineExercise): number {
+  const name = exercise.name.toLowerCase()
+  if (/(스쿼트|데드리프트|벤치 ?프레스|squat|deadlift|bench press)/i.test(name)) return 120
+  if (/(컬|플라이|레이즈|익스텐션|curl|fly|raise|extension)/i.test(name)) return 60
+  return 90
+}
+
+function calculateExerciseDurationSeconds(exercise: RoutineExercise): number {
+  if (exercise.exercise_kind.toUpperCase() === 'CARDIO') return Math.max(exercise.duration_min ?? 0, 0) * 60
+
+  const sets = Math.max(exercise.sets ?? 0, 0)
+  if (isTimeBasedExercise(exercise)) return Math.max(exercise.duration_min ?? 0, 0) * 60 * Math.max(sets, 1)
+
+  const reps = Math.max(exercise.reps ?? 0, 0)
+  const workSeconds = sets * reps * DEFAULT_REP_SECONDS
+  const restSeconds = exercise.rest_sec ?? defaultRestSeconds(exercise)
+  return workSeconds + Math.max(sets - 1, 0) * Math.max(restSeconds, 0)
+}
+
+function calculateWorkoutDurationSeconds(day: RoutineDay): number {
+  const exercises = day.exercises
+  if (exercises.length === 0) return 0
+  const exerciseSeconds = exercises.reduce((total, exercise) => total + calculateExerciseDurationSeconds(exercise), 0)
+  const transitionSeconds = Math.max(exercises.length - 1, 0) * DEFAULT_TRANSITION_SECONDS
+  return INITIAL_SETUP_SECONDS + exerciseSeconds + transitionSeconds
 }
 
 function estimatedDuration(day: RoutineDay | null): number | null {
   if (!day) return null
-  const exerciseMinutes = day.exercises.reduce((total, exercise) => total + exerciseDurationMin(exercise), 0)
-  if (exerciseMinutes <= 0) return null
-  // 운동 사이 이동·기구 조정 시간을 운동 간 1분씩 추가
-  return exerciseMinutes + Math.max(day.exercises.length - 1, 0)
+  const totalSeconds = calculateWorkoutDurationSeconds(day)
+  return totalSeconds > 0 ? Math.ceil(totalSeconds / 60) : null
 }
 
 /** 세트·횟수·휴식을 한 줄 요약으로. 유산소는 시간 기준 (중량 kg은 서버가 제공하지 않음 — rir만). */
