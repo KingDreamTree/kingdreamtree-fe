@@ -47,7 +47,6 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
     <h1>DAY {day?.day_order ?? 1}</h1>
     <PreviousButton className="custom-routine-detail-page__previous" onClick={onPrevious} />
     <p className="custom-routine-detail-page__duration"><img src={customRoutineDetailTime} alt="" />예상 운동시간 <strong>{duration ?? '-'}분</strong></p>
-    <p className="custom-routine-detail-page__duration-note">세트·반복·휴식 시간에 운동별 준비·정리 1분과 운동 사이 이동 1분을 포함해 계산했어요.</p>
     <section className="custom-routine-detail-page__groups" aria-label={`DAY ${day?.day_order ?? 1} 운동 목록`}>
       {exercises.map((exercise, index) => <article className={selected?.order_index === exercise.order_index ? 'is-selected' : ''} key={exercise.order_index} tabIndex={0} onMouseEnter={() => setSelectedIndex(index)} onFocus={() => setSelectedIndex(index)} onClick={() => setSelectedIndex(index)}>
         <img src={exercise.image_url ?? customRoutineDetailWarmup} alt="" />

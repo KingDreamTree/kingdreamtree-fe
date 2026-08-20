@@ -1009,12 +1009,3 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   height: 13px;
   transform: translateY(1px);
 }
-.custom-routine-detail-page__duration-note {
-  position: absolute;
-  top: 345px;
-  left: 131px;
-  margin: 0;
-  color: #aaa;
-  font: 400 14px/1.5 Pretendard, sans-serif;
-  letter-spacing: -.42px;
-}
