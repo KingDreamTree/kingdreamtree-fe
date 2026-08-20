@@ -162,9 +162,15 @@ export function poseScore(ref, user, criteria, { refAspect = 1, userAspect = 1 }
 
   const values = Object.values(diffs);
   const usedAngles = values.length;
+  // 촬영 가능 여부를 막는 사유가 있어도, 화면에는 확인 가능한 관절의
+  // 부분 유사도를 표시한다. 이전에는 아래 차단 조건에서 무조건 0을 반환해
+  // 0~70점 구간의 실제 변화가 보이지 않았다.
+  const partialScore = values.length
+    ? Math.round((values.reduce((s, d) => s + Math.max(0, 1 - d / c.tol_deg), 0) / values.length) * 1000) / 10
+    : 0;
 
   if (usedAngles < c.min_visible_angles) {
-    return { score: 0, reason: "NOT_ENOUGH_JOINTS", usedAngles, diffs };
+    return { score: partialScore, reason: "NOT_ENOUGH_JOINTS", usedAngles, diffs };
   }
 
   // ⚠️ 커버리지 — **레퍼런스에서 보이는 세그먼트는 사용자 사진에도 있어야 한다**
@@ -181,12 +187,12 @@ export function poseScore(ref, user, criteria, { refAspect = 1, userAspect = 1 }
   if (refVisible.length > 0) {
     const covered = refVisible.filter(([, a, b]) => visibleIn([user], [a, b], c.min_visibility));
     if (covered.length / refVisible.length < c.min_ref_coverage) {
-      return { score: 0, reason: "REF_PARTS_MISSING", usedAngles, diffs };
+      return { score: partialScore, reason: "REF_PARTS_MISSING", usedAngles, diffs };
     }
   }
 
   if (values.some((d) => d > c.hard_tol_deg)) {
-    return { score: 0, reason: "JOINT_TOO_FAR", usedAngles, diffs };
+    return { score: partialScore, reason: "JOINT_TOO_FAR", usedAngles, diffs };
   }
 
   const mean = values.reduce((s, d) => s + Math.max(0, 1 - d / c.tol_deg), 0) / usedAngles;
