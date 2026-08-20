@@ -868,10 +868,15 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .custom-routine-detail-page__info-title { text-wrap: balance; }
 .custom-routine-detail-page__info-title.is-long { font-size: 19px; letter-spacing: -.57px; }
 .custom-routine-detail-page__info-title.is-very-long { font-size: 17px; letter-spacing: -.51px; }
+/* 동작 영상/이미지 — 패널 안에서 크게, 위아래 여백을 두고 가운데.
+   ⚠️ 패널은 높이 485px 고정 + overflow:hidden 이라 무한정 못 키운다.
+      운동명이 2줄이 되면(긴 이름) 그만큼 아래가 잘린다 — flex 로 줄어들게 두고
+      max-height 로 상한을 건다. */
 .custom-routine-detail-page__info > :is(img, video) {
   position: static; right: auto; bottom: auto;
-  width: 100%; height: auto; max-width: 194px; min-height: 0; flex: 1 1 auto;
-  margin-top: 30px; object-fit: contain; object-position: left center;
+  width: 100%; height: auto; max-width: 280px; max-height: 200px;
+  min-height: 0; flex: 1 1 auto;
+  margin: 24px auto; object-fit: contain; object-position: center;
 }
 
 /* 카드 수에 따라 카드 사이 간격만 균등 분배하고 목표 박스 끝에 맞춥니다. */
