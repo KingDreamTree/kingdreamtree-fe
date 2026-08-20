@@ -7,8 +7,8 @@ import { FixedStepFrame } from '../components/FixedStepFrame'
 
 type Field = { label: string; unit?: string }
 const composition: Field[] = [{ label: '체중', unit: 'kg' }, { label: 'BMI', unit: 'kg/m²' }, { label: '골격근량', unit: 'kg' }, { label: '체지방률', unit: '%' }, { label: '체지방량', unit: 'kg' }, { label: '기초대사량', unit: 'kcal' }]
-const muscle = ['오른팔', '왼팔', '몸통', '오른다리', '왼다리']
-const fat = ['오른팔', '왼팔', '몸통', '오른다리', '왼다리']
+const muscle = ['오른팔 (kg)', '왼팔 (kg)', '몸통 (kg)', '오른다리 (kg)', '왼다리 (kg)']
+const fat = ['오른팔 (kg)', '왼팔 (kg)', '몸통 (kg)', '오른다리 (kg)', '왼다리 (kg)']
 
 function EmptyField({ field, placeholder = '' }: { field: Field; placeholder?: string }) {
   return <label className="inbody-unreadable-field"><span>{field.label}{field.unit && <small>({field.unit})</small>}</span><input aria-label={field.label} placeholder={placeholder} /></label>

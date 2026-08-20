@@ -24,11 +24,11 @@ const COMPOSITION_FIELDS: Array<{ key: string; label: string; unit?: string }> =
 ]
 
 const SEGMENT_ORDER: Array<{ key: InbodySegmentKey; label: string }> = [
-  { key: 'RIGHT_ARM', label: '오른팔' },
-  { key: 'LEFT_ARM', label: '왼팔' },
-  { key: 'TRUNK', label: '몸통' },
-  { key: 'RIGHT_LEG', label: '오른다리' },
-  { key: 'LEFT_LEG', label: '왼다리' },
+  { key: 'RIGHT_ARM', label: '오른팔 (kg)' },
+  { key: 'LEFT_ARM', label: '왼팔 (kg)' },
+  { key: 'TRUNK', label: '몸통 (kg)' },
+  { key: 'RIGHT_LEG', label: '오른다리 (kg)' },
+  { key: 'LEFT_LEG', label: '왼다리 (kg)' },
 ]
 
 /** 날짜 입력(type="date")은 YYYY-MM-DD 만 표시할 수 있다. OCR 이 점·슬래시로 주는 경우가
