@@ -34,7 +34,7 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
     : `주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정과 각 운동의 세트·반복·휴식 구성을 바탕으로 만들었어요.`)
 
   return <FixedStepFrame label="맞춤 루틴" fitContent><div className="custom-routine-page">
-    <p className="custom-routine-page__eyebrow">맞춤루틴 제공</p>
+    <p className="custom-routine-page__eyebrow">맞춤 루틴 제공</p>
       <h1>목표 체형 레퍼런스</h1>
     <button className="custom-routine-page__adjust" type="button" onClick={onAdjustDays}><img src={previousArrow} alt="" />운동 일수 조정</button>
     <button className="custom-routine-page__next" type="button" onClick={onNext}>다음 단계</button>
