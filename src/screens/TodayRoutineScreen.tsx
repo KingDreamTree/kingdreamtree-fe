@@ -30,16 +30,16 @@ function exerciseDose(exercise: RoutineExercise | undefined): string {
 
 /** 이름이 **한 줄에 들어가는 가장 큰 크기**를 고른다.
  *
- *  글줄 폭 350px 기준 한 줄 용량은 대략 360 / 글자크기 자다 —
- *    38px 9자 · 30px 12자 · 24px 15자 · 20px 18자.
+ *  글줄 폭 330px 기준 한 줄 용량은 대략 340 / 글자크기 자다 —
+ *    38px 8자 · 28px 11자 · 22px 14자 · 18px 18자.
  *  ⚠️ 종전에는 «두 줄까지 허용» 기준(19자/25자)이라, 열 몇 자짜리 흔한 이름이
  *     38px 그대로 두 줄로 접혔다 — 한 단계만 줄이면 한 줄에 들어가는데도.
  *  ⚠️ 카탈로그 최대는 30자다(«시티드 숄더 플렉서 디프레서 리트랙터 스트레칭 벤트 니»).
  *     그건 20px 두 줄로 간다. 줄임표로 자르면 무슨 운동인지 알 수 없어진다. */
 function titleSizeClass(name: string): string {
-  if (name.length > 15) return ' is-longest'
-  if (name.length > 12) return ' is-long'
-  if (name.length > 9) return ' is-mid'
+  if (name.length > 14) return ' is-longest'
+  if (name.length > 11) return ' is-long'
+  if (name.length > 8) return ' is-mid'
   return ''
 }
 

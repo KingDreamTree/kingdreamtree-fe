@@ -503,7 +503,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 /* 실제 운동 진행 카드: 텍스트와 모션을 하나의 2열 콘텐츠 그룹으로 배치 */
 .today-routine-page__current {
   display: grid;
-  grid-template-columns: minmax(0, 360px) 191px;
+  grid-template-columns: minmax(0, 330px) 191px;
   grid-template-rows: repeat(6, auto);
   column-gap: 32px;
   align-content: start;
@@ -537,13 +537,21 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 /* ⚠️ 승격 중 카드(세트 완료 직후 520ms)도 **같은 그리드**여야 한다. 종전에는 옛
    절대 좌표를 그대로 써서, 카드가 넘어가는 순간 간격이 도로 좁아져 보였다. */
-.today-routine-page__next.is-promoting { display: grid; grid-template-columns: minmax(0, 360px) 191px; grid-template-rows: repeat(6, auto); column-gap: 32px; align-content: start; padding: 72px 74px; }
+.today-routine-page__next.is-promoting { display: grid; grid-template-columns: minmax(0, 330px) 191px; grid-template-rows: repeat(6, auto); column-gap: 32px; align-content: start; padding: 72px 74px; }
 .today-routine-page__next.is-promoting > p,
 .today-routine-page__next.is-promoting h2,
 .today-routine-page__next.is-promoting span { position: static; grid-column: 1; align-self: start; }
 .today-routine-page__next.is-promoting > p { grid-row: 1; margin-bottom: 14px; }
 .today-routine-page__next.is-promoting h2 { grid-row: 2; margin-bottom: 10px; }
 .today-routine-page__next.is-promoting span { grid-row: 3; }
+
+/* ⚠️ 승격 중에는 안쪽 배치가 절대 → 그리드로 바뀌어 위치를 tween 할 수 없다.
+   카드 상자는 left/width 가 520ms 로 미끄러지는데 안쪽만 뚝 바뀌면 «바로 다른
+   화면이 뜬» 것처럼 보인다. 내용을 짧게 밝혀서 자리 바뀜을 덮는다. */
+.today-routine-page__next.is-promoting > p,
+.today-routine-page__next.is-promoting h2,
+.today-routine-page__next.is-promoting span,
+.today-routine-page__next.is-promoting :is(img, video) { animation: today-card-in 300ms ease both; }
 
 .today-routine-page__current button {
   grid-row: 6;
@@ -1121,14 +1129,19 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 /* 영상은 제목이 차지한 만큼 아래로 내린다. 카드 높이 455px 안에 있어야 하므로
    내린 만큼 세로를 줄인다 — object-fit: contain 이라 잘리지 않고 여백만 준다. */
-.today-routine-page__current > :is(img, video) { top: 58px; height: 372px; }
-.today-routine-page__next.is-promoting :is(img, video) { top: 58px; right: 60px; bottom: auto; width: 320px; height: 372px; }
+/* 시연 영상 — 왼쪽으로 32px 옮기고 키운다(320x372 → 360x400).
+   ⚠️ 글줄 폭(350px)을 그대로 두면 열두 자짜리 이름이 영상 왼쪽 끝을 침범한다.
+      글줄과 그리드 첫 열을 330px 로 좁히고 제목 크기 단계도 같이 낮췄다. */
+.today-routine-page__current > :is(img, video) { top: 36px; right: 52px; width: 360px; height: 400px; }
+.today-routine-page__current h2, .today-routine-page__current small,
+.today-routine-page__current p { max-width: 330px; }
+.today-routine-page__next.is-promoting :is(img, video) { top: 36px; right: 52px; bottom: auto; width: 360px; height: 400px; }
 
 /* 이름 길이별 축소 — CSS 는 글자 수를 셀 수 없어서 titleSizeClass() 가 붙여준다.
    승격 중 카드의 38px 지정(.is-promoting h2)보다 뒤에 와야 이긴다. */
-.today-routine-page__current h2.is-mid, .today-routine-page__next.is-promoting h2.is-mid { font-size: 30px; letter-spacing: -.9px; }
-.today-routine-page__current h2.is-long, .today-routine-page__next.is-promoting h2.is-long { font-size: 24px; letter-spacing: -.72px; }
-.today-routine-page__current h2.is-longest, .today-routine-page__next.is-promoting h2.is-longest { font-size: 20px; letter-spacing: -.6px; }
+.today-routine-page__current h2.is-mid, .today-routine-page__next.is-promoting h2.is-mid { font-size: 28px; letter-spacing: -.84px; }
+.today-routine-page__current h2.is-long, .today-routine-page__next.is-promoting h2.is-long { font-size: 22px; letter-spacing: -.66px; }
+.today-routine-page__current h2.is-longest, .today-routine-page__next.is-promoting h2.is-longest { font-size: 18px; letter-spacing: -.54px; }
 
 /* 다음 카드는 폭이 좁다(265px) — 같은 이름이라도 한 단계 더 줄여야 한 줄에 들어간다. */
 .today-routine-page__next:not(.is-promoting) h2.is-mid { font-size: 24px; letter-spacing: -.72px; }
