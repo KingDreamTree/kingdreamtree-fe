@@ -216,6 +216,14 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
       {/* 별표 대신 강조색 점을 앞에 두는 칩 — 각주가 아니라 안내로 읽히게 한다.
           점은 CSS ::before 로 그린다 (문자로 넣으면 스크린리더가 읽어버린다). */}
       {!isQuick && <p className="comparison-analysis-help">부위를 선택하면 맞춤 솔루션을 볼 수 있어요</p>}
+      {/* 비교에서 빠진 부위 안내. comparison_limitations 는 "이름: 사유" 문장 목록
+          (백엔드 handlers/vlm.py `_comparison_limitations`, 규칙이 만든다) — 여기서는
+          사유를 다 보여주지 않고 이름만 뽑아 한 문장으로 합친다. */}
+      {!isQuick && !!overall?.comparison_limitations?.length && (
+        <p className="comparison-analysis-excluded">
+          {overall.comparison_limitations.map(text => text.split(':')[0].trim()).join(', ')} 부위는 시각적 판별이 어려워서 비교분석에서 제외되었습니다.
+        </p>
+      )}
       {!isQuick && <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
         {parts.map(part => <button
           className={part.class_name === selected?.class_name ? 'is-selected' : ''}
@@ -252,20 +260,6 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
       </section>}
 
       <button className="comparison-analysis-routine" type="button" onClick={onCreateRoutine}>맞춤 루틴 생성 →</button>
-
-      {/* 비교에서 빠진 부위 안내. ⚠️ 예전에 strengths/cautions/excluded 를 요약
-          상자 «안에» 그렸다가 세 값이 다 있을 때만 나타나는 구조라 세션마다
-          박스 높이가 들쭉날쭉해서 뺐다(위 주석 참고). 이번엔 흐름(footer)
-          안에 독립된 섹션으로 둬서 — 있든 없든 아래 고지문이 그만큼만
-          밀려 내려갈 뿐, 다른 절대좌표 요소와 안 겹친다. */}
-      {!isQuick && !!overall?.comparison_limitations?.length && (
-        <section className="comparison-analysis-limitations" aria-label="비교에서 제외된 부위">
-          <h3>비교에서 제외된 부위</h3>
-          <ul>
-            {overall.comparison_limitations.map(text => <li key={text}>{text}</li>)}
-          </ul>
-        </section>
-      )}
 
       {/* ⚠️ 서버 disclaimer 는 «의학 고지 + 데이터 처리 고지» 두 문장이다. 이 화면에서는
           앞쪽(의학)만 보여준다 — 뒤쪽(외부 AI 전송·삭제 안내)은 요청으로 뺐다.

@@ -715,12 +715,18 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 }
 .comparison-analysis-help::before { content: ''; width: 3px; height: 21px; flex: none; border-radius: 2px; background: #ffe250; }
 
+/* 비교에서 제외된 부위 안내 — help 문구 바로 아래, 부위 버튼 위. 이름이
+   몇 개 들어올지 세션마다 달라 줄 수가 안 정해진다 — top(2020px)을 아래
+   .comparison-analysis-parts / footer 와 같이 내려서 최대 4줄까지 자리를
+   미리 비워둔다(줄 수가 적어도 버튼이 붙었다 떨어졌다 하지 않게). */
+.comparison-analysis-excluded { position: absolute; top: 1910px; left: 131px; width: 1182px; margin: 0; color: #b0b0b0; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }
+
 /* 진단 결과가 부위 버튼에 거의 붙어 있었다 (버튼 두 줄이 2064px 에서 끝나는데
    진단이 2070px 에서 시작 — 6px). 안내가 한 줄로 짧아진 만큼 버튼을 올리고,
    진단은 내려서 사이를 띄운다.
    ⚠️ min-height 로 **두 줄 자리를 미리 잡아둔다.** 부위 개수는 사진마다 달라서
       (한 줄일 수도 있다) 이걸 안 잡으면 진단 결과가 붙었다 떨어졌다 한다. */
-.comparison-analysis-parts { top: 1935px; min-height: 111px; align-content: flex-start; }
+.comparison-analysis-parts { top: 2020px; min-height: 111px; align-content: flex-start; }
 .comparison-analysis-diagnosis { top: 2092px; }
 
 /* ── "이전 단계" 화살표 ──────────────────────────────────────────────────────
@@ -894,15 +900,10 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
       빠져나가는(마진 상쇄) 것도 같이 막아준다.
    ⚠️ 간격은 원래 좌표에서 그대로 옮겨 왔다: 진단 아래 52px, 버튼 아래 42px. */
 .comparison-analysis-page { height: auto; min-height: 2691px; padding-bottom: 80px; }
-.comparison-analysis-footer { margin-top: 2092px; }
+.comparison-analysis-footer { margin-top: 2177px; }
 .comparison-analysis-diagnosis { position: static; margin-left: 129px; }
 .comparison-analysis-routine { position: static; display: block; margin: 52px auto 0; }
 .comparison-analysis-disclaimer { position: static; margin: 42px 0 0 131px; }
-.comparison-analysis-limitations { position: static; width: 1178px; margin: 42px auto 0; padding: 24px 28px; border-radius: 18.659px; background: rgb(59 59 59 / .4); }
-.comparison-analysis-limitations h3 { margin: 0; color: #f6f6f6; font: 700 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
-.comparison-analysis-limitations ul { margin: 10px 0 0; padding: 0; list-style: none; }
-.comparison-analysis-limitations li { margin-top: 6px; color: #b0b0b0; font-size: 16px; line-height: 1.5; }
-.comparison-analysis-limitations li:first-child { margin-top: 0; }
 
 /* ── 퀵 진단(웹캠) 변형 — 점수 링·부위 카드·사진 비교·부위 진단이 설계상 없다 ──
    이 페이지는 Figma 절대좌표 레이아웃이라 요소를 빼면 자리가 «비는» 게 아니라
