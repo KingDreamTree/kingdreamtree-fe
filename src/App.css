@@ -492,42 +492,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   left: 360px;
 }
 
-/* 실제 운동 진행 카드: 텍스트와 모션을 하나의 2열 콘텐츠 그룹으로 배치 */
-.today-routine-page__current {
-  display: grid;
-  grid-template-columns: minmax(0, 360px) 191px;
-  grid-template-rows: auto auto auto auto auto;
-  column-gap: 64px;
-  align-content: start;
-  padding: 72px 74px;
-}
-
-.today-routine-page__current > span,
-.today-routine-page__current h2,
-.today-routine-page__current small,
-.today-routine-page__current p,
-.today-routine-page__current button {
-  position: static;
-  grid-column: 1;
-  align-self: start;
-}
-
-.today-routine-page__current > span { grid-row: 1; }
-.today-routine-page__current h2 { grid-row: 2; }
-.today-routine-page__current small { grid-row: 3; }
-.today-routine-page__current p { grid-row: 4; }
-.today-routine-page__current button { grid-row: 5; }
-
-.today-routine-page__current > img {
-  position: static;
-  grid-column: 2;
-  grid-row: 1 / 6;
-  align-self: center;
-  width: 191px;
-  height: 236px;
-  object-fit: contain;
-}
-
 /* ── 실시간 자세 촬영 (Step 2) ─────────────────────────────────────────── */
 .reference-error { position: absolute; top: 818px; left: 273px; width: 893px; margin: 0; color: #e52f28; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; text-align: center; }
 .reference-start:disabled { cursor: default; transform: none; }
