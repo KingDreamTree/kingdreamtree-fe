@@ -516,7 +516,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .today-routine-page__current h2 { grid-row: 2; }
 .today-routine-page__current small { grid-row: 3; }
 .today-routine-page__current p { grid-row: 4; }
-.today-routine-page__current button { grid-row: 5; margin-top: 10px; }
+.today-routine-page__current button {
+  grid-row: 5;
+  justify-self: start;
+  margin-top: 10px;
+  margin-left: 0;
+}
 
 .today-routine-page__current > img {
   position: static;
