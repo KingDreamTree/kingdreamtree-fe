@@ -219,6 +219,11 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
         <div>
           <strong>{headline}</strong>
           <p>{overall?.summary ?? '요약을 준비하고 있어요.'}</p>
+          {/* ⚠️ 실루엣 서술(F09 silhouette)은 summary 와 «다른 것»을 말한다 —
+              summary 가 "무엇을 할지"라면 이건 "지금 어떤 형태인지"다. 백엔드는
+              계속 내려주고 있었는데(vlm.py → routes/analysis.py), 2026-08-20
+              머지 충돌을 해결하면서 이 한 줄만 사라져 화면에서 통째로 빠졌다. */}
+          {overall?.silhouette && <p>{overall.silhouette}</p>}
         </div>
         {/* ⚠️ 강점·주의·제외 부위 목록은 **의도적으로 그리지 않는다.** 세 값이 다 있을 때만
             나타나는 구조라 세션마다 떴다 안 떴다 해서, 요약 상자 아래 높이가 들쭉날쭉했다.
