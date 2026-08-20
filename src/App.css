@@ -1082,20 +1082,23 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   transform: translateX(-50%);
 }
 /* 입력창은 하단 영역에 고정하고, 그 위의 대화만 스크롤 */
-/* ⚠️ bottom 은 **입력창 위**에서 끝나야 한다. 입력창이 top: 790px · 높이 78px 이라
-   캔버스(1024px) 기준 아래에서 234px 지점부터가 입력창이다 — 그보다 아래로 내려오면
-   마지막 말풍선이 입력창 뒤로 들어가 글자가 잘린다(사용자 신고 2026-08-21).
-   입력창 자리를 옮기면 이 값도 같이 봐야 한다. */
+/* ⚠️ 대화 영역은 **입력창 위**에서 끝나야 한다. 아래로 내려오면 마지막 말풍선이
+   입력창 뒤로 들어가 글자가 잘린다 (2026-08-21 신고 — 대화가 쌓여 스크롤이 생기고
+   나서야 드러난다).
+   ⚠️ 두 값을 따로 적어두면 한쪽만 옮겼을 때 다시 겹친다. 입력창 자리를 변수로 두고
+      **양쪽이 같은 값을 보게** 한다 — 입력창을 옮기면 대화 영역이 따라온다. */
+.feedback-attention-page { --chat-input-top: 790px; --chat-input-gap: 16px; }
 .feedback-chat-history {
   top: 120px;
-  bottom: 250px;
+  bottom: calc(1024px - var(--chat-input-top, 790px) + var(--chat-input-gap, 16px));
   padding-bottom: 24px;
   scrollbar-width: thin;
   scrollbar-color: #707070 transparent;
 }
 .feedback-attention-page__input {
   position: absolute;
-  top: 790px;
+  /* 위 --chat-input-top 과 짝이다 — 여기만 옮기면 대화 영역이 따라 올라온다. */
+  top: var(--chat-input-top, 790px);
   right: auto;
   bottom: auto;
   left: 305px;
