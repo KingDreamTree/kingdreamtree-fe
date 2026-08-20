@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import comparisonCommentCircle from '../assets/comparison-analysis-comment-circle.svg'
 import comparisonScoreTrack from '../assets/comparison-analysis-score-track.svg'
 import type { AnalysisPart, AnalysisResult, SegmentationInfo, SessionSegmentation } from '../lib/api'
@@ -130,7 +130,44 @@ type ComparisonAnalysisScreenProps = {
 }
 
 /** Figma 41:189 — 비교 분석. 모든 수치·문구는 GET /analysis · /segmentation 응답에서 온다. */
+/** 이 화면도 다른 화면과 **같은 방식으로** 창에 맞춰 축소한다.
+ *
+ *  ⚠️ 종전에는 zoom: .9 고정이었다. 다른 화면(FixedStepFrame)은
+ *     min(1, 창너비/1440, 창높이/1024) 로 줄어드는데 보통 0.75 쯤이라,
+ *     이 화면만 20% 크게 그려졌다. 로고·버튼·글자가 다 같이 커져서
+ *     «이 화면 이전 단계 버튼만 다르다» 로 보였다 (사용자 신고 2026-08-20).
+ *  ⚠️ 배율식은 FixedStepFrame 과 **같은 값**이어야 한다. 한쪽만 고치면 다시 어긋난다. */
+const DESIGN_WIDTH = 1440
+const DESIGN_HEIGHT = 1024
+
 export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, onCreateRoutine, onPrevious }: ComparisonAnalysisScreenProps) {
+  const pageRef = useRef<HTMLElement>(null)
+  const [scale, setScale] = useState(1)
+  // 잰 높이 x 배율이 바깥 상자의 높이다. transform 은 자리를 안 바꾸므로
+  // 이걸 안 주면 페이지 아래쪽이 잘리거나 빈 공간이 남는다.
+  const [pageHeight, setPageHeight] = useState(DESIGN_HEIGHT)
+
+  useLayoutEffect(() => {
+    const update = () => setScale(Math.min(
+      1,
+      document.documentElement.clientWidth / DESIGN_WIDTH,
+      window.innerHeight / DESIGN_HEIGHT,
+    ))
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+
+  useEffect(() => {
+    const page = pageRef.current
+    if (!page) return
+    const measure = () => setPageHeight(page.scrollHeight)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(page)
+    return () => observer.disconnect()
+  }, [])
+
   const parts = analysis?.parts ?? []
   // 시각적으로 판별이 안 된 부위(gap_level null — 옷/각도로 못 봄)는 버튼도, 기본
   // 선택 대상도 되지 않는다. 눌러도 "확인 못 했다"만 나오는 버튼을 없애는 것이다 —
@@ -191,7 +228,8 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
     : disclaimer
 
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
-    <section className="comparison-analysis-page">
+    <div className="comparison-analysis-frame" style={{ width: DESIGN_WIDTH * scale, height: pageHeight * scale }}>
+    <section className="comparison-analysis-page" ref={pageRef} style={{ transform: `scale(${scale})` }}>
       {/* 이 화면은 FixedStepFrame 을 쓰지 않아 로고가 글자로만 박혀 있었다 —
           여기서만 처음으로 돌아갈 길이 없었다. 공통 컴포넌트로 바꿔 버튼으로 만든다. */}
       <RefitHomeLogo />
@@ -293,5 +331,6 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
       {medicalDisclaimer && <p className="comparison-analysis-disclaimer"><span>{medicalDisclaimer}</span></p>}
       </div>
     </section>
+    </div>
   </main>
 }
