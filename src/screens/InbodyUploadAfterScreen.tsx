@@ -101,7 +101,7 @@ export function InbodyUploadAfterScreen({ inbody, onConfirm, onPrevious }: Inbod
   }
 
   return <FixedStepFrame label="인바디-업로드 후"><div className="inbody-after-page">
-    <p className="step-label">Step 3/3</p><h1>인바디 정보 입력</h1><p className="step-description">현재 값으로 비교 분석이 진행되니 틀린 부분이 있으면 수정해주세요.</p>
+    <p className="step-label">Step 3/3</p><h1>인바디 정보 입력</h1><p className="step-description">현재 값으로 비교 분석이 진행되니 틀린 부분이 있으면 수정해 주세요.</p>
     <section className="inbody-after-basic"><h2>1. 기본 정보</h2>
       {renderInput('height', '신장', 'cm', true)}
       {renderInput('age', '나이', '세')}

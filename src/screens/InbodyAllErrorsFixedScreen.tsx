@@ -19,7 +19,7 @@ type InbodyAllErrorsFixedScreenProps = { onConfirm: () => void; onPrevious: () =
 
 export function InbodyAllErrorsFixedScreen({ onConfirm, onPrevious }: InbodyAllErrorsFixedScreenProps) {
   return <FixedStepFrame label="인바디-모든오류수정"><div className="inbody-fixed-page">
-    <p className="step-label">Step 3/3</p><h1>인바디 정보 입력</h1><p className="step-description">AI가 인식한 결과입니다. 틀린 부분이 있다면 터치하여 수정해 주세요.</p>
+    <p className="step-label">Step 3/3</p><h1>인바디 정보 입력</h1><p className="step-description">현재 값으로 비교 분석이 진행되니 틀린 부분이 있으면 수정해 주세요.</p>
     <section className="inbody-fixed-guide" role="status"><span><img src={inbodySuccessCheck} alt="" /></span><div><strong>성공적으로 수정되었습니다!</strong><p>확인 완료 버튼을 눌러주세요.</p></div></section>
     <section className="inbody-fixed-smi"><span>SMI <small>(kg/m²)</small></span><strong>8.25</strong><small>* 골격근량 ÷ 신장²</small></section>
     <section className="inbody-fixed-basic"><h2>1. 기본 정보</h2><FixedField field={{ label: '신장', value: '172', unit: 'cm' }} required /><FixedField field={{ label: '나이', value: '33', unit: '세' }} /><label className="inbody-fixed-field"><span>성별</span><InbodyGenderSelector className="inbody-fixed-gender" /></label><label className="inbody-fixed-field"><span>측정일</span><div className="inbody-fixed-date"><input aria-label="측정일" defaultValue="2025-08-12" /><img src={inbodyCalendar} alt="달력" /></div></label></section>

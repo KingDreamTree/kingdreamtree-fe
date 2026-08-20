@@ -36,7 +36,7 @@ export function InbodyValidationWarningScreen({ onConfirm, onPrevious }: InbodyV
   const warnedFields = new Set(['체중', 'BMI', '체지방률', '체지방량'])
 
   return <FixedStepFrame label="인바디-검증경고"><div className="inbody-warning-page">
-    <p className="step-label">Step 3/3</p><h1>인바디 정보 입력</h1><p className="step-description">AI가 인식한 결과입니다. 틀린 부분이 있다면 터치하여 수정해 주세요.</p>
+    <p className="step-label">Step 3/3</p><h1>인바디 정보 입력</h1><p className="step-description">현재 값으로 비교 분석이 진행되니 틀린 부분이 있으면 수정해 주세요.</p>
     <section className="inbody-warning-guide" role="status"><WarningGlyph /><div><strong>확인이 필요한 항목이 1개 있습니다.</strong><p>아래 항목들을 확인 후, 필요 시 수정해 주세요.</p></div></section>
     <section className="inbody-warning-guide inbody-warning-guide--detail" role="status"><WarningGlyph /><div><strong>체지방률 불일치 - 계산값 33.07 vs 추출값 18.90</strong><p>관련 항목들의 값이 서로 맞지 않습니다. 값을 확인하거나 수정해 주세요.</p></div></section>
     <section className="inbody-warning-smi"><span>SMI <small>(kg/m²)</small></span><strong>8.25</strong><small>* 골격근량 ÷ 신장²</small></section>
