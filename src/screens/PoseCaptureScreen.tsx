@@ -216,12 +216,16 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     // 점수는 최신 인식 결과를 즉시 보여준다. 과도한 평활화는 점수와 초록 링이
     // 실제 자세보다 늦게 따라오는 원인이 되어 실시간 피드백을 어렵게 한다.
     const smooth = { score: 0, hasScore: false, progress: 0 }
+    const recentScores: number[] = []
     const updateHud = (result: EvaluateResult | null, messageOverride?: string) => {
       if (result) {
-        smooth.score = result.pose_similarity
+        recentScores.push(result.pose_similarity)
+        if (recentScores.length > 5) recentScores.shift()
+        const ordered = [...recentScores].sort((a, b) => a - b)
+        const median = ordered[Math.floor(ordered.length / 2)]
+        // 중앙값으로 한두 프레임의 오인식 스파이크를 제거한 뒤 짧게만 보정한다.
+        smooth.score = smooth.hasScore ? smooth.score + (median - smooth.score) * 0.35 : median
         smooth.hasScore = true
-      } else {
-        smooth.hasScore = false
       }
       smooth.progress += (hold.progress - smooth.progress) * 0.2
       if (Math.abs(hold.progress - smooth.progress) < 0.004) smooth.progress = hold.progress
