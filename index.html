@@ -5,6 +5,14 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>2026hackathon</title>
+
+    <!-- ⚠️ 폰트는 반드시 여기서 받는다. index.css 안에 @import 로 두면
+         «번들 CSS → 폰트 CSS → 폰트 파일» 순서로 왕복이 직렬로 쌓여서,
+         첫 글자가 시스템 기본 글꼴로 그려졌다가 나중에 바뀐다(FOUT).
+         head 에 두면 HTML 파싱 시점에 JS 번들과 **동시에** 내려받는다. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+    <link rel="preload" as="font" type="font/woff" crossorigin href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10@1.0/GongGothicBold.woff" />
   </head>
   <body>
     <div id="root"></div>

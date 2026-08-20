@@ -64,7 +64,7 @@
 .pose-score__fill { position: absolute; top: 17.51px; left: 17.51px; width: 133px; height: 133px; overflow: visible; }
 .pose-score__fill circle { transition: stroke-dashoffset 160ms linear; }.pose-score small { font-size: 16px; letter-spacing: -.48px; }
 .pose-status { position: absolute; color: #f6f6f6; }.pose-status button { border: 0; border-radius: 6.011px; background: rgba(59, 59, 59, .3); color: #f6f6f6; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; cursor: pointer; }
-.pose-status--loading { top: 848px; left: 818px; width: 350px; height: 126px; }.pose-status--loading p { position: absolute; top: 18px; left: 0; margin: 0; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }.loading-dot { position: absolute; top: -7px; color: #f6f6f6; font-size: 28px; line-height: 1; animation: pose-dot 1.2s ease-in-out infinite; }.loading-dot:nth-child(1) { left: 113px; animation-delay: 0s; }.loading-dot:nth-child(2) { left: 126px; animation-delay: .16s; }.loading-dot:nth-child(3) { left: 139px; animation-delay: .32s; }.pose-status--failure small, .pose-status--success small { position: absolute; color: #ccc; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; white-space: nowrap; }
+.pose-status--loading { top: 848px; left: 818px; width: 350px; height: 126px; }.pose-status--loading p { position: absolute; top: 26px; left: 0; margin: 0; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }.loading-dot { position: absolute; top: -7px; color: #f6f6f6; font-size: 28px; line-height: 1; animation: pose-dot 1.2s ease-in-out infinite; }.loading-dot:nth-child(1) { left: 113px; animation-delay: 0s; }.loading-dot:nth-child(2) { left: 126px; animation-delay: .16s; }.loading-dot:nth-child(3) { left: 139px; animation-delay: .32s; }.pose-status--failure small, .pose-status--success small { position: absolute; color: #ccc; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; white-space: nowrap; }
 .pose-status--failure, .pose-status--success { top: 841px; left: 800px; width: 340px; height: 130px; }.pose-status__symbol { position: absolute; top: 0; left: 98px; display: grid; width: 22px; height: 22px; place-items: center; overflow: hidden; border: .5px solid #e52f28; border-radius: 50%; background: rgba(229, 47, 40, .2); }.pose-status__symbol img { max-width: 14px; max-height: 14px; }.pose-status__symbol img + img { position: absolute; }.pose-status--failure strong, .pose-status--success strong { position: absolute; top: 30px; margin: 0; color: #e52f28; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; white-space: nowrap; }.pose-status--failure small { top: 63px; left: 172px; }.pose-status--failure button, .pose-status--success button { position: absolute; top: 96px; left: 185px; padding: 4.233px 14.815px; }
 .pose-status--success { left: 839px; width: 250px; }.pose-status--success .pose-status__symbol { left: 98px; border-color: #4bc27d; background: rgba(75, 194, 125, .2); }.pose-status--success strong { color: #4bc27d; font-weight: 700; }.pose-status--success small { top: 63px; left: 166px; }
 .pose-next { position: absolute; top: 198px; left: 1178px; width: 165px; height: 63px; border: 0; border-radius: 13px; background: #ffe250; color: #222; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; }
@@ -279,9 +279,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 /* Figma 657:4412 — 오늘 루틴 */
 .today-routine-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; }.today-routine-page__eyebrow { position: absolute; top: 138px; left: 131px; margin: 0; color: #ffe250; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }.today-routine-page h1 { position: absolute; top: 198px; left: 131px; margin: 0; font: 600 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; }.today-routine-page__notice { position: absolute; top: 259px; left: 131px; margin: 0; color: #b0b0b0; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }.today-routine-page__progress { position: absolute; top: 322px; left: 131px; display: flex; width: 1178px; height: 5px; gap: 6px; }.today-routine-page__finish { position: absolute; top: 198px; left: 1144px; box-sizing: border-box; width: 165px; height: 63px; padding: 0; border: 1px solid rgb(246 246 246 / .2); border-radius: 13px; background: rgb(59 59 59 / .3); color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; }.today-routine-page__finish:disabled { cursor: not-allowed; opacity: .42; }
-.today-routine-page__current { position: absolute; top: 364px; left: 131px; box-sizing: border-box; width: 824px; height: 455px; overflow: hidden; border: 1px solid #ffe250; border-radius: 20px; background: #3b3b3b; transition: transform 520ms cubic-bezier(.4, 0, .2, 1), opacity 520ms ease; }.today-routine-page__current.is-exiting { opacity: 0; transform: translateX(-900px); }.today-routine-page__current > span { position: absolute; top: 72px; left: 74px; display: grid; width: 83.757px; height: 29.844px; place-items: center; border-radius: 24.578px; background: #ffe250; color: #000; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__current h2 { position: absolute; top: 124px; left: 74px; margin: 0; font: 600 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; }.today-routine-page__current small { position: absolute; top: 174px; left: 74px; color: #8e8e8e; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; }.today-routine-page__current p { position: absolute; top: 207px; left: 74px; margin: 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }.today-routine-page__current button { position: absolute; top: 286px; left: 74px; box-sizing: border-box; width: 88.63px; height: 29.466px; border: 1px solid rgb(246 246 246 / .2); border-radius: 6.011px; background: rgb(59 59 59 / .3); color: #f6f6f6; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; cursor: pointer; }.today-routine-page__current > :is(img, video) { position: absolute; top: 177px; right: 78px; width: 191px; height: 236px; object-fit: contain; }
+.today-routine-page__current { position: absolute; top: 364px; left: 131px; box-sizing: border-box; width: 824px; height: 455px; overflow: hidden; border: 1px solid #ffe250; border-radius: 20px; background: #3b3b3b; transition: transform 520ms cubic-bezier(.4, 0, .2, 1), opacity 520ms ease; }.today-routine-page__current.is-exiting { opacity: 0; transform: translateX(-900px); }.today-routine-page__current > span { position: absolute; top: 72px; left: 74px; display: grid; width: 83.757px; height: 29.844px; place-items: center; border-radius: 24.578px; background: #ffe250; color: #000; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__current h2 { position: absolute; top: 124px; left: 74px; max-width: 350px; margin: 0; overflow: hidden; font: 600 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; white-space: nowrap; text-overflow: ellipsis; }.today-routine-page__current small { position: absolute; top: 174px; left: 74px; max-width: 350px; color: #8e8e8e; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; word-break: keep-all; }.today-routine-page__current p { position: absolute; top: 207px; left: 74px; max-width: 350px; margin: 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; word-break: keep-all; }.today-routine-page__current button { position: absolute; top: 286px; left: 74px; box-sizing: border-box; width: 88.63px; height: 29.466px; border: 1px solid rgb(246 246 246 / .2); border-radius: 6.011px; background: rgb(59 59 59 / .3); color: #f6f6f6; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; cursor: pointer; }.today-routine-page__current > :is(img, video) { position: absolute; top: 30px; right: 60px; width: 320px; height: 396px; border-radius: 12px; object-fit: contain; }
 .today-routine-page__current.is-last-step { width: 1178px; }
 .today-routine-page__next { position: absolute; top: 364px; left: 974px; box-sizing: border-box; width: 335px; height: 455px; overflow: hidden; border-radius: 20px; background: #3b3b3b; transition: left 520ms cubic-bezier(.4, 0, .2, 1), width 520ms cubic-bezier(.4, 0, .2, 1), border-radius 520ms ease; }.today-routine-page__next.is-promoting { left: 131px; width: 824px; border: 1px solid #ffe250; }.today-routine-page__next > p { position: absolute; top: 73px; left: 35px; margin: 0; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next h2 { position: absolute; top: 107.84px; left: 35px; margin: 0; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }.today-routine-page__next span { position: absolute; top: 161px; left: 35px; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next :is(img, video) { position: absolute; right: 33px; bottom: 47px; width: 132px; height: 163px; object-fit: contain; }.today-routine-page__next.is-promoting > p { top: 72px; left: 74px; display: grid; width: 83.757px; height: 29.844px; place-items: center; border-radius: 24.578px; background: #ffe250; color: #000; font-size: 0; }.today-routine-page__next.is-promoting > p::after { content: 'Step 2'; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next.is-promoting h2 { top: 124px; left: 74px; font-size: 38px; font-weight: 600; }.today-routine-page__next.is-promoting span { top: 207px; left: 74px; font-size: 18px; }.today-routine-page__next.is-promoting :is(img, video) { right: 78px; bottom: 42px; width: 191px; height: 236px; }.today-routine-page__complete { position: absolute; top: 861px; left: 573px; width: 293px; height: 63px; padding: 0; border: 0; border-radius: 41px; background: #ffe250; color: #222; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; }.today-routine-page__complete:disabled { cursor: default; opacity: .72; }.today-routine-page__complete.is-complete { background: #ffe250; color: #222; opacity: 1; }.today-routine-page button:focus-visible { outline: 3px solid #f6f6f6; outline-offset: 4px; }
+.today-routine-page__current button:disabled { cursor: default; opacity: .42; }
+.exercise-guide-backdrop { position: absolute; inset: 0; z-index: 10; padding: 0; border: 0; background: rgba(0, 0, 0, .6); cursor: default; }
+.exercise-guide-modal { position: absolute; top: 50%; left: 50%; z-index: 11; box-sizing: border-box; width: 720px; max-width: calc(100% - 80px); border-radius: 20px; overflow: hidden; background: #000; box-shadow: 0 18px 48px rgba(0, 0, 0, .4); transform: translate(-50%, -50%); }.exercise-guide-modal video { display: block; width: 100%; height: auto; }
 
 /* ── 세트 완료 전환 다듬기 ───────────────────────────────────────────────────
    "다음" 카드가 현재 자리로 커지며 올라오는 동작인데, 종전에는 **상자만** 미끄러지고
@@ -494,7 +497,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   display: grid;
   grid-template-columns: minmax(0, 360px) 191px;
   grid-template-rows: auto auto auto auto auto;
-  column-gap: 64px;
+  column-gap: 32px;
   align-content: start;
   padding: 72px 74px;
 }
@@ -513,7 +516,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .today-routine-page__current h2 { grid-row: 2; }
 .today-routine-page__current small { grid-row: 3; }
 .today-routine-page__current p { grid-row: 4; }
-.today-routine-page__current button { grid-row: 5; }
+.today-routine-page__current button {
+  grid-row: 5;
+  justify-self: start;
+  margin-top: 10px;
+  margin-left: 0;
+}
 
 .today-routine-page__current > img {
   position: static;
@@ -521,8 +529,19 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   grid-row: 1 / 6;
   align-self: center;
   width: 191px;
-  height: 236px;
+  height: 180px;
   object-fit: contain;
+}
+
+/* 마지막 운동 카드에서는 텍스트와 모션을 가까운 2열 콘텐츠 그룹으로 배치 */
+.today-routine-page__current.is-last-step {
+  grid-template-columns: minmax(0, 460px) 285px;
+  column-gap: 32px;
+}
+
+.today-routine-page__current.is-last-step > img {
+  width: 285px;
+  height: 180px;
 }
 
 /* ── 실시간 자세 촬영 (Step 2) ─────────────────────────────────────────── */
@@ -696,12 +715,18 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 }
 .comparison-analysis-help::before { content: ''; width: 3px; height: 21px; flex: none; border-radius: 2px; background: #ffe250; }
 
+/* 비교에서 제외된 부위 안내 — help 문구 바로 아래, 부위 버튼 위. 이름이
+   몇 개 들어올지 세션마다 달라 줄 수가 안 정해진다 — top(2020px)을 아래
+   .comparison-analysis-parts / footer 와 같이 내려서 최대 4줄까지 자리를
+   미리 비워둔다(줄 수가 적어도 버튼이 붙었다 떨어졌다 하지 않게). */
+.comparison-analysis-excluded { position: absolute; top: 1910px; left: 131px; width: 1182px; margin: 0; color: #b0b0b0; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }
+
 /* 진단 결과가 부위 버튼에 거의 붙어 있었다 (버튼 두 줄이 2064px 에서 끝나는데
    진단이 2070px 에서 시작 — 6px). 안내가 한 줄로 짧아진 만큼 버튼을 올리고,
    진단은 내려서 사이를 띄운다.
    ⚠️ min-height 로 **두 줄 자리를 미리 잡아둔다.** 부위 개수는 사진마다 달라서
       (한 줄일 수도 있다) 이걸 안 잡으면 진단 결과가 붙었다 떨어졌다 한다. */
-.comparison-analysis-parts { top: 1935px; min-height: 111px; align-content: flex-start; }
+.comparison-analysis-parts { top: 2020px; min-height: 111px; align-content: flex-start; }
 .comparison-analysis-diagnosis { top: 2092px; }
 
 /* ── "이전 단계" 화살표 ──────────────────────────────────────────────────────
@@ -875,7 +900,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
       빠져나가는(마진 상쇄) 것도 같이 막아준다.
    ⚠️ 간격은 원래 좌표에서 그대로 옮겨 왔다: 진단 아래 52px, 버튼 아래 42px. */
 .comparison-analysis-page { height: auto; min-height: 2691px; padding-bottom: 80px; }
-.comparison-analysis-footer { margin-top: 2092px; }
+.comparison-analysis-footer { margin-top: 2177px; }
 .comparison-analysis-diagnosis { position: static; margin-left: 129px; }
 .comparison-analysis-routine { position: static; display: block; margin: 52px auto 0; }
 .comparison-analysis-disclaimer { position: static; margin: 42px 0 0 131px; }
@@ -1005,6 +1030,56 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   width: 14px;
   height: 13px;
   transform: translateY(1px);
+}
+
+/* Figma 884:390 — 비교 분석도 공통 이전 단계 버튼 규격 사용 */
+.comparison-analysis-header .previous-button {
+  display: inline-flex;
+  height: 27px;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f6f6f6;
+  font: 500 18px/27px Pretendard, sans-serif;
+  letter-spacing: -.54px;
+  white-space: nowrap;
+}
+.comparison-analysis-header .previous-button img {
+  width: 18px;
+  height: 16px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  transform: none;
+}
+.comparison-analysis-header .previous-button span {
+  display: inline-flex;
+  align-items: center;
+  height: 27px;
+  line-height: 27px;
+}
+
+/* 화살표와 텍스트를 같은 수직 중심에 맞추고 한 줄로 유지 */
+.comparison-analysis-header .previous-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 21px;
+  font-size: 14px;
+  line-height: 21px;
+  white-space: nowrap;
+}
+.comparison-analysis-header .previous-button img {
+  width: 14px;
+  height: 13px;
+  transform: none;
+}
+.comparison-analysis-header .previous-button span {
+  display: inline-flex;
+  align-items: center;
+  height: 21px;
+  line-height: 21px;
 }
 
 /* 참고 화면처럼 화살표를 글자와 같은 중앙선에 고정 */

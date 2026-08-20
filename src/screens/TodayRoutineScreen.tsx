@@ -4,6 +4,7 @@ import todayRoutineNextExercise from '../assets/today-routine-next-exercise.png'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { PreviousButton } from '../components/PreviousButton'
 import { ExerciseMedia } from '../components/ExerciseMedia'
+import { ExerciseGuideDialog } from '../components/ExerciseGuideDialog'
 import type { RoutineExercise, TodayRoutine } from '../lib/api'
 import { displayProgress } from '../lib/routine-progress'
 
@@ -29,10 +30,16 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
   const exercises = today?.day.exercises ?? []
   const [step, setStep] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [guideOpen, setGuideOpen] = useState(false)
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
   const current = exercises[step]
   const next = exercises[step + 1]
+  const routineFocus = today?.day.title?.trim() || '운동'
+  useEffect(() => {
+    const heading = document.querySelector<HTMLElement>('.today-routine-page > h1')
+    if (heading) heading.textContent = `오늘은 ${routineFocus}하는 날!`
+  }, [routineFocus])
   const isLastStep = step >= exercises.length - 1
   // 다음 카드가 **마지막 스텝**이면 현재 자리는 전체 폭(1178px)이다. 이걸 안 알려주면
   // 824px 까지만 커졌다가 교체되는 순간 1178px 로 튄다.
@@ -83,8 +90,9 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
     {current && <section key={`current-${step}`} className={`today-routine-page__current ${isTransitioning ? 'is-exiting' : ''} ${isLastStep ? 'is-last-step' : ''}`} aria-label={`현재 운동 Step ${step + 1}`}>
       <span>Step {step + 1}/{exercises.length}</span><h2>{current.name}</h2><small>{exerciseDose(current)}</small>
       <p>{current.note ?? (current.muscle_group ? `${current.muscle_group} 자극에 집중해주세요.` : '정확한 자세에 집중해주세요.')}</p>
-      <button type="button">자세 가이드</button><ExerciseMedia videoUrl={current.video_url} imageUrl={current.image_url} fallback={todayRoutineExercise} label={`${current.name} 동작`} />
+      <button type="button" disabled={!current.video_url} onClick={() => setGuideOpen(true)}>자세 가이드</button><ExerciseMedia videoUrl={current.video_url} imageUrl={current.image_url} fallback={todayRoutineExercise} label={`${current.name} 동작`} />
     </section>}
+    <ExerciseGuideDialog open={guideOpen} videoUrl={current?.video_url} name={current?.name ?? ''} onClose={() => setGuideOpen(false)} />
 
     {/* data-next-step: 승격 중 Step 배지에 들어갈 문구. 종전에는 CSS 가 'Step 2' 를
         박아두고 있어서 3스텝 이후에도 매번 "Step 2" 가 스쳐 지나갔다. */}
