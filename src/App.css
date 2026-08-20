@@ -1041,6 +1041,11 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   transform: translateY(1px);
 }
 
+/* 비교 분석 안내 문구와 부위 토글 사이 간격 */
+.comparison-analysis-parts {
+  top: 1927px;
+}
+
 /* 비교 분석 진단 결과는 부위 선택 영역 아래에 고정 배치 */
 .comparison-analysis-page > .comparison-analysis-diagnosis {
   position: absolute;

@@ -238,7 +238,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
         <PhotoWithOverlay seg={segmentation?.reference ?? null} photoUrl={photoUrls?.reference} selected={selected} label="목표 레퍼런스" />
       </section>}
 
-      <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요. 왼팔/오른팔 구분은 사진에 보이는 방향 기준이에요.</p>
+      <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요.</p>
       {/* 비교에서 빠진 부위 안내. comparison_limitations 는 "이름: 사유" 문장 목록
           (백엔드 handlers/vlm.py `_comparison_limitations`) — 사유는 다 보여주지 않고
           이름만 뽑아 한 문장으로 합친다. */}
@@ -248,7 +248,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
         </p>
       )}
       {/* 시각적으로 판별이 안 된 부위(gap_level null)는 버튼을 만들지 않는다 —
-          눌러도 "확인 못 했다"만 나오는 버튼이라, 아래 제외 안내가 사유를 대신한다. */}
+           눌러도 "확인 못 했다"만 나오는 버튼이라, 아래 제외 안내가 사유를 대신한다. */}
       <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
         {judgedParts.map(part => <button
           className={part.class_name === selected?.class_name ? 'is-selected' : ''}
