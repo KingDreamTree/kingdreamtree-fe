@@ -4,6 +4,7 @@ import comparisonScoreTrack from '../assets/comparison-analysis-score-track.svg'
 import type { AnalysisPart, AnalysisResult, SegmentationInfo, SessionSegmentation } from '../lib/api'
 import { PreviousButton } from '../components/PreviousButton'
 import { BodyPartIcon } from '../components/BodyPartIcon'
+import { RefitHomeLogo } from '../components/RefitHomeLogo'
 
 const GAP_LABELS: Record<string, string> = {
   NONE: '차이 거의 없음',
@@ -192,7 +193,9 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
     <section className="comparison-analysis-page">
       <div className="comparison-analysis-top-rule" aria-hidden="true" />
-      <p className="comparison-analysis-logo" aria-label="REFIT"><span>RE:</span><strong>FIT</strong></p>
+      {/* 이 화면은 FixedStepFrame 을 쓰지 않아 로고가 글자로만 박혀 있었다 —
+          여기서만 처음으로 돌아갈 길이 없었다. 공통 컴포넌트로 바꿔 버튼으로 만든다. */}
+      <RefitHomeLogo />
       <header className="comparison-analysis-header">
         {onPrevious && <PreviousButton onClick={onPrevious} />}
         <p>분석이 완료되었어요</p>
