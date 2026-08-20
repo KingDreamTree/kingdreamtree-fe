@@ -7,18 +7,20 @@ import { ExerciseMedia } from '../components/ExerciseMedia'
 import type { RoutineDay } from '../lib/api'
 
 function exerciseDurationMin(exercise: RoutineDay['exercises'][number]): number {
-  if (exercise.exercise_kind === 'CARDIO') return exercise.duration_min ?? 0
+  if (exercise.exercise_kind === 'CARDIO') return (exercise.duration_min ?? 0) + 1
   const sets = exercise.sets ?? 0
   const reps = exercise.reps ?? 0
   const restSeconds = exercise.rest_sec ?? 0
-  return Math.ceil((sets * reps * 4 + Math.max(sets - 1, 0) * restSeconds) / 60)
+  // 반복 수행 시간(1회 4초) + 세트 사이 휴식 + 운동별 준비·정리 여유 1분
+  return Math.ceil((sets * reps * 4 + Math.max(sets - 1, 0) * restSeconds) / 60) + 1
 }
 
 function estimatedDuration(day: RoutineDay | null): number | null {
   if (!day) return null
-  if (day.estimated_duration_min && day.estimated_duration_min > 0) return day.estimated_duration_min
   const exerciseMinutes = day.exercises.reduce((total, exercise) => total + exerciseDurationMin(exercise), 0)
-  return exerciseMinutes > 0 ? exerciseMinutes + Math.max(day.exercises.length - 1, 0) : null
+  if (exerciseMinutes <= 0) return null
+  // 운동 사이 이동·기구 조정 시간을 운동 간 1분씩 추가
+  return exerciseMinutes + Math.max(day.exercises.length - 1, 0)
 }
 
 /** 세트·횟수·휴식을 한 줄 요약으로. 유산소는 시간 기준 (중량 kg은 서버가 제공하지 않음 — rir만). */
@@ -45,6 +47,7 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
     <h1>DAY {day?.day_order ?? 1}</h1>
     <PreviousButton className="custom-routine-detail-page__previous" onClick={onPrevious} />
     <p className="custom-routine-detail-page__duration"><img src={customRoutineDetailTime} alt="" />예상 운동시간 <strong>{duration ?? '-'}분</strong></p>
+    <p className="custom-routine-detail-page__duration-note">세트·반복·휴식 시간에 운동별 준비·정리 1분과 운동 사이 이동 1분을 포함해 계산했어요.</p>
     <section className="custom-routine-detail-page__groups" aria-label={`DAY ${day?.day_order ?? 1} 운동 목록`}>
       {exercises.map((exercise, index) => <article className={selected?.order_index === exercise.order_index ? 'is-selected' : ''} key={exercise.order_index} tabIndex={0} onMouseEnter={() => setSelectedIndex(index)} onFocus={() => setSelectedIndex(index)} onClick={() => setSelectedIndex(index)}>
         <img src={exercise.image_url ?? customRoutineDetailWarmup} alt="" />
