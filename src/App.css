@@ -962,3 +962,23 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-header .previous-button span {
   line-height: 21px;
 }
+
+/* 비교 분석 이전 단계: 화살표와 텍스트를 동일한 크기로 표시 */
+.comparison-analysis-header .previous-button,
+.comparison-analysis-header .previous-button span {
+  font: 500 14px/21px Pretendard, sans-serif;
+  font-size: 14px;
+  line-height: 21px;
+  letter-spacing: -.42px;
+}
+
+.comparison-analysis-header .previous-button {
+  height: 21px;
+  gap: 4px;
+}
+
+.comparison-analysis-header .previous-button img {
+  width: 14px;
+  height: 13px;
+  transform: translateY(1px);
+}
