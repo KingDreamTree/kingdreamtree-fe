@@ -971,6 +971,10 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   flex: 0 0 auto;
 }
 
+.comparison-analysis-header .previous-button img {
+  transform: translateY(2px);
+}
+
 .comparison-analysis-header .previous-button span {
   display: inline-flex;
   align-items: center;
