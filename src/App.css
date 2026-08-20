@@ -1079,10 +1079,14 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   transform: translateX(-50%);
 }
 /* 입력창은 하단 영역에 고정하고, 그 위의 대화만 스크롤 */
+/* ⚠️ bottom 은 **입력창 위**에서 끝나야 한다. 입력창이 top: 790px · 높이 78px 이라
+   캔버스(1024px) 기준 아래에서 234px 지점부터가 입력창이다 — 그보다 아래로 내려오면
+   마지막 말풍선이 입력창 뒤로 들어가 글자가 잘린다(사용자 신고 2026-08-21).
+   입력창 자리를 옮기면 이 값도 같이 봐야 한다. */
 .feedback-chat-history {
   top: 120px;
-  bottom: 150px;
-  padding-bottom: 36px;
+  bottom: 250px;
+  padding-bottom: 24px;
   scrollbar-width: thin;
   scrollbar-color: #707070 transparent;
 }
