@@ -8,6 +8,16 @@ import { ExerciseGuideDialog } from '../components/ExerciseGuideDialog'
 import type { RoutineExercise, TodayRoutine } from '../lib/api'
 import { displayProgress } from '../lib/routine-progress'
 
+/** 시작 중량 한 줄. **없으면 null 이고, 그때는 아무것도 그리지 않는다** —
+ *  맨몸 운동·인바디 없음이면 서버가 무게를 안 주고, 지어내면 안 되기 때문이다.
+ *  ⚠️ "권장"이 아니라 "시작"으로 쓴다. 처방은 옆의 RIR 문구가 계속 담당한다. */
+function loadText(exercise: RoutineExercise | undefined): string | null {
+  const load = exercise?.load_guide
+  if (!load) return null
+  const span = load.min_kg === load.max_kg ? `${load.min_kg}kg` : `${load.min_kg}~${load.max_kg}kg`
+  return `${span}로 시작`
+}
+
 function exerciseDose(exercise: RoutineExercise | undefined): string {
   if (!exercise) return ''
   if (exercise.exercise_kind === 'CARDIO') return `${exercise.duration_min ?? '-'}분`
@@ -99,6 +109,9 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
         승격된 카드와 새 현재 카드의 최종 모습이 같도록 CSS 를 맞춰뒀으므로 이음매가 없다. */}
     {current && <section key={`current-${step}`} className={`today-routine-page__current ${isTransitioning ? 'is-exiting' : ''} ${isLastStep ? 'is-last-step' : ''}`} aria-label={`현재 운동 Step ${step + 1}`}>
       <span>Step {step + 1}/{exercises.length}</span><h2 className={titleSizeClass(current.name).trim()}>{current.name}</h2><small>{exerciseDose(current)}</small>
+      {loadText(current) && <p className="today-routine-page__load" title={current.load_guide?.basis}>
+        <em>{loadText(current)}</em> — 가볍게 느껴지면 한 단계 올리면 돼요
+      </p>}
       <p>{current.note ?? (current.muscle_group ? `${current.muscle_group} 자극에 집중해주세요.` : '정확한 자세에 집중해주세요.')}</p>
       <button type="button" disabled={!current.video_url} onClick={() => setGuideOpen(true)}>자세 가이드</button><ExerciseMedia videoUrl={current.video_url} imageUrl={current.image_url} fallback={todayRoutineExercise} label={`${current.name} 동작`} />
     </section>}

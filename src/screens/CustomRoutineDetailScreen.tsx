@@ -95,6 +95,18 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
       <dl>
         {selected.sets && <div><dt>세트 수</dt><dd>{selected.sets}세트</dd></div>}
         {selected.reps && <div><dt>반복 횟수</dt><dd>{selected.reps}회</dd></div>}
+        {/* ⚠️ 무게는 «시작 무게»로 부른다 — «권장/적정»이 아니다. 처방은 아래
+            «운동 강도»(RIR)가 계속 담당하고, 이건 첫 세트를 집을 때의 출발점이다.
+            load_guide 가 null 인 경우(맨몸·인바디 없음)는 줄 자체가 안 나온다. */}
+        {selected.load_guide && <div>
+          <dt>시작 무게</dt>
+          <dd title={selected.load_guide.basis}>
+            {selected.load_guide.min_kg === selected.load_guide.max_kg
+              ? `${selected.load_guide.min_kg}kg`
+              : `${selected.load_guide.min_kg}~${selected.load_guide.max_kg}kg`}
+            <small>가볍게 느껴지면 한 단계 올리세요</small>
+          </dd>
+        </div>}
         {selected.rir !== null && selected.rir !== undefined && <div><dt>운동 강도</dt><dd>{selected.rir}회 더 할 수 있는 여유</dd></div>}
         {selected.rest_sec && <div><dt>세트 사이 휴식</dt><dd>{selected.rest_sec}초</dd></div>}
       </dl>
