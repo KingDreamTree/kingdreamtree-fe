@@ -45,12 +45,14 @@ function estimatedDuration(day: RoutineDay | null): number | null {
   return totalSeconds > 0 ? Math.ceil(totalSeconds / 60) : null
 }
 
-/** 첫 세트를 집을 때의 출발 무게. 맨몸이거나 인바디가 없으면 null 이라 줄이 안 나온다. */
+/** 이 운동에서 들 무게. 맨몸이거나 인바디가 없으면 null 이라 줄이 안 나온다.
+ *  ⚠️ «로 시작» 이라고 부르지 않는다 — 백엔드는 kg 을 저장하지 않고 배율(load_adjust)만
+ *     남겨 조회할 때마다 다시 계산한다. 피드백에서 «무겁다» 가 나오면 배율이 내려가
+ *     이 값 자체가 바뀌므로, 조정된 뒤에는 시작 무게가 아니라 지금 들 무게다. */
 function loadText(exercise: RoutineDay['exercises'][number]): string | null {
   const load = exercise.load_guide
   if (!load) return null
-  const span = load.min_kg === load.max_kg ? `${load.min_kg}kg` : `${load.min_kg}~${load.max_kg}kg`
-  return `${span}로 시작`
+  return load.min_kg === load.max_kg ? `${load.min_kg}kg` : `${load.min_kg}~${load.max_kg}kg`
 }
 
 /** 세트·횟수·휴식을 한 줄 요약으로. 유산소는 시간 기준. */
@@ -92,9 +94,10 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
         <div>
           <h2>{exercise.name}</h2>
           <p>{exerciseSummary(exercise)}{exercise.muscle_group ? ` · ${exercise.muscle_group}` : ''}</p>
-          {(loadText(exercise) || exercise.note) && <p className="custom-routine-detail-page__note">
-            {loadText(exercise) && <em>{loadText(exercise)}</em>}
-            {loadText(exercise) && exercise.note ? ' · ' : ''}{exercise.note}
+          {/* ⚠️ 서버 note 는 RIR 을 되풀이하는 문장(«N회를 마쳤을 때 …»)이라 쓰지 않는다.
+              여기서는 «얼마로 시작해서 어떻게 올리는지»만 말한다. */}
+          {loadText(exercise) && <p className="custom-routine-detail-page__note">
+            <em>{loadText(exercise)}</em> · 가볍게 느껴지면 한 단계 올리세요
           </p>}
         </div>
       </article>)}
@@ -105,17 +108,15 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
       <dl>
         {selected.sets && <div><dt>세트 수</dt><dd>{selected.sets}세트</dd></div>}
         {selected.reps && <div><dt>반복 횟수</dt><dd>{selected.reps}회</dd></div>}
-        {/* ⚠️ 무게는 «시작 무게»로 부른다 — «권장/적정»이 아니다. 첫 세트를 집을 때의
-            출발점이다. RIR(«N회 더 할 수 있는 여유») 줄은 뺐다 — 같은 말을 왼쪽
-            목록의 안내 문장이 이미 하고 있다.
-            load_guide 가 null 인 경우(맨몸·인바디 없음)는 줄 자체가 안 나온다. */}
+        {/* ⚠️ 값만 적는다. 피드백으로 무게가 조정되면 그 값이 여기로 그대로 내려오므로,
+            «시작»이라고 부르면 조정된 뒤에는 틀린 말이 된다. 올리는 법 안내는 왼쪽
+            목록의 한 줄이 담당한다. load_guide 가 null 이면(맨몸·인바디 없음) 줄이 없다. */}
         {selected.load_guide && <div>
-          <dt>시작 무게</dt>
+          <dt>무게</dt>
           <dd title={selected.load_guide.basis}>
             {selected.load_guide.min_kg === selected.load_guide.max_kg
               ? `${selected.load_guide.min_kg}kg`
               : `${selected.load_guide.min_kg}~${selected.load_guide.max_kg}kg`}
-            <small>가볍게 느껴지면 한 단계 올리세요</small>
           </dd>
         </div>}
         {selected.rest_sec && <div><dt>세트 사이 휴식</dt><dd>{selected.rest_sec}초</dd></div>}

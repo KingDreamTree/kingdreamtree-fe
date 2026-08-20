@@ -268,7 +268,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .custom-routine-detail-page__groups article:hover, .custom-routine-detail-page__groups article:focus-visible, .custom-routine-detail-page__groups article.is-selected { border-color: #ffe250; background: #3b3b3b; }
 .custom-routine-detail-page__groups article:focus-visible { outline: 0; }
 .custom-routine-detail-page__groups article > img { width: 85.746px; height: 84px; margin: 12px 8.074px 12px 14px; border-radius: 0; object-fit: cover; object-position: center; }
-.custom-routine-detail-page__info { position: absolute; top: 382px; left: 884px; box-sizing: border-box; width: 424px; height: 485px; min-height: 0; padding: 54px 40px; overflow: hidden; border: 0; border-radius: 15.98px; background: rgb(59 59 59 / .4); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.custom-routine-detail-page__info { position: absolute; top: 382px; left: 884px; box-sizing: border-box; width: 424px; height: 485px; min-height: 0; padding: 32px 40px 24px; overflow: hidden; border: 0; border-radius: 15.98px; background: rgb(59 59 59 / .4); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
 /* ⚠️ max-width 는 패널이 실제로 내주는 폭(424 − 좌우 패딩 40×2 = 344px)이다.
    종전 200px 은 그보다 144px 좁아서, 한 줄에 들어가는 이름도 접혔다
    ("덤벨 싱글 레그 카프 / 레이즈"). 넘칠 때만 접히게 하고, 접히더라도
@@ -919,7 +919,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   /* ⚠️ 사진이든 영상이든 **같은 틀**에 담는다. 종전에는 img 전용 덮어쓰기가 셋이나
      쌓여 있어서(245x300 → 360x390 → 365x300) 운동마다 크기·자리가 달라 보였다.
      cover 로 틀을 꽉 채워야 원본 비율이 달라도 같은 크기로 보인다. */
-  width: 280px; height: 200px; max-width: 280px; max-height: 200px;
+  width: 330px; height: 210px; max-width: 330px; max-height: 210px;
   min-height: 0; flex: none;
   margin: 24px auto 0; border-radius: 12px; object-fit: cover; object-position: center;
 }
