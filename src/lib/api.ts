@@ -347,8 +347,21 @@ export interface RoutineExercise {
   reps: number | null
   duration_min: number | null
   rest_sec: number | null
-  /** N회 남기고 멈추는 무게 — 중량(kg)은 서버가 제공하지 않는다 */
+  /** N회 남기고 멈추는 무게. 강도의 **본체**는 여전히 이것이다 */
   rir: number | null
+  /** 첫 세트를 몇 kg 으로 집을지 — **처방이 아니라 출발점**이다.
+   *  ⚠️ null 인 경우가 정상이다: 맨몸 운동 / 인바디 없음(체중 모름) / 근육군 미상.
+   *     그때는 화면에 무게를 **띄우지 않는다** — 서버가 지어내지 않기 때문이다.
+   *  ⚠️ 반드시 rir 안내와 함께 보여야 한다. 숫자만 있으면 "이 무게로 하라"는
+   *     처방으로 읽힌다. */
+  load_guide: {
+    min_kg: number
+    max_kg: number
+    equipment: string
+    /** 사용자에게 그대로 보여도 되는 근거 문장 (서버가 만든다) */
+    basis: string
+    adjust: number
+  } | null
   boosted_by: string | null
   note: string | null
 }
