@@ -240,7 +240,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
         <PhotoWithOverlay seg={segmentation?.reference ?? null} photoUrl={photoUrls?.reference} selected={selected} label="목표 레퍼런스" />
       </section>}
 
-      <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요.</p>
+      <p className="comparison-analysis-help">부위를 선택하면 맞춤 솔루션을 볼 수 있어요.</p>
       {/* 비교에서 빠진 부위 안내. comparison_limitations 는 "이름: 사유" 문장 목록
           (백엔드 handlers/vlm.py `_comparison_limitations`) — 사유는 다 보여주지 않고
           이름만 뽑아 한 문장으로 합친다. */}
