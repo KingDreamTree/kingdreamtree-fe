@@ -1,8 +1,50 @@
 import { useState } from 'react'
 import previousArrow from '../assets/previous-arrow.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
-import type { RoutineDay, RoutineDetail } from '../lib/api'
+import type { RoutineDay, RoutineDetail, RoutineNotice } from '../lib/api'
 import { displayProgress } from '../lib/routine-progress'
+
+/** 2026-08-20 이전 루틴이 갖고 있는 옛 안내 문구. 그때는 조건별 안내를 **공백 하나로**
+ *  이어붙여 한 문단으로 저장해서, 잘라낼 표시가 문구 자체밖에 남지 않았다.
+ *  ⚠️ 새로 만든 루틴은 이 표를 타지 않는다 — 서버가 notices 를 채워준다. */
+const LEGACY_NOTICES = [
+  // 첫 문장이 본문의 일부라서 남긴다.
+  { opener: '체지방률 기준으로 감량을 함께 하면', title: '감량을 함께 하는 구성이에요', dropOpener: false },
+  // 첫 문장이 곧 소제목이라 빼지 않으면 화면에 두 번 나온다.
+  { opener: '매일 운동을 선택하셨네요!', title: '매일 운동을 선택하셨네요', dropOpener: true },
+  { opener: '체형 비교 진단 없이 생성된 기본 루틴입니다.', title: '진단 없이 만든 기본 루틴이에요', dropOpener: true },
+]
+
+/** 공백으로 이어붙은 옛 한 문단을 아는 문구 위치에서 잘라 안내별로 나눈다.
+ *  아는 문구가 하나도 없으면 소제목 없이 통째로 둔다 — 소제목을 지어내지 않는다. */
+function splitLegacyBlock(text: string): RoutineNotice[] {
+  const hits = LEGACY_NOTICES
+    .map(item => ({ ...item, at: text.indexOf(item.opener) }))
+    .filter(item => item.at >= 0)
+    .sort((a, b) => a.at - b.at)
+  if (!hits.length) return [{ title: '', body: text }]
+  const notices: RoutineNotice[] = []
+  const head = text.slice(0, hits[0].at).trim()
+  if (head) notices.push({ title: '', body: head })
+  hits.forEach((hit, index) => {
+    const stop = index + 1 < hits.length ? hits[index + 1].at : text.length
+    const body = text.slice(hit.dropOpener ? hit.at + hit.opener.length : hit.at, stop).trim()
+    if (body) notices.push({ title: hit.title, body })
+  })
+  return notices
+}
+
+/** 옛 루틴은 notices 없이 한 덩어리 문자열만 갖고 있다. 백엔드가 «소제목 줄 + 본문»을
+ *  빈 줄로 이어 붙여 주므로 먼저 그 규칙으로 되돌리고, 그 형식이 아니면(= 공백으로
+ *  이어붙던 더 옛 루틴) 아는 문구 위치에서 자른다. */
+function parseLegacyNotice(notice: string | null | undefined): RoutineNotice[] {
+  if (!notice) return []
+  return notice.split(/\n\s*\n/).flatMap(block => {
+    const [first, ...rest] = block.split('\n')
+    if (rest.length) return [{ title: first.trim(), body: rest.join(' ').trim() }]
+    return splitLegacyBlock(block.trim())
+  }).filter(item => item.body)
+}
 
 /** Day 카드의 포커스 문구 — 운동들의 근육군을 요약한다. */
 function dayFocus(day: RoutineDay): string {
@@ -29,6 +71,9 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
   // strategy.body 는 백엔드가 실제로 생성한 루틴(모드 판정·부위별 가중 세트·유산소
   // 여부)에서 조립한 설명이다. 헤드라인은 쓰지 않는다 — "루틴 요약"엔 이 근거
   // 문단 하나만 보여준다. 이 필드 이전 루틴은 null 이므로 기존 폴백을 그대로 쓴다.
+  // 안내는 조건마다 따로 붙는다(감량 대상자 / 주 7일 선택자 / 진단 없음). 한 문단으로
+  // 이어 붙이면 대상이 다른 이야기가 섞여 읽히지 않아서, 소제목을 살려 따로 그린다.
+  const notices = routine?.notices?.length ? routine.notices : parseLegacyNotice(routine?.notice)
   const routineSummary = routine?.strategy?.body ?? (focusAreas.length > 0
     ? `${focusAreas.join('·')} 개선을 우선순위로 두고, 주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정에 맞춰 구성했어요.`
     : `주 ${routine?.exercise_days_per_week ?? '-'}일 운동 일정과 각 운동의 세트·반복·휴식 구성을 바탕으로 만들었어요.`)
@@ -50,7 +95,10 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
         <h3>루틴 요약</h3>
         <p>{routineSummary}</p>
       </div>
-      {routine?.notice && <p className="custom-routine-page__notice">{routine.notice}</p>}
+      {notices.map((notice, index) => <div className="custom-routine-page__goal-section custom-routine-page__notice" key={notice.title || index}>
+        {notice.title && <h3>{notice.title}</h3>}
+        <p>{notice.body}</p>
+      </div>)}
     </section>
 
     {/* 주기 모델: Day 1..N을 4주기 반복 — 주차가 달라도 Day 구성은 같고, 진행 중인 주기만 표시가 다르다 */}

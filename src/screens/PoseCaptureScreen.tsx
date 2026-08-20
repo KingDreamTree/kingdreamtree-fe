@@ -124,7 +124,7 @@ function drawSkeletonOn(canvas: HTMLCanvasElement | null, lm: PoseLandmarks | nu
 function cameraErrorMessage(error: unknown) {
   const name = error instanceof DOMException ? error.name : ''
   if (name === 'NotAllowedError' || name === 'SecurityError')
-    return '카메라 권한이 차단되어 있어요. 주소창 자물쇠 아이콘 → 카메라 허용 후 다시 시도를 눌러주세요.'
+    return '카메라 권한이 차단되어 있어요.\n주소창 자물쇠 아이콘 → 카메라 허용 후 다시 시도를 눌러주세요.'
   if (name === 'NotFoundError' || name === 'OverconstrainedError')
     return '사용할 수 있는 카메라를 찾지 못했어요. 카메라가 있는 기기에서 열어주세요.'
   if (name === 'NotReadableError')

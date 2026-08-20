@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import comparisonCommentCircle from '../assets/comparison-analysis-comment-circle.svg'
-import comparisonCommentIcon from '../assets/comparison-analysis-comment-icon.svg'
 import comparisonScoreTrack from '../assets/comparison-analysis-score-track.svg'
 import type { AnalysisPart, AnalysisResult, SegmentationInfo, SessionSegmentation } from '../lib/api'
 import { PreviousButton } from '../components/PreviousButton'
+import { BodyPartIcon } from '../components/BodyPartIcon'
 
 const GAP_LABELS: Record<string, string> = {
   NONE: '차이 거의 없음',
@@ -15,6 +15,13 @@ const GAP_LABELS: Record<string, string> = {
 const SCORE_RING_RADIUS = (300 - 24.83) / 2
 const SCORE_RING_CIRCUMFERENCE = 2 * Math.PI * SCORE_RING_RADIUS
 
+/** 좌우 짝 class_name 을 서로 바꾼다. 짝이 없는 부위(Torso 등)는 null. */
+function mirrorClassName(className: string): string | null {
+  if (className.startsWith('Left_')) return `Right_${className.slice(5)}`
+  if (className.startsWith('Right_')) return `Left_${className.slice(6)}`
+  return null
+}
+
 function displayPartName(name: string | null | undefined): string {
   return (name ?? '부위').replaceAll('팔뚝', '전완').replaceAll('위팔', '상완')
 }
@@ -25,15 +32,28 @@ function displayPartName(name: string | null | undefined): string {
  * 겹치고, 한 캔버스이므로 CSS에서 cover/contain 무엇을 걸어도 같이 변형된다.
  * 선택 부위 bbox(맵 좌표계) 바깥은 칠하지 않는다 — 모델 오검출 노이즈 필터.
  */
-function PhotoWithOverlay({ seg, selected, label }: { seg: SegmentationInfo | null; selected: AnalysisPart | null; label: string }) {
+function PhotoWithOverlay({ seg, photoUrl, selected, label }: { seg: SegmentationInfo | null; photoUrl?: string | null; selected: AnalysisPart | null; label: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
+    // ⚠️ 세그가 없어도 **사진은 그린다** (2026-08-20). 퀵/웹캠 경로는 Sapiens2 를
+    //    안 돌려 세그가 없는데, 종전에는 여기서 그냥 지우고 끝내서 화면에 빈
+    //    검은 상자 두 개만 남았다. 색칠(부위 오버레이)만 세그가 필요하다.
     if (!seg) {
       canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
-      return
+      if (!photoUrl) return
+      let cancelledPlain = false
+      const plain = new Image()
+      plain.onload = () => {
+        if (cancelledPlain) return
+        canvas.width = plain.naturalWidth
+        canvas.height = plain.naturalHeight
+        canvas.getContext('2d')?.drawImage(plain, 0, 0)
+      }
+      plain.src = photoUrl
+      return () => { cancelledPlain = true }
     }
 
     let cancelled = false
@@ -91,7 +111,7 @@ function PhotoWithOverlay({ seg, selected, label }: { seg: SegmentationInfo | nu
     }
     photo.src = seg.photo_url
     return () => { cancelled = true }
-  }, [seg, selected])
+  }, [seg, photoUrl, selected])
 
   return <div className="comparison-analysis-photo">
     <canvas ref={canvasRef} className="comparison-analysis-photo__canvas" role="img" aria-label={label} />
@@ -102,38 +122,76 @@ function PhotoWithOverlay({ seg, selected, label }: { seg: SegmentationInfo | nu
 type ComparisonAnalysisScreenProps = {
   analysis: AnalysisResult | null
   segmentation: SessionSegmentation | null
+  /** 세그가 없을 때(퀵/웹캠) 사진만이라도 그리기 위한 원본 URL. */
+  photoUrls?: { user: string | null; reference: string | null } | null
   onCreateRoutine: () => void
   onPrevious?: () => void
 }
 
 /** Figma 41:189 — 비교 분석. 모든 수치·문구는 GET /analysis · /segmentation 응답에서 온다. */
-export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRoutine, onPrevious }: ComparisonAnalysisScreenProps) {
+export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, onCreateRoutine, onPrevious }: ComparisonAnalysisScreenProps) {
   const parts = analysis?.parts ?? []
+  // 시각적으로 판별이 안 된 부위(gap_level null — 옷/각도로 못 봄)는 버튼도, 기본
+  // 선택 대상도 되지 않는다. 눌러도 "확인 못 했다"만 나오는 버튼을 없애는 것이다 —
+  // 그 사유는 위의 comparison_limitations 안내문이 이미 부위 이름과 함께 보여준다.
+  const judgedParts = parts.filter(part => part.gap_level != null)
   const [selectedClass, setSelectedClass] = useState<string | null>(null)
-  const selected = parts.find(part => part.class_name === selectedClass) ?? parts[0] ?? null
+  const selected = judgedParts.find(part => part.class_name === selectedClass) ?? judgedParts[0] ?? null
 
   const overall = analysis?.overall ?? null
   const score = overall?.similarity_score ?? null
   const filled = score === null ? 0 : Math.max(0, Math.min(100, score)) / 100
 
-  const priorityName = overall?.priority_parts?.length
-    ? parts.find(part => part.class_name === overall.priority_parts[0])?.name_ko ?? null
-    : null
-  const headline = priorityName ? `${priorityName} 중심 개선 필요` : '개선 포인트 요약'
+  // priority_parts[0] 하나만 쓰면 «팔·복부가 둘 다 확연히 다른» 사진에서도 단 하나만
+  // 콕 집은 것처럼 보인다. 규칙(rank_priority)이 격차 등급 순으로 정렬해 주므로,
+  // 1순위와 **같은 gap_level** 인 항목은 전부 같이 짚는다.
+  const topClass = overall?.priority_parts?.[0] ?? null
+  const topPart = topClass ? parts.find(part => part.class_name === topClass) : null
+  const worstGapLevel = topPart?.gap_level ?? null
+  const tiedClasses = worstGapLevel
+    ? (overall?.priority_parts ?? []).filter(
+        name => parts.find(part => part.class_name === name)?.gap_level === worstGapLevel,
+      )
+    : []
+  // 좌우 쌍은 격차·신뢰도가 항상 같게 나온다(백엔드 규칙) — 짝도 동률에 들었으면
+  // 한쪽만 짚지 않고 «양쪽» 으로 합친다. 안 그러면 오른쪽도 똑같이 문제인데
+  // 왼쪽만 지목하는 짝짝이 문구가 된다.
+  const seenClasses = new Set<string>()
+  const priorityNames: string[] = []
+  for (const className of tiedClasses) {
+    if (seenClasses.has(className)) continue
+    const part = parts.find(item => item.class_name === className)
+    if (!part) continue
+    const mirrorClass = mirrorClassName(className)
+    const isPaired = mirrorClass != null && tiedClasses.includes(mirrorClass)
+    seenClasses.add(className)
+    if (isPaired && mirrorClass) seenClasses.add(mirrorClass)
+    priorityNames.push(
+      isPaired
+        ? displayPartName(part.name_ko)?.replace(/^(왼팔|오른팔|왼쪽|오른쪽)\s*/, '양쪽 ') ?? className
+        : displayPartName(part.name_ko ?? className),
+    )
+  }
+  const headline = priorityNames.length ? `${priorityNames.join('·')} 중심 개선 필요` : '개선 포인트 요약'
 
-  const excluded = analysis?.excluded ?? []
+  // 세그(색칠) 또는 원본 사진 중 **하나라도** 있으면 비교 이미지 섹션을 그린다.
+  // ⚠️ 퀵(웹캠)은 Sapiens2 를 안 돌려 세그가 없다 — 세그만 조건으로 걸면
+  //    빈 검은 상자 두 개가 뜬다 (2026-08-20 실측). 세그가 없으면 색칠 없이
+  //    사진만 그린다 (PhotoWithOverlay 의 photoUrl 경로).
+  const hasImages = Boolean(
+    (segmentation?.user && segmentation?.reference) || (photoUrls?.user && photoUrls?.reference),
+  )
+
   const disclaimer = analysis?.disclaimer
   const disclaimerBoundary = '상담하세요.'
   const disclaimerBoundaryIndex = disclaimer?.indexOf(disclaimerBoundary) ?? -1
   const medicalDisclaimer = disclaimerBoundaryIndex >= 0
     ? disclaimer?.slice(0, disclaimerBoundaryIndex + disclaimerBoundary.length)
     : disclaimer
-  const dataDisclaimer = disclaimerBoundaryIndex >= 0
-    ? disclaimer?.slice(disclaimerBoundaryIndex + disclaimerBoundary.length).trim()
-    : null
 
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
     <section className="comparison-analysis-page">
+      <div className="comparison-analysis-top-rule" aria-hidden="true" />
       <p className="comparison-analysis-logo" aria-label="REFIT"><span>RE:</span><strong>FIT</strong></p>
       <header className="comparison-analysis-header">
         {onPrevious && <PreviousButton onClick={onPrevious} />}
@@ -160,40 +218,61 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
           <strong>{headline}</strong>
           <p>{overall?.summary ?? '요약을 준비하고 있어요.'}</p>
         </div>
-        {(overall?.strengths?.length || overall?.cautions?.length || excluded.length) ? <ul className="comparison-analysis-notes">
-          {overall?.strengths?.map(item => <li key={item}>💪 {item}</li>)}
-          {overall?.cautions?.map(item => <li key={item}>⚠️ {item}</li>)}
-          {excluded.length > 0 && <li>⚠️ {excluded.map(part => part.name_ko ?? part.class_name).join(', ')} 부위는 시각적 판별이 어려워서 비교 분석에서 제외되었습니다.</li>}
-        </ul> : null}
+        {/* ⚠️ 강점·주의·제외 부위 목록은 **의도적으로 그리지 않는다.** 세 값이 다 있을 때만
+            나타나는 구조라 세션마다 떴다 안 떴다 해서, 요약 상자 아래 높이가 들쭉날쭉했다.
+            제외 부위는 아래 «부위 선택 안내» 밑에 한 문장으로 따로 보여준다.
+            (되살릴 일이 생기면 analysis.overall.strengths / cautions / analysis.excluded 다.) */}
       </section>
 
-      <p className="comparison-analysis-count">총 <em>{parts.length}건</em>의 부위별 진단 결과</p>
+      {/* 판별된 부위만 센다 — 못 본 부위는 아래 버튼에도 안 나오므로 숫자가 어긋난다. */}
+      <p className="comparison-analysis-count">총 <em>{judgedParts.length}건</em>의 부위별 진단 결과</p>
 
       {/* 촬영본은 거울 방향으로 저장되므로(2026-08-18 개정) 두 사진 모두 부위명
           그대로 칠하면 시각적으로 같은 편이 붙는다 — 교차·표시 반전 없음. */}
-      <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
-        <PhotoWithOverlay seg={segmentation?.user ?? null} selected={selected} label="현재 체형" />
-        <PhotoWithOverlay seg={segmentation?.reference ?? null} selected={selected} label="목표 레퍼런스" />
-      </section>
+      {/* ⚠️ 세그가 없어도(퀵/웹캠) **사진은 그린다** (2026-08-20). 종전에는 세그
+          맵이 없으면 캔버스가 빈 채로 남아 화면에 검은 상자 두 개만 보였다 —
+          사용자에게는 "사진이 안 뜬다"로 읽힌다. 색칠만 세그가 필요하고 사진
+          자체는 photo 행만으로 그릴 수 있다. */}
+      {hasImages && <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
+        <PhotoWithOverlay seg={segmentation?.user ?? null} photoUrl={photoUrls?.user} selected={selected} label="현재 체형" />
+        <PhotoWithOverlay seg={segmentation?.reference ?? null} photoUrl={photoUrls?.reference} selected={selected} label="목표 레퍼런스" />
+      </section>}
 
       <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요.</p>
+      {/* 비교에서 빠진 부위 안내. comparison_limitations 는 "이름: 사유" 문장 목록
+          (백엔드 handlers/vlm.py `_comparison_limitations`) — 사유는 다 보여주지 않고
+          이름만 뽑아 한 문장으로 합친다. */}
+      {!!overall?.comparison_limitations?.length && (
+        <p className="comparison-analysis-excluded">
+          {overall.comparison_limitations.map(text => displayPartName(text.split(':')[0].trim())).join(', ')} 부위는 시각적 판별이 어려워서 비교 분석에서 제외되었습니다.
+        </p>
+      )}
+      {/* 시각적으로 판별이 안 된 부위(gap_level null)는 버튼을 만들지 않는다 —
+           눌러도 "확인 못 했다"만 나오는 버튼이라, 아래 제외 안내가 사유를 대신한다. */}
       <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
-        {parts.map(part => <button
+        {judgedParts.map(part => <button
           className={part.class_name === selected?.class_name ? 'is-selected' : ''}
           type="button" key={part.class_name}
           aria-pressed={part.class_name === selected?.class_name}
           onClick={() => setSelectedClass(part.class_name)}>{displayPartName(part.name_ko ?? part.class_name)}</button>)}
       </nav>
 
+      {/* ⚠️ 진단 블록 · 버튼 · 안내문구는 **한 흐름으로 묶어야 한다.** 셋 다 절대 좌표로
+          두면 진단 카드가 differences 줄만큼 세로로 자라면서 버튼과의 간격만 줄어든다.
+          ⚠️ App.css 가 이 셋을 position: static 으로 두므로, 래퍼가 없으면 절대 배치된
+             형제들 사이에서 **흐름의 맨 위**로 올라간다 — 버튼이 화면 꼭대기에 붙는다. */}
+      <div className="comparison-analysis-footer">
       <section className="comparison-analysis-diagnosis" aria-labelledby="comparison-diagnosis-title">
         <h2 id="comparison-diagnosis-title">
           <em>{displayPartName(selected?.name_ko ?? selected?.class_name)}</em>의 진단 결과
-          {selected?.gap_level && <span className="comparison-analysis-gap">{GAP_LABELS[selected.gap_level] ?? selected.gap_level}</span>}
+          {/* 차이 정도를 색으로도 읽히게 한다. ⚠️ 색은 거들 뿐이고 문구가 정보를 다 담는다 —
+              색만으로 뜻이 갈리면 색을 구분하기 어려운 사람에게는 배지가 통째로 사라지는 셈이다. */}
+          {selected?.gap_level && <span className={`comparison-analysis-gap comparison-analysis-gap--${selected.gap_level.toLowerCase()}`}>{GAP_LABELS[selected.gap_level] ?? selected.gap_level}</span>}
           {selected?.blocked_reason && <span className="comparison-analysis-badge">{selected.blocked_reason}{analysis?.inbody_id ? ' · 인바디 기준' : ''}</span>}
           {selected?.confidence === 'LOW' && <span className="comparison-analysis-badge comparison-analysis-badge--dim">신뢰도 낮음</span>}
         </h2>
         <div className={selected?.confidence === 'LOW' ? 'is-low-confidence' : ''}>
-          <span><img src={comparisonCommentCircle} alt="" /><img src={comparisonCommentIcon} alt="" /></span>
+          <span><img src={comparisonCommentCircle} alt="" /><BodyPartIcon className="comparison-analysis-comment-icon" partClassName={selected?.class_name} label={`${displayPartName(selected?.name_ko ?? '선택 부위')} 부위`} /></span>
           <section>
             <h3>AI 코멘트</h3>
             {selected?.gap_level === null && selected?.blocked_reason
@@ -206,7 +285,11 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
 
       <button className="comparison-analysis-routine" type="button" onClick={onCreateRoutine}>맞춤 루틴 생성 →</button>
 
-      {medicalDisclaimer && <p className="comparison-analysis-disclaimer"><span>{medicalDisclaimer}</span>{dataDisclaimer && <span>{dataDisclaimer}</span>}</p>}
+      {/* ⚠️ 서버 disclaimer 는 «의학 고지 + 데이터 처리 고지» 두 문장이다. 이 화면에서는
+          앞쪽(의학)만 보여준다 — 뒤쪽(외부 AI 전송·삭제 안내)은 요청으로 뺐다.
+          자르는 기준은 '상담하세요.' 이므로, 서버 문구가 바뀌면 여기도 같이 봐야 한다. */}
+      {medicalDisclaimer && <p className="comparison-analysis-disclaimer"><span>{medicalDisclaimer}</span></p>}
+      </div>
     </section>
   </main>
 }

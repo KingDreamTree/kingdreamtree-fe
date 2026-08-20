@@ -2,6 +2,7 @@ import customRoutineDetailTime from '../assets/custom-routine-detail-time.svg'
 import customRoutineDetailWarmup from '../assets/custom-routine-detail-warmup.png'
 import { useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
+import { ExerciseMedia } from '../components/ExerciseMedia'
 import type { RoutineDay } from '../lib/api'
 
 const WARMUP_SECONDS = 5 * 60
@@ -55,6 +56,16 @@ function exerciseSummary(exercise: RoutineDay['exercises'][number]): string {
   return parts.join(' × ') || '자유 진행'
 }
 
+/** 오른쪽 정보판 제목이 한 줄에 들어가는 글자 수. 폭 344px(424 - 좌우 여백 40)을
+ *  글자당 폭으로 나눈 값이다 — 22.372px 기준 15자, 19px 기준 18자.
+ *  ⚠️ 카탈로그에는 30자짜리 이름도 있어서 줄바꿈을 아예 없앨 수는 없다.
+ *     한 줄에 들어갈 만한 이름이 굳이 접히는 것만 막는다. */
+function titleSizeClass(name: string): string {
+  if (name.length > 18) return ' is-very-long'
+  if (name.length > 15) return ' is-long'
+  return ''
+}
+
 type CustomRoutineDetailScreenProps = { day: RoutineDay | null; onPrevious: () => void }
 
 /** Figma 108:93 — 맞춤 루틴 DAY 상세보기. 운동 목록은 선택한 Day의 실데이터. */
@@ -80,14 +91,14 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
       {exercises.length === 0 && <p className="custom-routine-detail-page__empty">이 Day의 운동 정보를 불러오지 못했어요.</p>}
     </section>
     {selected && <aside className="custom-routine-detail-page__info" aria-live="polite">
-      <h2>{selected.name}</h2>
+      <h2 className={`custom-routine-detail-page__info-title${titleSizeClass(selected.name)}`}>{selected.name}</h2>
       <dl>
         {selected.sets && <div><dt>세트 수</dt><dd>{selected.sets}세트</dd></div>}
         {selected.reps && <div><dt>반복 횟수</dt><dd>{selected.reps}회</dd></div>}
         {selected.rir !== null && selected.rir !== undefined && <div><dt>운동 강도</dt><dd>{selected.rir}회 더 할 수 있는 여유</dd></div>}
         {selected.rest_sec && <div><dt>세트 사이 휴식</dt><dd>{selected.rest_sec}초</dd></div>}
       </dl>
-      <img src={selected.image_url ?? customRoutineDetailWarmup} alt={`${selected.name} 동작`} />
+      <ExerciseMedia videoUrl={selected.video_url} imageUrl={selected.image_url} fallback={customRoutineDetailWarmup} label={`${selected.name} 동작`} />
     </aside>}
   </div></FixedStepFrame>
 }

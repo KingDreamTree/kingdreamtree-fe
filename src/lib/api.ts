@@ -376,11 +376,22 @@ export interface RoutineDetail {
   is_active: boolean
   days: RoutineDay[]
   progress: RoutineProgress
+  //: 옛 필드 — 소제목과 본문이 빈 줄로 이어 붙은 한 덩어리. 새 화면은 notices 를 쓴다.
   notice: string | null
+  //: 안내를 **조건별로 나눈** 목록. 감량 안내(체지방률 기준)와 주 7일 안내처럼
+  //  대상이 서로 다른 이야기가 한 문단으로 섞여 읽히지 않아서 나뉘었다.
+  //  ⚠️ 이 필드 이전에 만들어진 루틴은 빈 배열이다 — notice 로 폴백할 것.
+  notices: RoutineNotice[]
   //: 루틴 구성 근거. LLM 이 쓴 글이 아니라 실제 생성된 루틴에서 조립한 것.
   //  이 필드 이전 루틴은 null 이므로 goal/focus_areas 폴백을 쓴다.
   strategy: RoutineStrategy | null
   disclaimer: string
+}
+
+/** 루틴 안내 한 건 — 소제목과 본문. */
+export interface RoutineNotice {
+  title: string
+  body: string
 }
 
 export interface RoutineStrategy {
@@ -421,6 +432,11 @@ export interface CoachChatResponse {
 export function getJob(jobId: string) { return request<Job>(`/jobs/${jobId}`) }
 export function getSessionJobs(sessionId: string) { return request<{ items: JobSummary[] }>(`/sessions/${sessionId}/jobs`) }
 export function getReferencePhoto(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/reference`) }
+/** 업로드된 사진 1장의 메타 + signed_url. **세그멘테이션 없이 사진만** 보여줄 때 쓴다
+ *  (퀵/웹캠 경로는 Sapiens2 를 안 돌려 세그가 없지만 사진은 있다). */
+export function getSessionPhoto(sessionId: string, kind: 'reference' | 'user') {
+  return request<{ signed_url?: string | null }>(`/sessions/${sessionId}/photos/${kind}`)
+}
 export function getSessionSegmentation(sessionId: string) { return request<SessionSegmentation>(`/sessions/${sessionId}/segmentation`) }
 export function getPhotoSegmentation(photoId: string) { return request<Record<string, unknown>>(`/photos/${photoId}/segmentation`) }
 export function getSignedUrls(items: Array<{ bucket: string; path: string }>, expiresIn?: number) {

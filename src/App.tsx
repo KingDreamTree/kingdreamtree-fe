@@ -29,7 +29,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, archiveSession, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -77,6 +77,14 @@ type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' 
  * 섹션 윗변이 들어올 때(= 화면 아래 절반쯤을 채울 때) 시작한다. 섹션 높이에
  * 영향받지 않으므로 섹션마다 체감이 같다.
  */
+/** 히어로 배경·인물은 각각 2MB 급 PNG 다. JSX 로 렌더될 때까지 기다리면 그만큼
+ *  늦게 도착해서 등장 애니메이션도 그만큼 밀린다. 모듈이 평가되는 즉시 —
+ *  즉 첫 렌더보다 먼저 — 내려받기를 걸어둔다. */
+for (const source of [heroBackground, heroPhone]) {
+  const preload = new Image()
+  preload.src = source
+}
+
 const REVEAL_OBSERVER: IntersectionObserverInit = { threshold: 0, rootMargin: '0px 0px -45% 0px' }
 
 /** 잠깐 스쳐 가는 화면 — 뒤로가기 기록에 남기지 않는다. */
@@ -144,6 +152,30 @@ function restoreView(): AppView {
   return RESUMABLE_VIEWS.includes(target) ? target : 'onboarding'
 }
 
+/** 섹션 안의 이미지가 다 그려질 때까지 기다렸다가 실행한다.
+ *
+ *  ⚠️ 이게 없으면 등장 애니메이션이 **빈 자리에서 혼자 끝난다**. 히어로 배경·인물은
+ *     2MB 짜리 PNG 라, 화면 진입을 감지한 시점엔 아직 내려받는 중이다. 전환은
+ *     제 시간에 끝나고 사진은 그 뒤에 도착해서, 사용자에게는 «PNG 가 위에서부터
+ *     그려지는» 모습만 보인다 (사용자 신고 2026-08-20).
+ *
+ *  ⚠️ 상한을 둔다. 이미지 하나가 끝내 안 오면 화면이 영영 opacity 0 으로 남는다 —
+ *     애니메이션을 못 보는 것보다 화면이 안 나오는 쪽이 훨씬 나쁘다. */
+const REVEAL_IMAGE_TIMEOUT_MS = 2500
+
+function whenImagesReady(section: HTMLElement, start: () => void) {
+  const pending = Array.from(section.querySelectorAll('img')).filter(image => !image.complete)
+  if (!pending.length) { start(); return () => {} }
+  let done = false
+  const run = () => { if (!done) { done = true; start() } }
+  const timer = window.setTimeout(run, REVEAL_IMAGE_TIMEOUT_MS)
+  void Promise.all(pending.map(image => new Promise<void>(resolve => {
+    image.addEventListener('load', () => resolve(), { once: true })
+    image.addEventListener('error', () => resolve(), { once: true })
+  }))).then(() => { window.clearTimeout(timer); run() })
+  return () => window.clearTimeout(timer)
+}
+
 /** Reveals a design section once it reaches the viewport. */
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
@@ -153,14 +185,16 @@ function RevealSection({ children, className, label, scaleToViewport = false, de
   useEffect(() => {
     const section = sectionRef.current
     if (!section) return
+    let cancelWait = () => {}
     const observer = new IntersectionObserver(([entry]) => {
       // 이미 지나친 섹션(새로고침 스크롤 복원)도 즉시 드러낸다 — 안 그러면 영영 opacity 0
       if (!entry.isIntersecting && entry.boundingClientRect.top >= 0) return
-      setIsVisible(true)
       observer.unobserve(entry.target)
+      // 사진이 도착한 뒤에 시작해야 등장 애니메이션이 실제로 보인다.
+      cancelWait = whenImagesReady(section, () => setIsVisible(true))
     }, REVEAL_OBSERVER)
     observer.observe(section)
-    return () => observer.disconnect()
+    return () => { observer.disconnect(); cancelWait() }
   }, [])
 
   useEffect(() => {
@@ -419,6 +453,17 @@ function isAnalysisRenderable(analysis: AnalysisResult | null): boolean {
   return analysis?.overall != null && analysis.overall.status === 'DONE'
 }
 
+/** 원본 사진 URL 두 장 — **세그멘테이션이 없을 때 사진만이라도** 보여주기 위한 것.
+ *  퀵/웹캠 경로는 Sapiens2 를 안 돌려 세그가 없지만 photo 행은 있다. 실패해도
+ *  화면을 막지 않는다 — 사진이 없으면 비교 이미지 섹션만 빠진다. */
+async function fetchPhotoUrls(sessionId: string): Promise<{ user: string | null; reference: string | null }> {
+  const [user, reference] = await Promise.all([
+    getSessionPhoto(sessionId, 'user').then(p => p.signed_url ?? null).catch(() => null),
+    getSessionPhoto(sessionId, 'reference').then(p => p.signed_url ?? null).catch(() => null),
+  ])
+  return { user, reference }
+}
+
 /** 세그멘테이션 조회 — 오래 걸리면 포기한다. 사진이 없어도 수치·문구는 읽을 수 있다. */
 async function fetchSegmentation(sessionId: string): Promise<SessionSegmentation | null> {
   try {
@@ -483,6 +528,8 @@ function App() {
   const [todayRoutine, setTodayRoutine] = useState<TodayRoutine | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null)
   const [segmentationData, setSegmentationData] = useState<SessionSegmentation | null>(null)
+  // 세그가 없는 경로(퀵/웹캠)에서 사진만이라도 그리기 위한 원본 URL.
+  const [photoUrls, setPhotoUrls] = useState<{ user: string | null; reference: string | null } | null>(null)
   const [routineData, setRoutineData] = useState<RoutineDetail | null>(null)
   const [selectedDay, setSelectedDay] = useState<RoutineDay | null>(null)
   const [coach, setCoach] = useState<CoachChatResponse | null>(null)
@@ -525,6 +572,8 @@ function App() {
           setAnalysisData(analysis)
           const segmentation = await getSessionSegmentation(sessionId).catch(() => null)
           if (!cancelled) setSegmentationData(segmentation)
+          const urls = await fetchPhotoUrls(sessionId)
+          if (!cancelled) setPhotoUrls(urls)
         } else if (resumed === 'custom-routine') {
           const routine = await getActiveRoutine(sessionId)
           if (!cancelled) setRoutineData(routine)
@@ -546,6 +595,38 @@ function App() {
     }
     window.addEventListener('refit-logo-click', handleLogoClick)
     return () => window.removeEventListener('refit-logo-click', handleLogoClick)
+  }, [])
+
+  // 단축키 리셋(시연용) — Cmd/Ctrl+Shift+X. archive_session 은 이미 백엔드에
+  // 있었지만(F03, "사용자당 ACTIVE 세션 1개" 제약을 벗어나는 유일한 공식 통로)
+  // 부르는 화면이 하나도 없어서, 지금까지는 시크릿 창을 새로 여는 것만이 새
+  // 세션(새 user_id)을 받는 방법이었다. 여기서는 user_id 는 그대로 두고
+  // 세션만 ARCHIVED 로 내린다 — 다음 ensureActiveSession() 이 활성 세션
+  // 없음(404)을 보고 알아서 새로 만든다.
+  // ⚠️ Cmd/Ctrl+Shift+R(하드 리프레시)은 브라우저 예약 단축키라 페이지 JS로
+  //    가로챌 수 없다 — 겹치지 않는 X 로 잡았다.
+  useEffect(() => {
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || !e.shiftKey || e.key.toLowerCase() !== 'x') return
+      e.preventDefault()
+      if (!window.confirm('현재 세션을 종료하고 처음부터 새로 시작할까요?')) return
+      const sessionId = getStoredSessionId()
+      if (sessionId) void archiveSession(sessionId).catch(() => undefined)
+      setAnalysisData(null)
+      setSegmentationData(null)
+      setInbodyId(null)
+      setInbodyJobId(null)
+      setInbodyData(null)
+      setRoutineData(null)
+      setSelectedDay(null)
+      setTodayRoutine(null)
+      setCoach(null)
+      setRefData(null)
+      setView('onboarding')
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    }
+    window.addEventListener('keydown', handleKeydown)
+    return () => window.removeEventListener('keydown', handleKeydown)
   }, [])
 
   // 세션과 판정 기준(GET /pose-criteria)은 시작 시 한 번만. 모델·wasm도 미리 로드.
@@ -741,6 +822,9 @@ function App() {
           // 사진이 없어도 수치·문구는 읽을 수 있다 — 한 번 더 시도하고 없으면 그냥 간다.
           // 퀵은 세그멘테이션이 아예 없다 — 조회해 봐야 10초 타임아웃만 기다린다.
           setSegmentationData(quick ? null : (await fetchSegmentation(sessionId) ?? await fetchSegmentation(sessionId)))
+          if (!alive()) return
+          // 세그가 없어도(퀵) 사진은 보여준다 — 없으면 빈 상자만 남는다.
+          setPhotoUrls(await fetchPhotoUrls(sessionId))
           if (!alive()) return
           setIsAnalysisReady(true)   // 막대가 100% 를 찍은 뒤 로딩 화면이 전환한다
           return
@@ -981,7 +1065,7 @@ function App() {
   // 이어서 받아 상태를 채우므로, 네트워크 응답 때문에 로딩 화면이 멈춰 있지 않는다.
     if (view === 'inbody-loading') return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady}
       onComplete={() => setView('comparison')} />
-  if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
+  if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} photoUrls={photoUrls} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
   if (view === 'loading-two') return <LoadingTwoScreen phase={routinePhase} isComplete={isRoutineReady} onComplete={() => setView('custom-routine')} />
   if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setSelectedDay(day); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />
