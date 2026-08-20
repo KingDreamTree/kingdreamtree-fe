@@ -898,6 +898,11 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-diagnosis { position: static; margin-left: 129px; }
 .comparison-analysis-routine { position: static; display: block; margin: 52px auto 0; }
 .comparison-analysis-disclaimer { position: static; margin: 42px 0 0 131px; }
+.comparison-analysis-limitations { position: static; width: 1178px; margin: 42px auto 0; padding: 24px 28px; border-radius: 18.659px; background: rgb(59 59 59 / .4); }
+.comparison-analysis-limitations h3 { margin: 0; color: #f6f6f6; font: 700 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
+.comparison-analysis-limitations ul { margin: 10px 0 0; padding: 0; list-style: none; }
+.comparison-analysis-limitations li { margin-top: 6px; color: #b0b0b0; font-size: 16px; line-height: 1.5; }
+.comparison-analysis-limitations li:first-child { margin-top: 0; }
 
 /* ── 퀵 진단(웹캠) 변형 — 점수 링·부위 카드·사진 비교·부위 진단이 설계상 없다 ──
    이 페이지는 Figma 절대좌표 레이아웃이라 요소를 빼면 자리가 «비는» 게 아니라

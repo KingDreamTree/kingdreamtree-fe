@@ -253,6 +253,20 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
 
       <button className="comparison-analysis-routine" type="button" onClick={onCreateRoutine}>맞춤 루틴 생성 →</button>
 
+      {/* 비교에서 빠진 부위 안내. ⚠️ 예전에 strengths/cautions/excluded 를 요약
+          상자 «안에» 그렸다가 세 값이 다 있을 때만 나타나는 구조라 세션마다
+          박스 높이가 들쭉날쭉해서 뺐다(위 주석 참고). 이번엔 흐름(footer)
+          안에 독립된 섹션으로 둬서 — 있든 없든 아래 고지문이 그만큼만
+          밀려 내려갈 뿐, 다른 절대좌표 요소와 안 겹친다. */}
+      {!isQuick && !!overall?.comparison_limitations?.length && (
+        <section className="comparison-analysis-limitations" aria-label="비교에서 제외된 부위">
+          <h3>비교에서 제외된 부위</h3>
+          <ul>
+            {overall.comparison_limitations.map(text => <li key={text}>{text}</li>)}
+          </ul>
+        </section>
+      )}
+
       {/* ⚠️ 서버 disclaimer 는 «의학 고지 + 데이터 처리 고지» 두 문장이다. 이 화면에서는
           앞쪽(의학)만 보여준다 — 뒤쪽(외부 AI 전송·삭제 안내)은 요청으로 뺐다.
           자르는 기준은 '상담하세요.' 이므로, 서버 문구가 바뀌면 여기도 같이 봐야 한다. */}
