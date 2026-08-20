@@ -590,8 +590,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 .loading-one-glow { position: absolute; top: 644px; left: 479px; width: 61px; height: 62px; pointer-events: none; transition: transform 35ms linear; }
 
-
-
 .hero-section__scroll-cue { position: absolute; z-index: 1; top: 784px; left: 659px; display: flex; width: 122px; height: auto; margin: 0; flex-direction: column; align-items: center; gap: 5px; color: #ccc; text-align: center; }.hero-section__scroll-cue img { width: 53.891px; height: 67.239px; }.hero-section__scroll-cue p { min-width: 122px; margin: 0; white-space: nowrap; font: 500 17.608px/1.5 Pretendard, sans-serif; letter-spacing: -.528px; }
 /* 스크롤 힌트 — 손 아이콘이 위로 스와이프하듯 반복해 떠오르고, 문구는 함께 숨쉰다.
    ⚠️ 컨테이너(.motion)는 등장 트랜지션이 transform 을 쓰므로 자식만 애니메이션한다. */
@@ -614,18 +612,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .previous-button:hover { color: #ccc; }
 .previous-button:focus-visible { outline: 2px solid #ffe250; outline-offset: 4px; }
 .comparison-analysis-header .previous-button { top: -48px; left: 1087px; }
-.comparison-analysis-header .previous-button { height: 27px; align-items: center; gap: 6px; }
-.comparison-analysis-header .previous-button img { width: 18px; height: 18px; flex: none; object-fit: contain; }
-.comparison-analysis-header .previous-button img { width: 18px; height: 16px; }
-.comparison-analysis-header .previous-button img { transform: translateY(2px); }
-.comparison-analysis-header .previous-button span { color: #f6f6f6; }
-.comparison-analysis-header .previous-button { height: 21px; gap: 4px; font-size: 14px; line-height: 21px; letter-spacing: -.42px; }
-.comparison-analysis-header .previous-button img { width: 14px; height: 13px; transform: translateY(1px); }
-.comparison-analysis-header .previous-button span { line-height: 21px; }
-.comparison-analysis-header .previous-button { height: 27px; gap: 6px; font-size: 18px; line-height: 27px; letter-spacing: -.54px; }
-.comparison-analysis-header .previous-button img { width: 18px; height: 16px; transform: translateY(2px); }
-.comparison-analysis-header .previous-button span { line-height: 27px; }
-.comparison-analysis-header .previous-button span { display: block; line-height: 27px; }
 
 /* 레퍼런스와 현재 체형 사진은 원본 비율을 유지해 전체가 보이도록 표시합니다. */
 .comparison-analysis-photo__canvas { object-fit: contain; }
@@ -1037,18 +1023,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   z-index: 5;
 }
 /* 비교 분석의 이전 단계는 보조 내비게이션처럼 작게 표시 */
-.comparison-analysis-header .previous-button {
-  height: 21px;
-  gap: 4px;
-  font-size: 14px;
-  line-height: 21px;
-  letter-spacing: -.42px;
-}
-.comparison-analysis-header .previous-button img {
-  width: 14px;
-  height: 13px;
-  transform: translateY(1px);
-}
 
 /* 안내 문구 ↔ 부위 토글 ↔ 진단 카드 간격.
 
@@ -1093,104 +1067,14 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-disclaimer { top: 2590px; }
 
 /* Figma 884:390 — 비교 분석도 공통 이전 단계 버튼 규격 사용 */
-.comparison-analysis-header .previous-button {
-  display: inline-flex;
-  height: 27px;
-  align-items: center;
-  gap: 5px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #f6f6f6;
-  font: 500 18px/27px Pretendard, sans-serif;
-  letter-spacing: -.54px;
-  white-space: nowrap;
-}
-.comparison-analysis-header .previous-button img {
-  width: 18px;
-  height: 16px;
-  flex: 0 0 auto;
-  object-fit: contain;
-  transform: none;
-}
-.comparison-analysis-header .previous-button span {
-  display: inline-flex;
-  align-items: center;
-  height: 27px;
-  line-height: 27px;
-}
 
 /* 화살표와 텍스트를 같은 수직 중심에 맞추고 한 줄로 유지 */
-.comparison-analysis-header .previous-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  height: 21px;
-  font-size: 14px;
-  line-height: 21px;
-  white-space: nowrap;
-}
-.comparison-analysis-header .previous-button img {
-  width: 14px;
-  height: 13px;
-  transform: none;
-}
-.comparison-analysis-header .previous-button span {
-  display: inline-flex;
-  align-items: center;
-  height: 21px;
-  line-height: 21px;
-}
 
 /* 참고 화면처럼 화살표를 글자와 같은 중앙선에 고정 */
-.comparison-analysis-header .previous-button img {
-  transform: none;
-  vertical-align: middle;
-}
 
 /* 화살표와 텍스트를 같은 세로 기준선에 맞춤 */
-.comparison-analysis-header .previous-button {
-  display: inline-flex;
-  align-items: center;
-}
-
-.comparison-analysis-header .previous-button img {
-  transform: none;
-  flex: 0 0 auto;
-}
-
-.comparison-analysis-header .previous-button img {
-  transform: translateY(2px);
-}
-
-.comparison-analysis-header .previous-button span {
-  display: inline-flex;
-  align-items: center;
-  height: 21px;
-}
-.comparison-analysis-header .previous-button span {
-  line-height: 21px;
-}
 
 /* 비교 분석 이전 단계: 화살표와 텍스트를 동일한 크기로 표시 */
-.comparison-analysis-header .previous-button,
-.comparison-analysis-header .previous-button span {
-  font: 500 14px/21px Pretendard, sans-serif;
-  font-size: 14px;
-  line-height: 21px;
-  letter-spacing: -.42px;
-}
-
-.comparison-analysis-header .previous-button {
-  height: 21px;
-  gap: 4px;
-}
-
-.comparison-analysis-header .previous-button img {
-  width: 14px;
-  height: 13px;
-  transform: translateY(1px);
-}
 
 /* 오늘 루틴 카드 — 운동명이 줄임표로 잘리던 것 (2026-08-20).
    카탈로그 이름이 최대 30자라 한 줄에 안 들어간다. 제목을 두 줄까지 허용하고,
