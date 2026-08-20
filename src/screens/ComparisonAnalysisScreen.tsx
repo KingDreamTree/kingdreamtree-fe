@@ -134,6 +134,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
 
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
     <section className="comparison-analysis-page">
+      <p className="comparison-analysis-logo" aria-label="REFIT"><span>RE:</span><strong>FIT</strong></p>
       <header className="comparison-analysis-header">
         {onPrevious && <PreviousButton onClick={onPrevious} />}
         <p>분석이 완료되었어요</p>

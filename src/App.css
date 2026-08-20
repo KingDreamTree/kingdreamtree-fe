@@ -1040,6 +1040,18 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   margin: 0;
 }
 
+.comparison-analysis-logo {
+  position: absolute;
+  top: 32px;
+  left: 131px;
+  z-index: 1;
+  margin: 0;
+  color: #f6f6f6;
+  font: 700 25px/1 "Isamanru", Pretendard, sans-serif;
+  letter-spacing: -.75px;
+}
+.comparison-analysis-logo strong { color: #ffe250; font: inherit; }
+
 /* 비교 분석 하단 영역은 선택 탭 → 진단 카드 → 루틴 버튼 → 안내문 순서로
    충분한 세로 간격을 확보해 축소 화면에서도 서로 겹치지 않도록 한다. */
 .comparison-analysis-page {
