@@ -160,6 +160,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
 
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
     <section className="comparison-analysis-page">
+      <p className="comparison-analysis-logo" aria-label="REFIT"><span>RE:</span><strong>FIT</strong></p>
       <header className="comparison-analysis-header">
         {onPrevious && <PreviousButton onClick={onPrevious} />}
         <p>분석이 완료되었어요</p>
@@ -168,14 +169,14 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
       </header>
 
       {/* 산출 근거(score_rationale)는 본문에 그리면 링과 겹쳐서 툴팁으로만 제공 */}
-      <section className="comparison-analysis-score" aria-label={`유사도 점수 ${score ?? '미산출'}점`} title={overall?.score_rationale ?? undefined}>
+      <section className="comparison-analysis-score" aria-label={`목표 근접도 ${score ?? '미산출'}점`} title={overall?.score_rationale ?? undefined}>
         <img className="comparison-analysis-score__track" src={comparisonScoreTrack} alt="" />
         <svg className="comparison-analysis-score__fill" viewBox="0 0 300 300" aria-hidden="true">
           <circle cx="150" cy="150" r={SCORE_RING_RADIUS} fill="none" stroke="#FFE250" strokeWidth="24.83" strokeLinecap="round"
             strokeDasharray={SCORE_RING_CIRCUMFERENCE} strokeDashoffset={SCORE_RING_CIRCUMFERENCE * (1 - filled)}
             transform="rotate(-90 150 150)" />
         </svg>
-        <span>유사도 점수</span>
+        <span>목표 근접도</span>
         <strong>{score ?? '—'}점</strong>
       </section>
 
