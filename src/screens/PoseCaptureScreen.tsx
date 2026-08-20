@@ -404,7 +404,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     <PreviousButton onClick={onPrevious} />
     <p className="step-label">Step 2/3</p>
     <h1>실시간 자세 촬영</h1>
-    <p className="step-description">레퍼런스와 같은 포즈를 유지하면 자동으로 촬영됩니다</p>
+    <p className="step-description">레퍼런스와 같은 포즈를 유지하면 자동으로 촬영됩니다.</p>
 
     <div className="pose-reference pose-reference--live">
       <img ref={refImageRef} src={referenceUrl} alt="레퍼런스 체형" onLoad={drawReferenceSkeleton} />

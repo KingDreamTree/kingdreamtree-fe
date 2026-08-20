@@ -263,7 +263,7 @@ function ReferenceScreen({ ready, busy, error, showNotice, onConfirm, onSelectFi
   return <FixedStepFrame label="Step 1 목표 체형 레퍼런스"><div className="reference-page">
       <p className="step-label">Step 1/3</p>
       <h1>목표 체형 레퍼런스</h1>
-      <p className="step-description">원하는 체형의 사진을 등록하면 AI가 차이를 분석합니다</p>
+      <p className="step-description">원하는 체형의 사진을 등록하면 AI가 차이를 분석합니다.</p>
       <PreviousButton onClick={onPrevious} />
       <ReferenceHints />
       <input ref={inputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { pick(event.currentTarget.files); event.currentTarget.value = '' }} />
@@ -338,7 +338,7 @@ function PoseScreen({ result, score, message, referenceUrl, userPhoto, onRetry, 
   return <FixedStepFrame label={`Step 2 체형 사진 ${result}`}><div className="pose-page">
       <p className="step-label">Step 2/3</p>
       <h1>체형 사진 업로드</h1>
-      <p className="step-description">레퍼런스와 같은 포즈로 자신의 체형을 업로드 해주세요!</p><PreviousButton onClick={onPrevious} />
+      <p className="step-description">레퍼런스와 같은 포즈로 자신의 체형을 업로드해 주세요.</p><PreviousButton onClick={onPrevious} />
       {referenceUrl && <div className="pose-reference pose-reference--live"><img src={referenceUrl} alt="레퍼런스 체형" /></div>}
       <PoseCorners />
       {userPhotoUrl && <div className="pose-user-photo"><img src={userPhotoUrl} alt="업로드한 체형 사진" /></div>}

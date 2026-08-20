@@ -28,7 +28,7 @@ export function InbodyRangeErrorScreen({ onConfirm, onPrevious }: InbodyRangeErr
   const [isCorrected, setIsCorrected] = useState(false)
 
   return <FixedStepFrame label="인바디-입력범위오류"><div className="inbody-range-page">
-    <p className="step-label">Step 3/3</p><h1>인바디 정보 입력</h1><p className="step-description">AI가 인식한 결과입니다. 틀린 부분이 있다면 터치하여 수정해 주세요.</p>
+    <p className="step-label">Step 3/3</p><h1>인바디 정보 입력</h1><p className="step-description">현재 값으로 비교 분석이 진행되니 틀린 부분이 있으면 수정해 주세요.</p>
     <section className="inbody-range-guide" role="alert"><ErrorGlyph /><div><strong>저장에 실패했습니다.</strong><p>입력한 값이 허용 범위를 벗어났습니다. 값을 확인하고 다시 시도해주세요.</p></div></section>
     <section className="inbody-range-smi"><span>SMI <small>(kg/m²)</small></span><strong>8.25</strong><small>* 골격근량 ÷ 신장²</small></section>
     <section className="inbody-range-basic"><h2>1. 기본 정보</h2><RangeField field={{ label: '신장', value: '172', unit: 'cm' }} /><RangeField field={{ label: '나이', value: '33', unit: '세' }} /><label className="inbody-range-field"><span>성별</span><InbodyGenderSelector className="inbody-range-gender" /></label><label className="inbody-range-field"><span>측정일</span><div className="inbody-range-date"><input aria-label="측정일" defaultValue="2025-08-12" /><img src={inbodyCalendar} alt="달력" /></div></label></section>
