@@ -529,6 +529,22 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
       높이 0 으로 접혀서 빈 공간이 남지 않는다. */
 .today-routine-page__current p.today-routine-page__load { grid-row: 4; margin-bottom: 8px; }  /* 노트와 붙어 보이지 않게 (그리드는 행 간격이 없다) */
 .today-routine-page__current p { grid-row: 5; }
+/* 그리드는 행 간격이 없어서 배지·운동명·요약이 다 붙어 보였다.
+   ⚠️ 기준은 옆 «다음 운동» 카드다 — 거기서는 Next→ 와 운동명 사이가 벌어져 있는데,
+      현재 카드만 붙어 있어 어색했다 (사용자 신고 2026-08-20). 같은 간격으로 맞춘다. */
+.today-routine-page__current > span { margin-bottom: 14px; }
+.today-routine-page__current h2 { margin-bottom: 10px; }
+
+/* ⚠️ 승격 중 카드(세트 완료 직후 520ms)도 **같은 그리드**여야 한다. 종전에는 옛
+   절대 좌표를 그대로 써서, 카드가 넘어가는 순간 간격이 도로 좁아져 보였다. */
+.today-routine-page__next.is-promoting { display: grid; grid-template-columns: minmax(0, 360px) 191px; grid-template-rows: repeat(6, auto); column-gap: 32px; align-content: start; padding: 72px 74px; }
+.today-routine-page__next.is-promoting > p,
+.today-routine-page__next.is-promoting h2,
+.today-routine-page__next.is-promoting span { position: static; grid-column: 1; align-self: start; }
+.today-routine-page__next.is-promoting > p { grid-row: 1; margin-bottom: 14px; }
+.today-routine-page__next.is-promoting h2 { grid-row: 2; margin-bottom: 10px; }
+.today-routine-page__next.is-promoting span { grid-row: 3; }
+
 .today-routine-page__current button {
   grid-row: 6;
   justify-self: start;

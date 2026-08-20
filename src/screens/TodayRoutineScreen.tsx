@@ -24,7 +24,6 @@ function exerciseDose(exercise: RoutineExercise | undefined): string {
   const parts: string[] = []
   if (exercise.sets) parts.push(`${exercise.sets}세트`)
   if (exercise.reps) parts.push(`x ${exercise.reps}회`)
-  if (exercise.rir !== null && exercise.rir !== undefined) parts.push(`· ${exercise.rir}회 더 할 수 있는 강도`)
   if (exercise.rest_sec) parts.push(`· 휴식 ${exercise.rest_sec}초`)
   return parts.join(' ') || '자유 진행'
 }
@@ -112,7 +111,6 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
       {loadText(current) && <p className="today-routine-page__load" title={current.load_guide?.basis}>
         <em>{loadText(current)}</em> — 가볍게 느껴지면 한 단계 올리면 돼요
       </p>}
-      <p>{current.note ?? (current.muscle_group ? `${current.muscle_group} 자극에 집중해주세요.` : '정확한 자세에 집중해주세요.')}</p>
       <button type="button" disabled={!current.video_url} onClick={() => setGuideOpen(true)}>자세 가이드</button><ExerciseMedia videoUrl={current.video_url} imageUrl={current.image_url} fallback={todayRoutineExercise} label={`${current.name} 동작`} />
     </section>}
     <ExerciseGuideDialog open={guideOpen} videoUrl={current?.video_url} name={current?.name ?? ''} onClose={() => setGuideOpen(false)} />
