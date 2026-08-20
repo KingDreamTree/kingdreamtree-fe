@@ -929,3 +929,20 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   margin: 0;
   transform: translateX(-50%);
 }
+/* 입력창은 하단 영역에 고정하고, 그 위의 대화만 스크롤 */
+.feedback-chat-history {
+  top: 120px;
+  bottom: 150px;
+  padding-bottom: 36px;
+  scrollbar-width: thin;
+  scrollbar-color: #707070 transparent;
+}
+.feedback-attention-page__input {
+  position: absolute;
+  top: 790px;
+  right: auto;
+  bottom: auto;
+  left: 305px;
+  transform: none;
+  z-index: 5;
+}
