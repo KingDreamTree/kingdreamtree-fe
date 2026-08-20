@@ -289,6 +289,21 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .today-routine-page__current p.today-routine-page__load { top: 240px; margin: 0; color: #b0b0b0; font: 500 14px/1.4 Pretendard, sans-serif; letter-spacing: -.42px; }
 .today-routine-page__current p.today-routine-page__load em { color: #ffe250; font-style: normal; font-weight: 700; }
 .today-routine-page__current.is-last-step { width: 1178px; }
+
+/* 마지막 스텝은 다음 카드가 없어 카드가 1178px 로 넓어진다. 그런데 글줄 폭이
+   328px 로 묶여 있어서, 긴 이름이 «한 줄에 넣으려고» 18px 까지 줄어들었다 —
+   옆이 텅 비었는데도 혼자 작아 보였다(사용자 신고 2026-08-20).
+   넓어진 만큼 글줄도 넓히고, 크기 단계도 그 폭에 맞춰 올린다.
+   ⚠️ 620px 기준 한 줄 용량: 38px 16자 · 34px 18자 · 30px 21자. */
+.today-routine-page__current.is-last-step { grid-template-columns: minmax(0, 620px) 191px; }
+.today-routine-page__current.is-last-step h2,
+.today-routine-page__current.is-last-step small,
+.today-routine-page__current.is-last-step p { max-width: 620px; }
+.today-routine-page__current.is-last-step h2.is-mid { font-size: 38px; letter-spacing: -1.14px; }
+.today-routine-page__current.is-last-step h2.is-long { font-size: 34px; letter-spacing: -1.02px; }
+.today-routine-page__current.is-last-step h2.is-longest { font-size: 30px; letter-spacing: -.9px; }
+.today-routine-page__current.is-last-step p.today-routine-page__load { font-size: 19px; letter-spacing: -.57px; }
+.today-routine-page__current.is-last-step small { font-size: 20px; letter-spacing: -.6px; }
 .today-routine-page__next { position: absolute; top: 364px; left: 974px; box-sizing: border-box; width: 335px; height: 455px; overflow: hidden; border-radius: 20px; background: #3b3b3b; transition: left 520ms cubic-bezier(.4, 0, .2, 1), width 520ms cubic-bezier(.4, 0, .2, 1), border-radius 520ms ease; }.today-routine-page__next.is-promoting { left: 131px; width: 824px; border: 1px solid #ffe250; }.today-routine-page__next > p { position: absolute; top: 73px; left: 35px; margin: 0; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next h2 { position: absolute; top: 107.84px; left: 35px; margin: 0; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }.today-routine-page__next span { position: absolute; top: 161px; left: 35px; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next :is(img, video) { position: absolute; right: 33px; bottom: 47px; width: 132px; height: 163px; object-fit: contain; }.today-routine-page__next.is-promoting > p { top: 72px; left: 74px; display: grid; width: 83.757px; height: 29.844px; place-items: center; border-radius: 24.578px; background: #ffe250; color: #000; font-size: 0; }.today-routine-page__next.is-promoting > p::after { content: 'Step 2'; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__next.is-promoting h2 { top: 124px; left: 74px; font-size: 38px; font-weight: 600; }.today-routine-page__next.is-promoting span { top: 207px; left: 74px; font-size: 18px; }.today-routine-page__next.is-promoting :is(img, video) { right: 78px; bottom: 42px; width: 191px; height: 236px; }.today-routine-page__complete { position: absolute; top: 861px; left: 573px; width: 293px; height: 63px; padding: 0; border: 0; border-radius: 41px; background: #ffe250; color: #222; font: 700 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; }.today-routine-page__complete:disabled { cursor: default; opacity: .72; }.today-routine-page__complete.is-complete { background: #ffe250; color: #222; opacity: 1; }.today-routine-page button:focus-visible { outline: 3px solid #f6f6f6; outline-offset: 4px; }
 .today-routine-page__current button:disabled { cursor: default; opacity: .42; }
 .exercise-guide-backdrop { position: absolute; inset: 0; z-index: 10; padding: 0; border: 0; background: rgba(0, 0, 0, .6); cursor: default; }
