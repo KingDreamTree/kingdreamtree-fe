@@ -45,13 +45,20 @@ function estimatedDuration(day: RoutineDay | null): number | null {
   return totalSeconds > 0 ? Math.ceil(totalSeconds / 60) : null
 }
 
-/** 세트·횟수·휴식을 한 줄 요약으로. 유산소는 시간 기준 (중량 kg은 서버가 제공하지 않음 — rir만). */
+/** 첫 세트를 집을 때의 출발 무게. 맨몸이거나 인바디가 없으면 null 이라 줄이 안 나온다. */
+function loadText(exercise: RoutineDay['exercises'][number]): string | null {
+  const load = exercise.load_guide
+  if (!load) return null
+  const span = load.min_kg === load.max_kg ? `${load.min_kg}kg` : `${load.min_kg}~${load.max_kg}kg`
+  return `${span}로 시작`
+}
+
+/** 세트·횟수·휴식을 한 줄 요약으로. 유산소는 시간 기준. */
 function exerciseSummary(exercise: RoutineDay['exercises'][number]): string {
   if (exercise.exercise_kind === 'CARDIO') return `${exercise.duration_min ?? '-'}분`
   const parts: string[] = []
   if (exercise.sets) parts.push(`${exercise.sets}세트`)
   if (exercise.reps) parts.push(`${exercise.reps}회`)
-  if (exercise.rir !== null && exercise.rir !== undefined) parts.push(`${exercise.rir}회 더 할 수 있는 강도`)
   if (exercise.rest_sec) parts.push(`휴식 ${exercise.rest_sec}초`)
   return parts.join(' × ') || '자유 진행'
 }
@@ -85,7 +92,10 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
         <div>
           <h2>{exercise.name}</h2>
           <p>{exerciseSummary(exercise)}{exercise.muscle_group ? ` · ${exercise.muscle_group}` : ''}</p>
-          {exercise.note && <p className="custom-routine-detail-page__note">{exercise.note}</p>}
+          {(loadText(exercise) || exercise.note) && <p className="custom-routine-detail-page__note">
+            {loadText(exercise) && <em>{loadText(exercise)}</em>}
+            {loadText(exercise) && exercise.note ? ' · ' : ''}{exercise.note}
+          </p>}
         </div>
       </article>)}
       {exercises.length === 0 && <p className="custom-routine-detail-page__empty">이 Day의 운동 정보를 불러오지 못했어요.</p>}
@@ -95,8 +105,9 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
       <dl>
         {selected.sets && <div><dt>세트 수</dt><dd>{selected.sets}세트</dd></div>}
         {selected.reps && <div><dt>반복 횟수</dt><dd>{selected.reps}회</dd></div>}
-        {/* ⚠️ 무게는 «시작 무게»로 부른다 — «권장/적정»이 아니다. 처방은 아래
-            «운동 강도»(RIR)가 계속 담당하고, 이건 첫 세트를 집을 때의 출발점이다.
+        {/* ⚠️ 무게는 «시작 무게»로 부른다 — «권장/적정»이 아니다. 첫 세트를 집을 때의
+            출발점이다. RIR(«N회 더 할 수 있는 여유») 줄은 뺐다 — 같은 말을 왼쪽
+            목록의 안내 문장이 이미 하고 있다.
             load_guide 가 null 인 경우(맨몸·인바디 없음)는 줄 자체가 안 나온다. */}
         {selected.load_guide && <div>
           <dt>시작 무게</dt>
@@ -107,7 +118,6 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
             <small>가볍게 느껴지면 한 단계 올리세요</small>
           </dd>
         </div>}
-        {selected.rir !== null && selected.rir !== undefined && <div><dt>운동 강도</dt><dd>{selected.rir}회 더 할 수 있는 여유</dd></div>}
         {selected.rest_sec && <div><dt>세트 사이 휴식</dt><dd>{selected.rest_sec}초</dd></div>}
       </dl>
       <ExerciseMedia videoUrl={selected.video_url} imageUrl={selected.image_url} fallback={customRoutineDetailWarmup} label={`${selected.name} 동작`} />
