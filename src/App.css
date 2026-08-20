@@ -1061,6 +1061,13 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-page {
   height: 2780px;
   overflow: visible;
+  /* ⚠️ overflow:hidden 이 만들던 BFC 를 여기서 없앴는데, .comparison-analysis-footer
+     의 margin-top(2177px, App.css:903)이 BFC 없이는 부모 밖으로 "마진 상쇄"돼
+     페이지 전체가 그만큼 떠밀려 내려가고 그 위가 통째로 빈다(실측 2026-08-20 —
+     header 가 top:197px 이 아니라 화면 아래쪽 y≈2136px 에 나옴, 버튼이 헤더
+     바로 밑에 붙어 보임). display: flow-root 는 overflow:hidden 과 달리
+     잘라내지 않으면서 새 BFC 만 만들어 margin 을 이 박스 안에 가둔다. */
+  display: flow-root;
 }
 .comparison-analysis-routine { top: 2470px; }
 .comparison-analysis-disclaimer { top: 2590px; }
