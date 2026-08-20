@@ -601,7 +601,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .previous-button img { transform: none; }
 .previous-button:hover { color: #ccc; }
 .previous-button:focus-visible { outline: 2px solid #ffe250; outline-offset: 4px; }
-.comparison-analysis-header .previous-button { top: -48px; left: 1087px; }
+/* 이 버튼만 절대 배치된 header 안에 있어 공통 좌표(top:150 left:1220)가 안 맞는다.
+   ⚠️ 다른 화면은 좌측 라벨(.step-label)과 **같은 줄**에 나란히 놓인다. 여기서도
+      머리말(«분석이 완료되었어요», 28px/1.5 = 42px 줄)의 세로 중심에 맞춘다 —
+      (42 - 27) / 2 = 7px. 종전 -48px 은 머리말보다 56px 위라, 옆에 아무것도
+      없이 혼자 떠 있어서 다른 화면과 달라 보였다. left 는 그대로 1220px. */
+.comparison-analysis-header .previous-button { top: 7px; left: 1087px; }
 
 /* 레퍼런스와 현재 체형 사진은 원본 비율을 유지해 전체가 보이도록 표시합니다. */
 .comparison-analysis-photo__canvas { object-fit: contain; }
