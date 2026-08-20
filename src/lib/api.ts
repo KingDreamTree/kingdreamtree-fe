@@ -421,6 +421,11 @@ export interface CoachChatResponse {
 export function getJob(jobId: string) { return request<Job>(`/jobs/${jobId}`) }
 export function getSessionJobs(sessionId: string) { return request<{ items: JobSummary[] }>(`/sessions/${sessionId}/jobs`) }
 export function getReferencePhoto(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/reference`) }
+/** 업로드된 사진 1장의 메타 + signed_url. **세그멘테이션 없이 사진만** 보여줄 때 쓴다
+ *  (퀵/웹캠 경로는 Sapiens2 를 안 돌려 세그가 없지만 사진은 있다). */
+export function getSessionPhoto(sessionId: string, kind: 'reference' | 'user') {
+  return request<{ signed_url?: string | null }>(`/sessions/${sessionId}/photos/${kind}`)
+}
 export function getSessionSegmentation(sessionId: string) { return request<SessionSegmentation>(`/sessions/${sessionId}/segmentation`) }
 export function getPhotoSegmentation(photoId: string) { return request<Record<string, unknown>>(`/photos/${photoId}/segmentation`) }
 export function getSignedUrls(items: Array<{ bucket: string; path: string }>, expiresIn?: number) {
