@@ -69,8 +69,8 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
   const [selectedIndex, setSelectedIndex] = useState(0)
   const selected = exercises[selectedIndex] ?? exercises[0]
   const duration = estimatedDuration(day)
-  return <FixedStepFrame label="맞춤 루틴 상세보기"><div className="custom-routine-detail-page">
-    <p className="custom-routine-detail-page__eyebrow">상세보기</p>
+  return <FixedStepFrame label="맞춤 루틴 상세 보기"><div className="custom-routine-detail-page">
+    <p className="custom-routine-detail-page__eyebrow">상세 보기</p>
     <h1>DAY {day?.day_order ?? 1}</h1>
     <PreviousButton className="custom-routine-detail-page__previous" onClick={onPrevious} />
     <p className="custom-routine-detail-page__duration"><img src={customRoutineDetailTime} alt="" />예상 운동시간 <strong>{duration ?? '-'}분</strong></p>
