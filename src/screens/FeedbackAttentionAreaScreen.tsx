@@ -47,9 +47,12 @@ export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit, onEx
   const [pendingText, setPendingText] = useState<string | null>(null)
   const historyRef = useRef<HTMLElement>(null)
   const isReadyToSubmit = Boolean(nextFeedback.trim())
+  // ⚠️ 첫 턴에는 코치 자리에 «확인하고 있어요» 같은 **글을 넣지 않는다.** 그 글이
+  //    말풍선으로 한 번 떴다가 진짜 답으로 바뀌면 대화가 끊겨 보인다 — 기다리는
+  //    동안에는 아래 «말하는 중» 점 세 개만 둔다(둘째 턴부터와 같은 모습).
   const baseMessages = coach?.messages?.length
     ? coach.messages
-    : [{ role: 'user', content: userMessage }, { role: 'assistant', content: coach?.reply ?? '코치가 피드백을 확인하고 있어요.' }]
+    : [{ role: 'user', content: userMessage }]
 
   useEffect(() => { setPendingText(null) }, [coach])
 
@@ -76,7 +79,8 @@ export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit, onEx
         {message.role === 'assistant' && <img className="feedback-chat-history__avatar" src={feedbackIllustration} alt="" />}
         <p className={`feedback-chat-history__message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}>{chatText(message.content)}</p>
       </div>)}
-      {pendingText && <div className="feedback-chat-history__row is-assistant">
+      {/* 답을 기다리는 모든 순간 — 첫 턴(coach 가 아직 없음)과 이어지는 턴(방금 보냄) */}
+      {(pendingText || !coach) && <div className="feedback-chat-history__row is-assistant">
         <img className="feedback-chat-history__avatar" src={feedbackIllustration} alt="" />
         {/* 말하고 있다는 표시 — 점 세 개. 글로 쓰면 «지연 안내»처럼 읽혀서 점으로만 둔다. */}
         <p className="feedback-chat-history__message is-assistant is-typing" role="status" aria-label="코치가 답장을 작성하고 있어요">
