@@ -872,3 +872,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   object-fit: contain;
   object-position: center bottom;
 }
+/* 모션 원본의 흰 여백을 잘라 실제 동작과 영상 영역을 크게 표시 */
+.custom-routine-detail-page__info > img {
+  right: -6px;
+  bottom: 14px;
+  width: 365px;
+  height: 300px;
+  object-fit: cover;
+  object-position: center;
+}
