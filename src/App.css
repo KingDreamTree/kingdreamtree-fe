@@ -746,6 +746,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .inbody-fixed-previous img, .inbody-unreadable-previous img,
 .custom-routine-page__adjust img { width: 18px; height: 16px; transform: none; }
 
+/* 화살표는 상자의 기하학적 중심이 아니라 **글자의 시각 중심**에 맞춘다.
+   한글은 디센더가 없어 글자 덩어리가 줄 상자 중심보다 살짝 위에 앉는다 —
+   align-items: center 만으로는 화살표가 1px 아래로 처져 보인다.
+   (2026-08-20 -2/-1/0/+1/+2px 를 확대 렌더해 비교한 값) */
+.previous-button img { transform: translateY(-1px); }
+
 /* ── 차이 정도 배지: 노랑 → 빨강 ────────────────────────────────────────────
    네 단계가 전부 같은 노란색이라 "큰 차이"와 "차이 거의 없음"이 똑같아 보였다.
    브랜드 노랑(차이 없음)에서 빨강(큰 차이)으로 넘어가는 4단계 램프를 준다.
