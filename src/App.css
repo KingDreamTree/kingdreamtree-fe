@@ -881,3 +881,23 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   object-fit: cover;
   object-position: center;
 }
+/* 긴 피드백 대화도 마지막 답변과 입력창이 겹치지 않도록 문서 흐름으로 배치 */
+.feedback-attention-page {
+  box-sizing: border-box;
+  height: auto;
+  min-height: 1024px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 32px;
+}
+.feedback-chat-history {
+  position: static;
+  display: flex;
+  margin: 134px 131px 0;
+}
+.feedback-attention-page__input {
+  position: relative;
+  top: auto;
+  left: auto;
+  margin: 40px auto 0;
+}
