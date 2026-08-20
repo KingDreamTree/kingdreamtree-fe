@@ -148,7 +148,6 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
     (segmentation?.user && segmentation?.reference) || (photoUrls?.user && photoUrls?.reference),
   )
 
-  const excluded = analysis?.excluded ?? []
   const disclaimer = analysis?.disclaimer
   const disclaimerBoundary = '상담하세요.'
   const disclaimerBoundaryIndex = disclaimer?.indexOf(disclaimerBoundary) ?? -1
@@ -186,10 +185,17 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
           <strong>{headline}</strong>
           <p>{overall?.summary ?? '요약을 준비하고 있어요.'}</p>
         </div>
-        {(overall?.strengths?.length || overall?.cautions?.length || excluded.length) ? <ul className="comparison-analysis-notes">
+        {(overall?.strengths?.length || overall?.cautions?.length || overall?.comparison_limitations?.length) ? <ul className="comparison-analysis-notes">
           {overall?.strengths?.map(item => <li key={item}>💪 {item}</li>)}
           {overall?.cautions?.map(item => <li key={item}>⚠️ {item}</li>)}
-          {excluded.length > 0 && <li>⚠️ {excluded.map(part => part.name_ko ?? part.class_name).join(', ')} 부위는 시각적 판별이 어려워서 비교 분석에서 제외되었습니다.</li>}
+          {/* comparison_limitations 은 "이름: 사유" 문장 목록(규칙이 만든다, handlers/vlm.py
+              `_comparison_limitations`) — 진단은 됐지만 gap_level 이 null 인 부위(옷·각도로
+              blocked)와 아예 검출 안 된 부위를 **둘 다** 담는다. `excluded`(analysis.excluded)만
+              쓰면 blocked 부위는 이 줄에서 조용히 빠진다 — 실제로 몸통이 blocked 됐는데
+              안내가 하나도 안 뜬 사고가 있었다. 이름만 뽑아 한 문장으로 합친다. */}
+          {!!overall?.comparison_limitations?.length && (
+            <li>⚠️ {overall.comparison_limitations.map(text => text.split(':')[0].trim()).join(', ')} 부위는 시각적 판별이 어려워서 비교 분석에서 제외되었습니다.</li>
+          )}
         </ul> : null}
       </section>
 
@@ -218,28 +224,35 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
           onClick={() => setSelectedClass(part.class_name)}>{displayPartName(part.name_ko ?? part.class_name)}</button>)}
       </nav>
 
-      <section className="comparison-analysis-diagnosis" aria-labelledby="comparison-diagnosis-title">
-        <h2 id="comparison-diagnosis-title">
-          <em>{displayPartName(selected?.name_ko ?? selected?.class_name)}</em>의 진단 결과
-          {selected?.gap_level && <span className="comparison-analysis-gap">{GAP_LABELS[selected.gap_level] ?? selected.gap_level}</span>}
-          {selected?.blocked_reason && <span className="comparison-analysis-badge">{selected.blocked_reason}{analysis?.inbody_id ? ' · 인바디 기준' : ''}</span>}
-          {selected?.confidence === 'LOW' && <span className="comparison-analysis-badge comparison-analysis-badge--dim">신뢰도 낮음</span>}
-        </h2>
-        <div className={selected?.confidence === 'LOW' ? 'is-low-confidence' : ''}>
-          <span><img src={comparisonCommentCircle} alt="" /><img src={comparisonCommentIcon} alt="" /></span>
-          <section>
-            <h3>AI 코멘트</h3>
-            {selected?.gap_level === null && selected?.blocked_reason
-              ? <p>이 부위는 사진으로 확인이 어려웠어요 — {selected.blocked_reason}</p>
-              : <p>{selected?.assessment ?? '이 부위의 진단을 준비하고 있어요.'}</p>}
-            {selected?.differences?.length ? <p className="comparison-analysis-differences">{selected.differences.join(' · ')}</p> : null}
-          </section>
-        </div>
-      </section>
+      {/* ⚠️ App.css 892-906행이 진단·버튼·고지문을 "한 흐름"으로 묶는 전제로 짜여
+          있다 — 위의 모든 섹션(점수·요약·사진·부위 버튼)은 Figma 절대좌표라 흐름에
+          안 잡히고, 이 셋만 static 이라 이 wrapper 가 없으면 페이지에서 flow에
+          참여하는 첫 요소가 돼서 맨 위로 올라간다(2026-08-20 실측 — 버튼이 헤더보다
+          위에 뜸). margin-top(2177px, App.css:903)이 이 div 에 붙어야 제자리로 내려간다. */}
+      <div className="comparison-analysis-footer">
+        <section className="comparison-analysis-diagnosis" aria-labelledby="comparison-diagnosis-title">
+          <h2 id="comparison-diagnosis-title">
+            <em>{displayPartName(selected?.name_ko ?? selected?.class_name)}</em>의 진단 결과
+            {selected?.gap_level && <span className="comparison-analysis-gap">{GAP_LABELS[selected.gap_level] ?? selected.gap_level}</span>}
+            {selected?.blocked_reason && <span className="comparison-analysis-badge">{selected.blocked_reason}{analysis?.inbody_id ? ' · 인바디 기준' : ''}</span>}
+            {selected?.confidence === 'LOW' && <span className="comparison-analysis-badge comparison-analysis-badge--dim">신뢰도 낮음</span>}
+          </h2>
+          <div className={selected?.confidence === 'LOW' ? 'is-low-confidence' : ''}>
+            <span><img src={comparisonCommentCircle} alt="" /><img src={comparisonCommentIcon} alt="" /></span>
+            <section>
+              <h3>AI 코멘트</h3>
+              {selected?.gap_level === null && selected?.blocked_reason
+                ? <p>이 부위는 사진으로 확인이 어려웠어요 — {selected.blocked_reason}</p>
+                : <p>{selected?.assessment ?? '이 부위의 진단을 준비하고 있어요.'}</p>}
+              {selected?.differences?.length ? <p className="comparison-analysis-differences">{selected.differences.join(' · ')}</p> : null}
+            </section>
+          </div>
+        </section>
 
-      <button className="comparison-analysis-routine" type="button" onClick={onCreateRoutine}>맞춤 루틴 생성 →</button>
+        <button className="comparison-analysis-routine" type="button" onClick={onCreateRoutine}>맞춤 루틴 생성 →</button>
 
-      {medicalDisclaimer && <p className="comparison-analysis-disclaimer"><span>{medicalDisclaimer}</span>{dataDisclaimer && <span>{dataDisclaimer}</span>}</p>}
+        {medicalDisclaimer && <p className="comparison-analysis-disclaimer"><span>{medicalDisclaimer}</span>{dataDisclaimer && <span>{dataDisclaimer}</span>}</p>}
+      </div>
     </section>
   </main>
 }
