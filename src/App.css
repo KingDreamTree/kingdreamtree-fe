@@ -959,6 +959,23 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   height: 13px;
   transform: translateY(1px);
 }
+
+/* 화살표와 텍스트를 같은 세로 기준선에 맞춤 */
+.comparison-analysis-header .previous-button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.comparison-analysis-header .previous-button img {
+  transform: none;
+  flex: 0 0 auto;
+}
+
+.comparison-analysis-header .previous-button span {
+  display: inline-flex;
+  align-items: center;
+  height: 21px;
+}
 .comparison-analysis-header .previous-button span {
   line-height: 21px;
 }
