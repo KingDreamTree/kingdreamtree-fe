@@ -542,6 +542,18 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .today-routine-page__current > span { margin-bottom: 14px; }
 .today-routine-page__current h2 { margin-bottom: 10px; }
 
+/* 글씨를 전체적으로 키운다 — 카드가 화면의 주인공인데 세트·무게 줄이 작아서
+   멀리서 안 읽혔다. 글줄 폭은 영상을 왼쪽으로 옮긴 만큼(330 → 308px) 줄인다.
+   ⚠️ 제목 크기 단계(8·11·14자 → 38/28/22/18px)는 308px 에서도 그대로 한 줄에
+      들어간다 — 계산해서 맞춰둔 값이라 손대지 않는다. */
+.today-routine-page__current h2, .today-routine-page__current small,
+.today-routine-page__current p { max-width: 308px; }
+.today-routine-page__current small { font-size: 18px; letter-spacing: -.54px; }
+.today-routine-page__current p.today-routine-page__load { font-size: 19px; line-height: 1.45; letter-spacing: -.57px; }
+.today-routine-page__current button { height: 34px; padding: 0 14px; width: auto; font-size: 16px; letter-spacing: -.48px; }
+
+
+
 /* ⚠️ 승격 중 카드(세트 완료 직후 520ms)도 **같은 그리드**여야 한다. 종전에는 옛
    절대 좌표를 그대로 써서, 카드가 넘어가는 순간 간격이 도로 좁아져 보였다. */
 .today-routine-page__next.is-promoting { display: grid; grid-template-columns: minmax(0, 330px) 191px; grid-template-rows: repeat(6, auto); column-gap: 32px; align-content: start; padding: 72px 74px; }
@@ -1119,10 +1131,10 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 /* 시연 영상 — 왼쪽으로 32px 옮기고 키운다(320x372 → 360x400).
    ⚠️ 글줄 폭(350px)을 그대로 두면 열두 자짜리 이름이 영상 왼쪽 끝을 침범한다.
       글줄과 그리드 첫 열을 330px 로 좁히고 제목 크기 단계도 같이 낮췄다. */
-.today-routine-page__current > :is(img, video) { top: 36px; right: 52px; width: 360px; height: 400px; }
-.today-routine-page__current h2, .today-routine-page__current small,
-.today-routine-page__current p { max-width: 330px; }
-.today-routine-page__next.is-promoting :is(img, video) { top: 36px; right: 52px; bottom: auto; width: 360px; height: 400px; }
+/* ⚠️ contain 이면 상자만 둥글고 **영상 자체는 각진 흰 사각형**으로 남는다.
+      cover 로 상자를 꽉 채워야 둥근 모서리가 영상에 먹는다 (상세 보기와 같은 처리). */
+.today-routine-page__current > :is(img, video) { top: 56px; right: 46px; width: 380px; height: 340px; border-radius: 16px; object-fit: cover; }
+.today-routine-page__next.is-promoting :is(img, video) { top: 56px; right: 46px; bottom: auto; width: 380px; height: 340px; border-radius: 16px; object-fit: cover; }
 
 /* 이름 길이별 축소 — CSS 는 글자 수를 셀 수 없어서 titleSizeClass() 가 붙여준다.
    승격 중 카드의 38px 지정(.is-promoting h2)보다 뒤에 와야 이긴다. */
