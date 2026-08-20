@@ -192,7 +192,6 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
 
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
     <section className="comparison-analysis-page">
-      <div className="comparison-analysis-top-rule" aria-hidden="true" />
       {/* 이 화면은 FixedStepFrame 을 쓰지 않아 로고가 글자로만 박혀 있었다 —
           여기서만 처음으로 돌아갈 길이 없었다. 공통 컴포넌트로 바꿔 버튼으로 만든다. */}
       <RefitHomeLogo />
