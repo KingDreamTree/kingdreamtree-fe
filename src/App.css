@@ -1040,10 +1040,20 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   transform: translateY(1px);
 }
 
-/* 비교 분석 안내 문구와 부위 토글 사이 간격 */
-.comparison-analysis-parts {
-  top: 2020px;
-}
+/* 안내 문구 ↔ 부위 토글 ↔ 진단 카드 간격.
+
+   ⚠️ 제외 안내(.comparison-analysis-excluded)는 **있을 때도 없을 때도 있다** —
+      비교에서 빠진 부위가 없으면 통째로 안 그려진다. 한 값으로 고정하면 한쪽이
+      깨진다: 없는 쪽에 맞추면(1927px) 있는 쪽에서 토글이 안내 문구 위로 올라와
+      겹치고, 아래 진단 카드와는 그만큼 벌어진다 (2026-08-20 실측).
+      :has() 로 두 경우를 나눠 잡는다 — 어느 쪽이든 46px 간격.
+
+   ⚠️ 토글이 절대 배치라 진단 카드(흐름 배치인 .comparison-analysis-footer)의
+      시작 위치도 같이 옮겨야 한다. 한쪽만 고치면 간격이 어긋난다. */
+.comparison-analysis-parts { top: 1950px; }
+.comparison-analysis-footer { margin-top: 2107px; }
+.comparison-analysis-page:has(.comparison-analysis-excluded) .comparison-analysis-parts { top: 1990px; }
+.comparison-analysis-page:has(.comparison-analysis-excluded) .comparison-analysis-footer { margin-top: 2147px; }
 
 /* 비교 분석 진단 결과는 부위 선택 영역 아래에 고정 배치 */
 .comparison-analysis-page > .comparison-analysis-diagnosis {
