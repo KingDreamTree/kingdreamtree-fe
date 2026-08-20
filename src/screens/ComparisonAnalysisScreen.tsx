@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import comparisonCommentCircle from '../assets/comparison-analysis-comment-circle.svg'
-import comparisonCommentIcon from '../assets/comparison-analysis-comment-icon.svg'
 import comparisonScoreTrack from '../assets/comparison-analysis-score-track.svg'
 import type { AnalysisPart, AnalysisResult, SegmentationInfo, SessionSegmentation } from '../lib/api'
 import { PreviousButton } from '../components/PreviousButton'
+import { RefitHomeLogo } from '../components/RefitHomeLogo'
+import { BodyPartIcon } from '../components/BodyPartIcon'
 
 const GAP_LABELS: Record<string, string> = {
   NONE: '차이 거의 없음',
@@ -15,8 +16,16 @@ const GAP_LABELS: Record<string, string> = {
 const SCORE_RING_RADIUS = (300 - 24.83) / 2
 const SCORE_RING_CIRCUMFERENCE = 2 * Math.PI * SCORE_RING_RADIUS
 
+/** 화면에 쓰는 부위 용어. 서버는 «위팔 · 팔뚝», 화면은 «상완 · 전완» 으로 부른다. */
 function displayPartName(name: string | null | undefined): string {
   return (name ?? '부위').replaceAll('팔뚝', '전완').replaceAll('위팔', '상완')
+}
+
+/** 좌우 짝 class_name을 서로 바꾼다. 짝이 없는 부위(Torso 등)는 null. */
+function mirrorClassName(className: string): string | null {
+  if (className.startsWith('Left_')) return `Right_${className.slice(5)}`
+  if (className.startsWith('Right_')) return `Left_${className.slice(6)}`
+  return null
 }
 
 /**
@@ -103,7 +112,7 @@ type ComparisonAnalysisScreenProps = {
   analysis: AnalysisResult | null
   segmentation: SessionSegmentation | null
   onCreateRoutine: () => void
-  onPrevious?: () => void
+  onPrevious: () => void
 }
 
 /** Figma 41:189 — 비교 분석. 모든 수치·문구는 GET /analysis · /segmentation 응답에서 온다. */
@@ -116,83 +125,135 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
   const score = overall?.similarity_score ?? null
   const filled = score === null ? 0 : Math.max(0, Math.min(100, score)) / 100
 
-  const priorityName = overall?.priority_parts?.length
-    ? parts.find(part => part.class_name === overall.priority_parts[0])?.name_ko ?? null
-    : null
-  const headline = priorityName ? `${priorityName} 중심 개선 필요` : '개선 포인트 요약'
+  const topClass = overall?.priority_parts?.[0] ?? null
+  const topPart = topClass ? parts.find(part => part.class_name === topClass) : null
+  // priority_parts[0] 하나만 쓰면 "팔·복부가 둘 다 확연히 다른" 사진에서도
+  // "위팔 중심 개선 필요"처럼 단 하나만 콕 집은 것처럼 보인다. 규칙(rank_priority)이
+  // 이미 격차 등급 순으로 정렬해 주므로, 1순위와 **같은 gap_level**(동률로 가장
+  // 큰 격차)인 항목은 전부 같이 짚는다.
+  const worstGapLevel = topPart?.gap_level ?? null
+  const tiedClasses = worstGapLevel
+    ? (overall?.priority_parts ?? []).filter(
+        name => parts.find(part => part.class_name === name)?.gap_level === worstGapLevel,
+      )
+    : []
+  // 좌우 쌍은 격차·신뢰도가 항상 같게 나온다(백엔드 규칙) — 짝도 동률에 들었으면
+  // 한쪽만 짚는 게 아니라 "양쪽"으로 합쳐서 부른다. 안 그러면 오른쪽도 똑같이
+  // 문제인데 왼쪽만 지목하는 짝짝이 문구가 된다.
+  const seenClasses = new Set<string>()
+  const priorityNames: string[] = []
+  for (const className of tiedClasses) {
+    if (seenClasses.has(className)) continue
+    const part = parts.find(p => p.class_name === className)
+    if (!part) continue
+    const mirrorClass = mirrorClassName(className)
+    const isPaired = mirrorClass != null && tiedClasses.includes(mirrorClass)
+    seenClasses.add(className)
+    if (isPaired && mirrorClass) seenClasses.add(mirrorClass)
+    priorityNames.push(
+      isPaired
+        ? displayPartName(part.name_ko)?.replace(/^(왼팔|오른팔|왼쪽|오른쪽)\s*/, '양쪽 ') ?? className
+        : displayPartName(part.name_ko ?? className),
+    )
+  }
+  const headline = priorityNames.length ? `${priorityNames.join('·')} 중심 개선 필요` : '개선 포인트 요약'
 
-  const excluded = analysis?.excluded ?? []
+  // 퀵 진단(웹캠) 세션 — 세그가 없어 부위 카드·점수가 **설계상 없다** (백엔드
+  // docs/quick-pipeline.md). 모드 플래그를 따로 받지 않는다: 진단은 완료(overall 有)
+  // 인데 부위가 0건이면 퀵이다. 풀 모드 로딩 중간 상태는 이 화면에 오지 않는다
+  // (isAnalysisRenderable 이 DONE 만 통과시킨다).
+  const isQuick = overall != null && parts.length === 0
+
   const disclaimer = analysis?.disclaimer
   const disclaimerBoundary = '상담하세요.'
   const disclaimerBoundaryIndex = disclaimer?.indexOf(disclaimerBoundary) ?? -1
   const medicalDisclaimer = disclaimerBoundaryIndex >= 0
     ? disclaimer?.slice(0, disclaimerBoundaryIndex + disclaimerBoundary.length)
     : disclaimer
-  const dataDisclaimer = disclaimerBoundaryIndex >= 0
-    ? disclaimer?.slice(disclaimerBoundaryIndex + disclaimerBoundary.length).trim()
-    : null
 
   return <main className="comparison-analysis-viewport" aria-label="비교 분석">
-    <section className="comparison-analysis-page">
+    <section className={isQuick ? 'comparison-analysis-page comparison-analysis-page--quick' : 'comparison-analysis-page'}>
+      <div className="comparison-analysis-top-rule" aria-hidden="true" />
+      {/* 이 화면은 FixedStepFrame 을 쓰지 않아 로고가 빠져 있었다 — 여기서만
+          온보딩으로 돌아갈 길이 없었다. */}
+      <RefitHomeLogo />
       <header className="comparison-analysis-header">
-        {onPrevious && <PreviousButton onClick={onPrevious} />}
+        <PreviousButton onClick={onPrevious} />
         <p>분석이 완료되었어요</p>
         <h1>레퍼런스 비교 분석 결과</h1>
         <span>현재 체형 vs 목표 레퍼런스</span>
       </header>
 
       {/* 산출 근거(score_rationale)는 본문에 그리면 링과 겹쳐서 툴팁으로만 제공 */}
-      <section className="comparison-analysis-score" aria-label={`유사도 점수 ${score ?? '미산출'}점`} title={overall?.score_rationale ?? undefined}>
+      {!isQuick && <section className="comparison-analysis-score" aria-label={`목표 근접도 ${score ?? '미산출'}점`} title={overall?.score_rationale ?? undefined}>
         <img className="comparison-analysis-score__track" src={comparisonScoreTrack} alt="" />
         <svg className="comparison-analysis-score__fill" viewBox="0 0 300 300" aria-hidden="true">
           <circle cx="150" cy="150" r={SCORE_RING_RADIUS} fill="none" stroke="#FFE250" strokeWidth="24.83" strokeLinecap="round"
             strokeDasharray={SCORE_RING_CIRCUMFERENCE} strokeDashoffset={SCORE_RING_CIRCUMFERENCE * (1 - filled)}
             transform="rotate(-90 150 150)" />
         </svg>
-        <span>유사도 점수</span>
+        <span>목표 근접도</span>
         <strong>{score ?? '—'}점</strong>
-      </section>
+      </section>}
 
       <section className="comparison-analysis-summary" aria-labelledby="comparison-summary-title">
         <h2 id="comparison-summary-title">AI 핵심 요약</h2>
         <div>
           <strong>{headline}</strong>
           <p>{overall?.summary ?? '요약을 준비하고 있어요.'}</p>
+          {overall?.silhouette && <p>{overall.silhouette}</p>}
         </div>
-        {(overall?.strengths?.length || overall?.cautions?.length || excluded.length) ? <ul className="comparison-analysis-notes">
-          {overall?.strengths?.map(item => <li key={item}>💪 {item}</li>)}
-          {overall?.cautions?.map(item => <li key={item}>⚠️ {item}</li>)}
-          {excluded.length > 0 && <li>⚠️ {excluded.map(part => part.name_ko ?? part.class_name).join(', ')} 부위는 시각적 판별이 어려워서 비교 분석에서 제외되었습니다.</li>}
-        </ul> : null}
+        {/* ⚠️ 강점·주의·제외 부위 목록은 **의도적으로 그리지 않는다.** 세 값이 다 있을 때만
+            나타나는 구조라 세션마다 떴다 안 떴다 해서, 요약 상자 아래 높이가 들쭉날쭉했다.
+            (되살릴 일이 생기면 analysis.overall.strengths / cautions / analysis.excluded 다.) */}
       </section>
 
-      <p className="comparison-analysis-count">총 <em>{parts.length}건</em>의 부위별 진단 결과</p>
+      {!isQuick && <p className="comparison-analysis-count">총 <em>{parts.length}건</em>의 부위별 진단 결과</p>}
 
       {/* 촬영본은 거울 방향으로 저장되므로(2026-08-18 개정) 두 사진 모두 부위명
           그대로 칠하면 시각적으로 같은 편이 붙는다 — 교차·표시 반전 없음. */}
-      <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
+      {/* 퀵은 세그멘테이션이 없어 캔버스가 빈 검은 상자 두 개로 남는다 — 통째로 뺀다 */}
+      {!isQuick && <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
         <PhotoWithOverlay seg={segmentation?.user ?? null} selected={selected} label="현재 체형" />
         <PhotoWithOverlay seg={segmentation?.reference ?? null} selected={selected} label="목표 레퍼런스" />
-      </section>
+      </section>}
 
-      <p className="comparison-analysis-help">* 부위를 선택하면 맞춤 솔루션을 볼 수 있어요. 왼팔/오른팔 구분은 사진에 보이는 방향 기준이에요.</p>
-      <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
+      {/* 별표 대신 강조색 점을 앞에 두는 칩 — 각주가 아니라 안내로 읽히게 한다.
+          점은 CSS ::before 로 그린다 (문자로 넣으면 스크린리더가 읽어버린다). */}
+      {!isQuick && <p className="comparison-analysis-help">부위를 선택하면 맞춤 솔루션을 볼 수 있어요</p>}
+      {/* 비교에서 빠진 부위 안내. comparison_limitations 는 "이름: 사유" 문장 목록
+          (백엔드 handlers/vlm.py `_comparison_limitations`, 규칙이 만든다) — 여기서는
+          사유를 다 보여주지 않고 이름만 뽑아 한 문장으로 합친다. */}
+      {!isQuick && !!overall?.comparison_limitations?.length && (
+        <p className="comparison-analysis-excluded">
+          {overall.comparison_limitations.map(text => displayPartName(text.split(':')[0].trim())).join(', ')} 부위는 시각적 판별이 어려워서 비교 분석에서 제외되었습니다.
+        </p>
+      )}
+      {!isQuick && <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
         {parts.map(part => <button
           className={part.class_name === selected?.class_name ? 'is-selected' : ''}
           type="button" key={part.class_name}
           aria-pressed={part.class_name === selected?.class_name}
           onClick={() => setSelectedClass(part.class_name)}>{displayPartName(part.name_ko ?? part.class_name)}</button>)}
-      </nav>
+      </nav>}
 
-      <section className="comparison-analysis-diagnosis" aria-labelledby="comparison-diagnosis-title">
+      {/* ⚠️ 진단 블록 · 버튼 · 안내문구는 **한 흐름으로 묶어야 한다.** 종전에는 셋 다
+          절대 좌표(2092 / 2410 / 2530px)로 고정돼 있었는데, 진단 카드는 differences
+          줄이 붙으면 세로로 자란다. 그만큼 버튼과의 간격만 줄어들었다(52px → 19px).
+          흐름으로 두면 블록이 얼마나 자라든 아래가 같이 밀려 내려간다. */}
+      <div className="comparison-analysis-footer">
+      {!isQuick && <section className="comparison-analysis-diagnosis" aria-labelledby="comparison-diagnosis-title">
         <h2 id="comparison-diagnosis-title">
           <em>{displayPartName(selected?.name_ko ?? selected?.class_name)}</em>의 진단 결과
-          {selected?.gap_level && <span className="comparison-analysis-gap">{GAP_LABELS[selected.gap_level] ?? selected.gap_level}</span>}
+          {/* 차이 정도를 색으로도 읽히게 한다 — 노랑(차이 없음) → 빨강(큰 차이).
+              ⚠️ 색은 거들 뿐이고 문구가 정보를 다 담는다. 색만으로 뜻이 갈리면
+                 색을 구분하기 어려운 사람에게는 배지가 통째로 사라지는 셈이다. */}
+          {selected?.gap_level && <span className={`comparison-analysis-gap comparison-analysis-gap--${selected.gap_level.toLowerCase()}`}>{GAP_LABELS[selected.gap_level] ?? selected.gap_level}</span>}
           {selected?.blocked_reason && <span className="comparison-analysis-badge">{selected.blocked_reason}{analysis?.inbody_id ? ' · 인바디 기준' : ''}</span>}
           {selected?.confidence === 'LOW' && <span className="comparison-analysis-badge comparison-analysis-badge--dim">신뢰도 낮음</span>}
         </h2>
         <div className={selected?.confidence === 'LOW' ? 'is-low-confidence' : ''}>
-          <span><img src={comparisonCommentCircle} alt="" /><img src={comparisonCommentIcon} alt="" /></span>
+          <span><img src={comparisonCommentCircle} alt="" /><BodyPartIcon className="comparison-analysis-comment-icon" partClassName={selected?.class_name} label={`${displayPartName(selected?.name_ko ?? '선택 부위')} 아이콘`} /></span>
           <section>
             <h3>AI 코멘트</h3>
             {selected?.gap_level === null && selected?.blocked_reason
@@ -201,11 +262,15 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
             {selected?.differences?.length ? <p className="comparison-analysis-differences">{selected.differences.join(' · ')}</p> : null}
           </section>
         </div>
-      </section>
+      </section>}
 
       <button className="comparison-analysis-routine" type="button" onClick={onCreateRoutine}>맞춤 루틴 생성 →</button>
 
-      {medicalDisclaimer && <p className="comparison-analysis-disclaimer"><span>{medicalDisclaimer}</span>{dataDisclaimer && <span>{dataDisclaimer}</span>}</p>}
+      {/* ⚠️ 서버 disclaimer 는 «의학 고지 + 데이터 처리 고지» 두 문장이다. 이 화면에서는
+          앞쪽(의학)만 보여준다 — 뒤쪽(외부 AI 전송·삭제 안내)은 요청으로 뺐다.
+          자르는 기준은 '상담하세요.' 이므로, 서버 문구가 바뀌면 여기도 같이 봐야 한다. */}
+      {medicalDisclaimer && <p className="comparison-analysis-disclaimer"><span>{medicalDisclaimer}</span></p>}
+      </div>
     </section>
   </main>
 }
