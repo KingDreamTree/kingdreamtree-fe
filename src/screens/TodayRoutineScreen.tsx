@@ -19,6 +19,16 @@ function exerciseDose(exercise: RoutineExercise | undefined): string {
   return parts.join(' ') || '자유 진행'
 }
 
+/** 카드 제목이 **두 줄 안에** 들어가도록 이름 길이에 따라 글자를 줄인다.
+ *  글줄 폭 350px 기준 두 줄 용량은 대략 722 / 글자크기 자다 — 38px 19자, 28px 25자.
+ *  ⚠️ 카탈로그에는 «시티드 숄더 플렉서 디프레서 리트랙터 스트레칭 벤트 니» 같은
+ *     30자 이름이 있다. 줄임표로 자르면 무슨 운동인지 알 수 없어진다. */
+function titleSizeClass(name: string): string {
+  if (name.length > 25) return ' is-longest'
+  if (name.length > 19) return ' is-long'
+  return ''
+}
+
 /** 카드 전환 길이. App.css 의 today-routine 전환 시간과 **같은 값이어야 한다** —
  *  여기가 짧으면 애니메이션이 끝나기 전에 카드가 교체되고, 길면 다 끝난 화면이 멈춰 있다. */
 const CARD_TRANSITION_MS = 520
@@ -88,7 +98,7 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
            "같은 키를 가진 자식이 둘"이라고 경고하고, 노드를 섞어 쓰거나 하나를 빠뜨린다.
         승격된 카드와 새 현재 카드의 최종 모습이 같도록 CSS 를 맞춰뒀으므로 이음매가 없다. */}
     {current && <section key={`current-${step}`} className={`today-routine-page__current ${isTransitioning ? 'is-exiting' : ''} ${isLastStep ? 'is-last-step' : ''}`} aria-label={`현재 운동 Step ${step + 1}`}>
-      <span>Step {step + 1}/{exercises.length}</span><h2>{current.name}</h2><small>{exerciseDose(current)}</small>
+      <span>Step {step + 1}/{exercises.length}</span><h2 className={titleSizeClass(current.name).trim()}>{current.name}</h2><small>{exerciseDose(current)}</small>
       <p>{current.note ?? (current.muscle_group ? `${current.muscle_group} 자극에 집중해주세요.` : '정확한 자세에 집중해주세요.')}</p>
       <button type="button" disabled={!current.video_url} onClick={() => setGuideOpen(true)}>자세 가이드</button><ExerciseMedia videoUrl={current.video_url} imageUrl={current.image_url} fallback={todayRoutineExercise} label={`${current.name} 동작`} />
     </section>}
@@ -98,7 +108,7 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
         박아두고 있어서 3스텝 이후에도 매번 "Step 2" 가 스쳐 지나갔다. */}
     {next && !isLastStep && <aside key={`next-${step}`}
       className={`today-routine-page__next ${isTransitioning ? 'is-promoting' : ''} ${isNextLastStep ? 'is-promoting-last' : ''}`} aria-label="다음 운동">
-      <p data-next-step={`Step ${step + 2}/${exercises.length}`}>Next →</p><h2>{next.name}</h2><span>{exerciseDose(next)}</span><ExerciseMedia videoUrl={next.video_url} imageUrl={next.image_url} fallback={todayRoutineNextExercise} label={`다음 ${next.name} 동작`} />
+      <p data-next-step={`Step ${step + 2}/${exercises.length}`}>Next →</p><h2 className={titleSizeClass(next.name).trim()}>{next.name}</h2><span>{exerciseDose(next)}</span><ExerciseMedia videoUrl={next.video_url} imageUrl={next.image_url} fallback={todayRoutineNextExercise} label={`다음 ${next.name} 동작`} />
     </aside>}
 
     <button className="today-routine-page__complete" type="button" disabled={isTransitioning || !current} onClick={completeSet}>{isLastStep ? '운동 마치기' : '세트 완료'}</button>

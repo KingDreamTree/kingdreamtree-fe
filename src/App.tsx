@@ -29,7 +29,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, archiveSession, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, archiveSession, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -419,6 +419,17 @@ function isAnalysisRenderable(analysis: AnalysisResult | null): boolean {
   return analysis?.overall != null && analysis.overall.status === 'DONE'
 }
 
+/** 원본 사진 URL 두 장 — **세그멘테이션이 없을 때 사진만이라도** 보여주기 위한 것.
+ *  퀵/웹캠 경로는 Sapiens2 를 안 돌려 세그가 없지만 photo 행은 있다. 실패해도
+ *  화면을 막지 않는다 — 사진이 없으면 비교 이미지 섹션만 빠진다. */
+async function fetchPhotoUrls(sessionId: string): Promise<{ user: string | null; reference: string | null }> {
+  const [user, reference] = await Promise.all([
+    getSessionPhoto(sessionId, 'user').then(p => p.signed_url ?? null).catch(() => null),
+    getSessionPhoto(sessionId, 'reference').then(p => p.signed_url ?? null).catch(() => null),
+  ])
+  return { user, reference }
+}
+
 /** 세그멘테이션 조회 — 오래 걸리면 포기한다. 사진이 없어도 수치·문구는 읽을 수 있다. */
 async function fetchSegmentation(sessionId: string): Promise<SessionSegmentation | null> {
   try {
@@ -483,6 +494,8 @@ function App() {
   const [todayRoutine, setTodayRoutine] = useState<TodayRoutine | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null)
   const [segmentationData, setSegmentationData] = useState<SessionSegmentation | null>(null)
+  // 세그가 없는 경로(퀵/웹캠)에서 사진만이라도 그리기 위한 원본 URL.
+  const [photoUrls, setPhotoUrls] = useState<{ user: string | null; reference: string | null } | null>(null)
   const [routineData, setRoutineData] = useState<RoutineDetail | null>(null)
   const [selectedDay, setSelectedDay] = useState<RoutineDay | null>(null)
   const [coach, setCoach] = useState<CoachChatResponse | null>(null)
@@ -525,6 +538,8 @@ function App() {
           setAnalysisData(analysis)
           const segmentation = await getSessionSegmentation(sessionId).catch(() => null)
           if (!cancelled) setSegmentationData(segmentation)
+          const urls = await fetchPhotoUrls(sessionId)
+          if (!cancelled) setPhotoUrls(urls)
         } else if (resumed === 'custom-routine') {
           const routine = await getActiveRoutine(sessionId)
           if (!cancelled) setRoutineData(routine)
@@ -774,6 +789,9 @@ function App() {
           // 퀵은 세그멘테이션이 아예 없다 — 조회해 봐야 10초 타임아웃만 기다린다.
           setSegmentationData(quick ? null : (await fetchSegmentation(sessionId) ?? await fetchSegmentation(sessionId)))
           if (!alive()) return
+          // 세그가 없어도(퀵) 사진은 보여준다 — 없으면 빈 상자만 남는다.
+          setPhotoUrls(await fetchPhotoUrls(sessionId))
+          if (!alive()) return
           setIsAnalysisReady(true)   // 막대가 100% 를 찍은 뒤 로딩 화면이 전환한다
           return
         }
@@ -1013,7 +1031,7 @@ function App() {
   // 이어서 받아 상태를 채우므로, 네트워크 응답 때문에 로딩 화면이 멈춰 있지 않는다.
     if (view === 'inbody-loading') return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady}
       onComplete={() => setView('comparison')} />
-  if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
+  if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} photoUrls={photoUrls} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
   if (view === 'loading-two') return <LoadingTwoScreen phase={routinePhase} isComplete={isRoutineReady} onComplete={() => setView('custom-routine')} />
   if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setSelectedDay(day); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />
