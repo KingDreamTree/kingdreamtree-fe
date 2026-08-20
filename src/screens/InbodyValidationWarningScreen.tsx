@@ -16,8 +16,8 @@ const composition: Field[] = [
   { label: '체지방량', value: '15.6', unit: 'kg' },
   { label: '기초대사량', value: '1524', unit: 'kcal' },
 ]
-const muscle: Field[] = [{ label: '오른팔 (kg)', value: '2.65' }, { label: '왼팔 (kg)', value: '2.55' }, { label: '몸통 (kg)', value: '2.13' }, { label: '오른다리 (kg)', value: '8.35' }, { label: '왼다리 (kg)', value: '8.25' }]
-const fat: Field[] = [{ label: '오른팔 (kg)', value: '0.8' }, { label: '왼팔 (kg)', value: '0.8' }, { label: '몸통 (kg)', value: '0.8' }, { label: '오른다리 (kg)', value: '0.8' }, { label: '왼다리 (kg)', value: '0.8' }]
+const muscle: Field[] = [{ label: '오른팔', value: '2.65', unit: 'kg' }, { label: '왼팔', value: '2.55', unit: 'kg' }, { label: '몸통', value: '2.13', unit: 'kg' }, { label: '오른다리', value: '8.35', unit: 'kg' }, { label: '왼다리', value: '8.25', unit: 'kg' }]
+const fat: Field[] = [{ label: '오른팔', value: '0.8', unit: 'kg' }, { label: '왼팔', value: '0.8', unit: 'kg' }, { label: '몸통', value: '0.8', unit: 'kg' }, { label: '오른다리', value: '0.8', unit: 'kg' }, { label: '왼다리', value: '0.8', unit: 'kg' }]
 
 function WarningGlyph({ compact = false }: { compact?: boolean }) {
   return <span className={`inbody-warning-glyph ${compact ? 'is-compact' : ''}`} aria-hidden="true"><img src={compact ? inbodyWarningInputIcon : inbodyWarningGuideIcon} alt="" /></span>

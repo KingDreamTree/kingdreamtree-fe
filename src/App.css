@@ -803,6 +803,18 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 /* 카드 간격을 기본 고정값으로 되돌립니다. */
 .custom-routine-page__cards { width: auto; justify-content: flex-start; gap: 14px; }
+/* 인바디 부위 단위는 본문 라벨보다 작고 가볍게 표시 */
+.inbody-after-field > span small,
+.inbody-fixed-field > span small,
+.inbody-range-field > span small,
+.inbody-warning-field > span small,
+.inbody-unreadable-field > span small {
+  margin-left: 1px;
+  color: #aaa;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: -.3px;
+}
 .custom-routine-page__cards:has(> article:nth-child(7)) { gap: 12px; }
 
 /* ── 비교 분석 하단: 진단 블록 → 버튼 → 안내문구를 한 흐름으로 ────────────────
@@ -832,4 +844,3 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-page--quick .comparison-analysis-summary { position: static; width: 1178px; margin: 420px auto 0; transform: none; }
 .comparison-analysis-page--quick .comparison-analysis-summary > div { width: auto; }
 .comparison-analysis-page--quick .comparison-analysis-footer { margin-top: 88px; }
-

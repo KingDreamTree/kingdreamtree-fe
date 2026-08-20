@@ -24,11 +24,11 @@ const COMPOSITION_FIELDS: Array<{ key: string; label: string; unit?: string }> =
 ]
 
 const SEGMENT_ORDER: Array<{ key: InbodySegmentKey; label: string }> = [
-  { key: 'RIGHT_ARM', label: '오른팔 (kg)' },
-  { key: 'LEFT_ARM', label: '왼팔 (kg)' },
-  { key: 'TRUNK', label: '몸통 (kg)' },
-  { key: 'RIGHT_LEG', label: '오른다리 (kg)' },
-  { key: 'LEFT_LEG', label: '왼다리 (kg)' },
+  { key: 'RIGHT_ARM', label: '오른팔' },
+  { key: 'LEFT_ARM', label: '왼팔' },
+  { key: 'TRUNK', label: '몸통' },
+  { key: 'RIGHT_LEG', label: '오른다리' },
+  { key: 'LEFT_LEG', label: '왼다리' },
 ]
 
 /** 날짜 입력(type="date")은 YYYY-MM-DD 만 표시할 수 있다. OCR 이 점·슬래시로 주는 경우가
@@ -109,8 +109,8 @@ export function InbodyUploadAfterScreen({ inbody, onConfirm, onPrevious }: Inbod
       <div className="inbody-after-field"><span>측정일</span><InbodyDateField value={fields.measured_at ?? ''} onChange={next => setField('measured_at', next)} /></div>
     </section>
     <section className="inbody-after-column inbody-after-composition"><h2>2. 체성분</h2>{COMPOSITION_FIELDS.map(field => renderInput(field.key, field.label, field.unit))}</section>
-    <section className="inbody-after-column inbody-after-muscle"><h2>3. 부위별 근육량</h2>{SEGMENT_ORDER.map(({ key, label }) => <label className="inbody-after-field" key={`lean-${key}`}><span>{label}</span><input aria-label={`${label} 근육량`} value={lean[key] ?? ''} onChange={event => setLean(prev => ({ ...prev, [key]: event.target.value }))} /></label>)}</section>
-    <section className="inbody-after-column inbody-after-fat"><h2>4. 부위별 체지방량</h2>{SEGMENT_ORDER.map(({ key, label }) => <label className="inbody-after-field" key={`fat-${key}`}><span>{label}</span><input aria-label={`${label} 체지방량`} value={fat[key] ?? ''} onChange={event => setFat(prev => ({ ...prev, [key]: event.target.value }))} /></label>)}</section>
+    <section className="inbody-after-column inbody-after-muscle"><h2>3. 부위별 근육량</h2>{SEGMENT_ORDER.map(({ key, label }) => <label className="inbody-after-field" key={`lean-${key}`}><span>{label} <small>(kg)</small></span><input aria-label={`${label} 근육량`} value={lean[key] ?? ''} onChange={event => setLean(prev => ({ ...prev, [key]: event.target.value }))} /></label>)}</section>
+    <section className="inbody-after-column inbody-after-fat"><h2>4. 부위별 체지방량</h2>{SEGMENT_ORDER.map(({ key, label }) => <label className="inbody-after-field" key={`fat-${key}`}><span>{label} <small>(kg)</small></span><input aria-label={`${label} 체지방량`} value={fat[key] ?? ''} onChange={event => setFat(prev => ({ ...prev, [key]: event.target.value }))} /></label>)}</section>
     <button className="inbody-after-confirm" type="button" onClick={submit}>확인 완료</button><button className="inbody-after-previous" type="button" onClick={onPrevious}><img src={previousArrow} alt="" />이전 단계</button>
   </div></FixedStepFrame>
 }
