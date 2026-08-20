@@ -544,9 +544,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
    ⚠️ 제목 크기 단계(8·11·14자 → 38/28/22/18px)는 308px 에서도 그대로 한 줄에
       들어간다 — 계산해서 맞춰둔 값이라 손대지 않는다. */
 .today-routine-page__current h2, .today-routine-page__current small,
-.today-routine-page__current p { max-width: 308px; }
+.today-routine-page__current p { max-width: 328px; }
 .today-routine-page__current small { font-size: 18px; letter-spacing: -.54px; }
-.today-routine-page__current p.today-routine-page__load { font-size: 19px; line-height: 1.45; letter-spacing: -.57px; }
+/* ⚠️ 이 줄은 **한 줄에 들어가야 한다**. «3~5kg · 가볍게 느껴지면 한 단계 올리세요» 가
+      가장 긴 축이고, 무게가 두 자리(10~12kg)여도 328px 안에 들어가는 크기가 16px 다.
+      더 키우면 접힌다 — 접히면 아래 버튼까지 밀려 카드가 들쭉날쭉해진다. */
+.today-routine-page__current p.today-routine-page__load { font-size: 16px; line-height: 1.45; letter-spacing: -.48px; }
 .today-routine-page__current button { height: 34px; padding: 0 14px; width: auto; font-size: 16px; letter-spacing: -.48px; }
 
 
@@ -1136,8 +1139,8 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
       글줄과 그리드 첫 열을 330px 로 좁히고 제목 크기 단계도 같이 낮췄다. */
 /* ⚠️ contain 이면 상자만 둥글고 **영상 자체는 각진 흰 사각형**으로 남는다.
       cover 로 상자를 꽉 채워야 둥근 모서리가 영상에 먹는다 (상세 보기와 같은 처리). */
-.today-routine-page__current > :is(img, video) { top: 56px; right: 46px; width: 380px; height: 340px; border-radius: 16px; object-fit: cover; }
-.today-routine-page__next.is-promoting :is(img, video) { top: 56px; right: 46px; bottom: auto; width: 380px; height: 340px; border-radius: 16px; object-fit: cover; }
+.today-routine-page__current > :is(img, video) { top: 56px; right: 36px; width: 370px; height: 340px; border-radius: 16px; object-fit: cover; }
+.today-routine-page__next.is-promoting :is(img, video) { top: 56px; right: 36px; bottom: auto; width: 370px; height: 340px; border-radius: 16px; object-fit: cover; }
 
 /* 이름 길이별 축소 — CSS 는 글자 수를 셀 수 없어서 titleSizeClass() 가 붙여준다.
    승격 중 카드의 38px 지정(.is-promoting h2)보다 뒤에 와야 이긴다. */
