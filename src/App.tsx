@@ -29,7 +29,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, archiveSession, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -546,6 +546,38 @@ function App() {
     }
     window.addEventListener('refit-logo-click', handleLogoClick)
     return () => window.removeEventListener('refit-logo-click', handleLogoClick)
+  }, [])
+
+  // 단축키 리셋(시연용) — Cmd/Ctrl+Shift+X. archive_session 은 이미 백엔드에
+  // 있었지만(F03, "사용자당 ACTIVE 세션 1개" 제약을 벗어나는 유일한 공식 통로)
+  // 부르는 화면이 하나도 없어서, 지금까지는 시크릿 창을 새로 여는 것만이 새
+  // 세션(새 user_id)을 받는 방법이었다. 여기서는 user_id 는 그대로 두고
+  // 세션만 ARCHIVED 로 내린다 — 다음 ensureActiveSession() 이 활성 세션
+  // 없음(404)을 보고 알아서 새로 만든다.
+  // ⚠️ Cmd/Ctrl+Shift+R(하드 리프레시)은 브라우저 예약 단축키라 페이지 JS로
+  //    가로챌 수 없다 — 겹치지 않는 X 로 잡았다.
+  useEffect(() => {
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || !e.shiftKey || e.key.toLowerCase() !== 'x') return
+      e.preventDefault()
+      if (!window.confirm('현재 세션을 종료하고 처음부터 새로 시작할까요?')) return
+      const sessionId = getStoredSessionId()
+      if (sessionId) void archiveSession(sessionId).catch(() => undefined)
+      setAnalysisData(null)
+      setSegmentationData(null)
+      setInbodyId(null)
+      setInbodyJobId(null)
+      setInbodyData(null)
+      setRoutineData(null)
+      setSelectedDay(null)
+      setTodayRoutine(null)
+      setCoach(null)
+      setRefData(null)
+      setView('onboarding')
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+    }
+    window.addEventListener('keydown', handleKeydown)
+    return () => window.removeEventListener('keydown', handleKeydown)
   }, [])
 
   // 세션과 판정 기준(GET /pose-criteria)은 시작 시 한 번만. 모델·wasm도 미리 로드.
