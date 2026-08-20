@@ -29,7 +29,13 @@ POST /api/v1/users          → { user_id }   최초 1회, 로컬에 저장
 ### 에러 형식 — 전부 동일합니다
 
 ```json
-{ "error": { "code": "POSE_MISMATCH", "message": "사용자에게 그대로 보여줄 문구", "detail": { } } }
+{
+  "error": {
+    "code": "POSE_MISMATCH",
+    "message": "사용자에게 그대로 보여줄 문구",
+    "detail": {}
+  }
+}
 ```
 
 `message` 는 **그대로 노출해도 되게** 쓰여 있습니다. `detail` 은 화면 분기용입니다.
@@ -78,12 +84,12 @@ POST → { job_id }   →   GET /jobs/{job_id}  →  status: PENDING | PROCESSIN
 
 **참고 구현이 저장소에 있습니다** — 그대로 가져다 쓰세요.
 
-| 파일 | 내용 |
-|---|---|
-| `web/pose-score.js` | `poseScore()` · `framingScore()` · `facingDelta()` — **산식 원본** |
-| `web/e2e-test.html` | 사진 두 장 → 진단 → 루틴 → 코치 대화까지 전 구간 |
-| `web/pose-live.html` | 실시간 점수 표시 (자동 촬영: 판정 통과 상태 **약 1초 유지** 시 셔터) |
-| `web/score-photos.html` | 찍어둔 사진에 점수 매기기 |
+| 파일                    | 내용                                                                 |
+| ----------------------- | -------------------------------------------------------------------- |
+| `web/pose-score.js`     | `poseScore()` · `framingScore()` · `facingDelta()` — **산식 원본**   |
+| `web/e2e-test.html`     | 사진 두 장 → 진단 → 루틴 → 코치 대화까지 전 구간                     |
+| `web/pose-live.html`    | 실시간 점수 표시 (자동 촬영: 판정 통과 상태 **약 1초 유지** 시 셔터) |
+| `web/score-photos.html` | 찍어둔 사진에 점수 매기기                                            |
 
 ### 순서 — 레퍼런스가 먼저입니다
 
@@ -116,26 +122,26 @@ is_mirrored              거울 촬영이면 true (서버가 좌우 되돌림)
 
 **1차 관문 (즉시, 무료): 자세·프레이밍** → `422 POSE_MISMATCH`
 
-| `detail.reason` | 사용자에게 |
-|---|---|
-| `FRAMING` | "비슷한 거리에서 다시 찍어주세요" |
-| `POSE` | "포즈를 맞춰주세요" |
-| `NO_PERSON` | "전신이 보이게 다시 찍어주세요" |
-| `MULTI_PERSON` | "혼자 나오게 찍어주세요" (코드 `MULTI_PERSON`) |
-| `SCALE_BASIS_MISMATCH` | 레퍼런스와 기준이 다름 — 레퍼런스 재촬영 |
-| `LOOSE_CLOTHING` | "몸에 붙는 옷으로 다시 촬영해주세요" |
-| `PART_MISMATCH` | "레퍼런스와 같은 부위가 나오도록 다시 촬영해주세요" |
-| `PERSPECTIVE_MISMATCH` | "레퍼런스와 비슷한 거리에서 다시 촬영해주세요" |
-| `CROPPED` | "팔과 다리가 화면에 나오도록 다시 촬영해주세요" |
+| `detail.reason`        | 사용자에게                                          |
+| ---------------------- | --------------------------------------------------- |
+| `FRAMING`              | "비슷한 거리에서 다시 찍어주세요"                   |
+| `POSE`                 | "포즈를 맞춰주세요"                                 |
+| `NO_PERSON`            | "전신이 보이게 다시 찍어주세요"                     |
+| `MULTI_PERSON`         | "혼자 나오게 찍어주세요" (코드 `MULTI_PERSON`)      |
+| `SCALE_BASIS_MISMATCH` | 레퍼런스와 기준이 다름 — 레퍼런스 재촬영            |
+| `LOOSE_CLOTHING`       | "몸에 붙는 옷으로 다시 촬영해주세요"                |
+| `PART_MISMATCH`        | "레퍼런스와 같은 부위가 나오도록 다시 촬영해주세요" |
+| `PERSPECTIVE_MISMATCH` | "레퍼런스와 비슷한 거리에서 다시 촬영해주세요"      |
+| `CROPPED`              | "팔과 다리가 화면에 나오도록 다시 촬영해주세요"     |
 
 **2차 관문 (VLM, 레퍼런스와 함께 판단): 이 사진으로 비교 진단이 되는가** → `422 UNSUITABLE_PHOTO`
 
-| `detail.reason` | 사용자에게 |
-|---|---|
-| `LOOSE_CLOTHING` | 옷에 몸이 가려짐 — 몸에 붙는 옷으로 재촬영 |
-| `PART_MISMATCH` | 레퍼런스에서 비교하는 부위가 사진에 없음 — 같은 부위가 나오게 재촬영 |
-| `PERSPECTIVE_MISMATCH` | 촬영 각도/거리가 레퍼런스와 다름 |
-| `CROPPED` | 팔·다리 잘림 — 전신이 나오게 재촬영 |
+| `detail.reason`        | 사용자에게                                                           |
+| ---------------------- | -------------------------------------------------------------------- |
+| `LOOSE_CLOTHING`       | 옷에 몸이 가려짐 — 몸에 붙는 옷으로 재촬영                           |
+| `PART_MISMATCH`        | 레퍼런스에서 비교하는 부위가 사진에 없음 — 같은 부위가 나오게 재촬영 |
+| `PERSPECTIVE_MISMATCH` | 촬영 각도/거리가 레퍼런스와 다름                                     |
+| `CROPPED`              | 팔·다리 잘림 — 전신이 나오게 재촬영                                  |
 
 > ⚠️ **422 면 저장이 안 됩니다.** 재촬영 UI 로 돌아가야 합니다. `message` 를 그대로 보여주면 됩니다.
 
@@ -157,7 +163,7 @@ is_mirrored              거울 촬영이면 true (서버가 좌우 되돌림)
     503  사진을 판정하지 못했다     → **같은 사진 그대로 재시도**
 
 ⚠️ 503 을 422 처럼 처리해 "다시 찍어주세요" 를 띄우면, 사용자는 멀쩡한 사진을
-   들고 몇 번이고 다시 찍게 됩니다. **사진 문제가 아니라 서버 사정입니다.**
+들고 몇 번이고 다시 찍게 됩니다. **사진 문제가 아니라 서버 사정입니다.**
 
 권장 UI — 촬영 화면으로 돌려보내지 말고, 방금 찍은 사진을 **화면에 그대로 둔 채**
 [다시 시도] 버튼을 띄우세요.
@@ -168,7 +174,7 @@ is_mirrored              거울 촬영이면 true (서버가 좌우 되돌림)
 ```
 
 ⚠️ 자동 재시도를 넣는다면 **간격을 두고 2~3회까지만.** 즉시 반복하면 장애 중인
-   외부 모델을 더 밀어붙이게 됩니다.
+외부 모델을 더 밀어붙이게 됩니다.
 
 > 이 동작은 의도된 것입니다 (fail-closed). 판정 없이 통과시키면 헐렁한 옷처럼
 > 뒤 단계가 못 잡는 사진이 그대로 들어와, 진단이 조용히 나빠집니다.
@@ -196,8 +202,8 @@ GET /sessions/{id}/segmentation          두 장 + 비교 가능 부위
 ⚠️ **bbox·pixel_count 는 맵 좌표계입니다.** 원본 위에 그리려면 배율을 곱하세요.
 
 ```js
-sx = photo.width  / segmentation.map_width
-sy = photo.height / segmentation.map_height   // ⚠️ x·y 를 따로! 종횡비가 다릅니다
+sx = photo.width / segmentation.map_width;
+sy = photo.height / segmentation.map_height; // ⚠️ x·y 를 따로! 종횡비가 다릅니다
 ```
 
 `retake_recommended: true` 면 재촬영 유도 UI 를 띄우세요 — 비교 가능 부위가 부족합니다.
@@ -222,7 +228,12 @@ AI 추출값이라 사용자 확인을 거쳐야 합니다. 화면 설계는 `do
 응답의 `validation` 이 **필드별 경고**를 담습니다:
 
 ```json
-{ "weight": { "level": "WARN", "message": "체중 항등식 불일치 — 계산값 72.52 vs 추출값 63.50" } }
+{
+  "weight": {
+    "level": "WARN",
+    "message": "체중 항등식 불일치 — 계산값 72.52 vs 추출값 63.50"
+  }
+}
 ```
 
 > ⚠️ 경고는 "이 칸이 틀렸다"가 아니라 **"이 값들이 서로 안 맞는다"** 입니다.
@@ -268,18 +279,18 @@ GET  /sessions/{id}/analysis            결과
 }
 ```
 
-| 필드 | 화면 |
-|---|---|
-| `similarity_score` + `score_rationale` | 점수 옆에 근거를 **같이** 노출하면 신뢰도가 올라갑니다 |
-| `score_source` | 정상 완료면 `"RULE"` — 점수는 LLM 이 아니라 규칙 합산이 만듭니다 |
-| `summary` | **"경로" 문체입니다** (8/16 변경) — 격차 나열이 아니라 "지금 → 목표까지 어떤 순서로 가는지". `priority_parts` 순서 = 루틴이 실제로 볼륨을 얹는 순서와 일치합니다 |
-| `parts[].assessment` | PT 트레이너 톤 (8/16 변경). 부위마다 길이·표현이 다른 게 정상입니다 |
-| `excluded` | 비교에서 빠진 부위 + 사유 — "왼팔은 왜 없지?"에 여기로 답하세요 |
-| `gap_level: null` + `blocked_reason` | "이 부위는 확인이 어려웠어요" — **숨기지 말고 정직하게** |
-| `gap_level` 있음 + `blocked_reason` | **배지 필요** — 아래 참조 |
-| `confidence: "LOW"` | 흐리게 표시하거나 배지 |
-| `strengths: []` | 빈 배열이 정상입니다. 억지로 채우지 않습니다 |
-| `inbody_id` | 이 진단에 어떤 인바디가 반영됐는지. null 이면 사진만으로 진단 |
+| 필드                                   | 화면                                                                                                                                                             |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `similarity_score` + `score_rationale` | 점수 옆에 근거를 **같이** 노출하면 신뢰도가 올라갑니다                                                                                                           |
+| `score_source`                         | 정상 완료면 `"RULE"` — 점수는 LLM 이 아니라 규칙 합산이 만듭니다                                                                                                 |
+| `summary`                              | **"경로" 문체입니다** (8/16 변경) — 격차 나열이 아니라 "지금 → 목표까지 어떤 순서로 가는지". `priority_parts` 순서 = 루틴이 실제로 볼륨을 얹는 순서와 일치합니다 |
+| `parts[].assessment`                   | PT 트레이너 톤 (8/16 변경). 부위마다 길이·표현이 다른 게 정상입니다                                                                                              |
+| `excluded`                             | 비교에서 빠진 부위 + 사유 — "왼팔은 왜 없지?"에 여기로 답하세요                                                                                                  |
+| `gap_level: null` + `blocked_reason`   | "이 부위는 확인이 어려웠어요" — **숨기지 말고 정직하게**                                                                                                         |
+| `gap_level` 있음 + `blocked_reason`    | **배지 필요** — 아래 참조                                                                                                                                        |
+| `confidence: "LOW"`                    | 흐리게 표시하거나 배지                                                                                                                                           |
+| `strengths: []`                        | 빈 배열이 정상입니다. 억지로 채우지 않습니다                                                                                                                     |
+| `inbody_id`                            | 이 진단에 어떤 인바디가 반영됐는지. null 이면 사진만으로 진단                                                                                                    |
 
 > ⚠️ `gap_level` 값은 `NONE | SLIGHT | MODERATE | SIGNIFICANT` 입니다.
 > `confidence` 는 `LOW | MEDIUM | HIGH`. 헷갈리기 쉬우니 주의.
@@ -302,10 +313,10 @@ GET  /sessions/{id}/analysis            결과
 
 ### 실패 처리
 
-| 상황 | 응답 |
-|---|---|
+| 상황                   | 응답                                                   |
+| ---------------------- | ------------------------------------------------------ |
 | 비교 부위 **2개 미만** | `INSUFFICIENT_PARTS` → 재촬영 유도 (8/15에 3→2로 완화) |
-| 일부 부위만 실패 | **200**. 실패한 부위만 빠짐 (전체 실패 아님) |
+| 일부 부위만 실패       | **200**. 실패한 부위만 빠짐 (전체 실패 아님)           |
 
 ---
 
@@ -352,20 +363,27 @@ GET  /routines/{id}/days/{day_order}    Day 상세
 
 ```json
 {
-  "name": "레그프레스", "exercise_ref": "exr_…", "image_url": "https://…",
+  "name": "레그프레스",
+  "exercise_ref": "exr_…",
+  "image_url": "https://…",
   "exercise_kind": "STRENGTH",
-  "sets": 4, "reps": 10, "rest_sec": 90, "rir": 2,
-  "muscle_group": "대퇴사두", "boosted_by": "Left_Upper_Leg", "note": "…"
+  "sets": 4,
+  "reps": 10,
+  "rest_sec": 90,
+  "rir": 2,
+  "muscle_group": "대퇴사두",
+  "boosted_by": "Left_Upper_Leg",
+  "note": "…"
 }
 ```
 
-| 필드 | 의미 |
-|---|---|
-| `exercise_ref` · `image_url` | ExerciseDB 원본. **지어낸 운동이 아니라는 근거** — 이미지 노출 권장 |
-| `rir` | "2회 남기고 멈추는 무게". ⚠️ **중량(kg)은 제공하지 않습니다** |
-| `boosted_by` | 이 운동이 어느 진단 부위 때문에 볼륨을 더 받았는지 → "왼팔이 부족해서 세트를 늘렸어요" |
-| `note` | 좌우 불균형이 있으면 "약한 쪽부터 시작" 같은 수행 순서 안내가 붙습니다 |
-| `exercise_kind: "CARDIO"` | `sets` 대신 `duration_min` 을 보세요 |
+| 필드                         | 의미                                                                                   |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| `exercise_ref` · `image_url` | ExerciseDB 원본. **지어낸 운동이 아니라는 근거** — 이미지 노출 권장                    |
+| `rir`                        | "2회 남기고 멈추는 무게". ⚠️ **중량(kg)은 제공하지 않습니다**                          |
+| `boosted_by`                 | 이 운동이 어느 진단 부위 때문에 볼륨을 더 받았는지 → "왼팔이 부족해서 세트를 늘렸어요" |
+| `note`                       | 좌우 불균형이 있으면 "약한 쪽부터 시작" 같은 수행 순서 안내가 붙습니다                 |
+| `exercise_kind: "CARDIO"`    | `sets` 대신 `duration_min` 을 보세요                                                   |
 
 `disclaimer` 를 **반드시 노출**하세요 (의학적 조언 아님).
 
@@ -412,8 +430,10 @@ POST /sessions/{id}/coach-chat
 **`finalized` 가 오면 대화 끝**입니다. 요약 카드를 띄우세요:
 
 ```json
-{ "summary": "무릎 부담을 줄이는 방향으로 정리했어요…",
-  "changes": [ { "what": "스쿼트 → 레그프레스", "why": "무릎 불편 신고" } ] }
+{
+  "summary": "무릎 부담을 줄이는 방향으로 정리했어요…",
+  "changes": [{ "what": "스쿼트 → 레그프레스", "why": "무릎 불편 신고" }]
+}
 ```
 
 카드에 **[적용] / [그대로 둘게요]** 버튼을 놓고, [적용] 이면:
@@ -451,21 +471,21 @@ DELETE /users/me                   계정 + 전 데이터 삭제
 
 ## 9. 전체 엔드포인트 목록 (참고용)
 
-| 메서드·경로 | 용도 | 방식 |
-|---|---|---|
-| `POST /users` | user_id 발급 (헤더 불필요) | 동기 |
-| `GET /users/me` · `DELETE /users/me` | 확인 / 전체 삭제 | 동기 |
-| `POST /sessions` · `GET /sessions/active` · `POST /sessions/{id}/archive` | 세션 | 동기 |
-| `GET /body-parts` (헤더 불필요) · `GET /pose-criteria` (헤더 불필요) | 마스터/기준값 | 동기 |
-| `POST·GET /sessions/{id}/photos/reference` · `POST /sessions/{id}/photos/user` | 사진 | 동기 판정 + 세그 잡 |
-| `GET /photos/{photo_id}/segmentation` · `GET /sessions/{id}/segmentation` | 세그 결과 | 동기 |
-| `POST·GET /sessions/{id}/inbody` · `GET·PATCH·DELETE /inbody/{id}` | 인바디 | OCR 잡 |
-| `POST·GET /sessions/{id}/analysis` · `GET …/analysis/progress` | 진단 | 잡 |
-| `POST·GET /sessions/{id}/routines` · `…/routines/today` · `…/routines/active` · `GET /routines/{id}/days/{n}` | 루틴 | 생성만 잡 |
-| `POST·GET /sessions/{id}/workout-logs` · `GET /sessions/{id}/revisions` | 완료·이력 | 동기 (패치는 잡) |
-| `POST /sessions/{id}/coach-chat` · `…/coach-chat/apply` | 코치 대화 | 동기 |
-| `GET /jobs/{job_id}` · `GET /sessions/{id}/jobs` | 잡 폴링 | 동기 |
-| `POST /storage/signed-urls` | 저장 파일 서명 URL 재발급 | 동기 |
+| 메서드·경로                                                                                                   | 용도                       | 방식                |
+| ------------------------------------------------------------------------------------------------------------- | -------------------------- | ------------------- |
+| `POST /users`                                                                                                 | user_id 발급 (헤더 불필요) | 동기                |
+| `GET /users/me` · `DELETE /users/me`                                                                          | 확인 / 전체 삭제           | 동기                |
+| `POST /sessions` · `GET /sessions/active` · `POST /sessions/{id}/archive`                                     | 세션                       | 동기                |
+| `GET /body-parts` (헤더 불필요) · `GET /pose-criteria` (헤더 불필요)                                          | 마스터/기준값              | 동기                |
+| `POST·GET /sessions/{id}/photos/reference` · `POST /sessions/{id}/photos/user`                                | 사진                       | 동기 판정 + 세그 잡 |
+| `GET /photos/{photo_id}/segmentation` · `GET /sessions/{id}/segmentation`                                     | 세그 결과                  | 동기                |
+| `POST·GET /sessions/{id}/inbody` · `GET·PATCH·DELETE /inbody/{id}`                                            | 인바디                     | OCR 잡              |
+| `POST·GET /sessions/{id}/analysis` · `GET …/analysis/progress`                                                | 진단                       | 잡                  |
+| `POST·GET /sessions/{id}/routines` · `…/routines/today` · `…/routines/active` · `GET /routines/{id}/days/{n}` | 루틴                       | 생성만 잡           |
+| `POST·GET /sessions/{id}/workout-logs` · `GET /sessions/{id}/revisions`                                       | 완료·이력                  | 동기 (패치는 잡)    |
+| `POST /sessions/{id}/coach-chat` · `…/coach-chat/apply`                                                       | 코치 대화                  | 동기                |
+| `GET /jobs/{job_id}` · `GET /sessions/{id}/jobs`                                                              | 잡 폴링                    | 동기                |
+| `POST /storage/signed-urls`                                                                                   | 저장 파일 서명 URL 재발급  | 동기                |
 
 서명 URL(`signed_url`)은 **1시간** 유효합니다. 만료되면 `POST /storage/signed-urls` 로 재발급하세요.
 
@@ -502,13 +522,13 @@ main 에 머지되면 자동 배포되므로 프론트가 서버를 직접 띄�
 
 ## 부록 — 8/14판에서 바뀐 것 (이미 반영하셨다면 이것만 보세요)
 
-| 변경 | 내용 |
-|---|---|
-| **Base URL** | 프로덕션 `https://api.refit.live/api/v1` 가동 (8/15 배포, 자동 재배포) |
-| **2차 검사 fail-closed** | 검사기 장애 시 `503 SCREENING_UNAVAILABLE` 신설 — 422 와 **다르게** 처리 (같은 사진 재시도) |
-| **반려 사유 코드** | `UNSUITABLE_PHOTO` 의 `detail.reason` 이 `LOOSE_CLOTHING / PART_MISMATCH / PERSPECTIVE_MISMATCH / CROPPED` 4종으로 확정 |
-| **최소 비교 부위** | 3개 → **2개** (`INSUFFICIENT_PARTS` 기준, `retake_recommended` 기준 동일) |
-| **진단 응답 필드** | `excluded[]` (빠진 부위+사유), `inbody_id` 추가 확인 |
-| **진단 문체** | 부위 진단 = PT 트레이너 톤, 종합 진단 = 격차 나열이 아니라 "경로". `priority_parts` 순서가 루틴 볼륨 순서와 일치 |
-| **진행도 유지** | 피드백으로 루틴 버전이 바뀌어도 진행도가 리셋되지 않음 |
-| **자동 촬영 유지 시간** | 판정 통과 0.3초 → **약 1초** 유지 시 셔터 (`web/pose-live.html`) |
+| 변경                     | 내용                                                                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **Base URL**             | 프로덕션 `https://api.refit.live/api/v1` 가동 (8/15 배포, 자동 재배포)                                                  |
+| **2차 검사 fail-closed** | 검사기 장애 시 `503 SCREENING_UNAVAILABLE` 신설 — 422 와 **다르게** 처리 (같은 사진 재시도)                             |
+| **반려 사유 코드**       | `UNSUITABLE_PHOTO` 의 `detail.reason` 이 `LOOSE_CLOTHING / PART_MISMATCH / PERSPECTIVE_MISMATCH / CROPPED` 4종으로 확정 |
+| **최소 비교 부위**       | 3개 → **2개** (`INSUFFICIENT_PARTS` 기준, `retake_recommended` 기준 동일)                                               |
+| **진단 응답 필드**       | `excluded[]` (빠진 부위+사유), `inbody_id` 추가 확인                                                                    |
+| **진단 문체**            | 부위 진단 = PT 트레이너 톤, 종합 진단 = 격차 나열이 아니라 "경로". `priority_parts` 순서가 루틴 볼륨 순서와 일치        |
+| **진행도 유지**          | 피드백으로 루틴 버전이 바뀌어도 진행도가 리셋되지 않음                                                                  |
+| **자동 촬영 유지 시간**  | 판정 통과 0.3초 → **약 1초** 유지 시 셔터 (`web/pose-live.html`)                                                        |

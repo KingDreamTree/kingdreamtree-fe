@@ -3,7 +3,7 @@ import inbodyCalendar from '../assets/inbody-calendar.svg'
 import inbodyErrorLineOne from '../assets/inbody-error-line-one.svg'
 import inbodyErrorLineTwo from '../assets/inbody-error-line-two.svg'
 import inbodyErrorLock from '../assets/inbody-error-lock.svg'
-import previousArrow from '../assets/previous-arrow.svg'
+import inbodyPreviousArrow from '../assets/inbody-previous-arrow.svg'
 import inbodyRequiredDot from '../assets/inbody-required-dot.svg'
 import { InbodyGenderSelector } from '../components/InbodyGenderSelector'
 import { FixedStepFrame } from '../components/FixedStepFrame'
@@ -11,8 +11,8 @@ import { FixedStepFrame } from '../components/FixedStepFrame'
 type Field = { label: string; value: string; unit?: string }
 
 const composition: Field[] = [{ label: '체중', value: '68.7', unit: 'kg' }, { label: 'BMI', value: '23.2', unit: 'kg/m²' }, { label: '골격근량', value: '28.4', unit: 'kg' }, { label: '체지방률', value: '22.7', unit: '%' }, { label: '체지방량', value: '15.6', unit: 'kg' }, { label: '기초대사량', value: '1524', unit: 'kcal' }]
-const muscle: Field[] = [{ label: '오른팔', value: '2.65', unit: 'kg' }, { label: '왼팔', value: '2.55', unit: 'kg' }, { label: '몸통', value: '2.13', unit: 'kg' }, { label: '오른다리', value: '8.35', unit: 'kg' }, { label: '왼다리', value: '8.25', unit: 'kg' }]
-const fat: Field[] = [{ label: '오른팔', value: '0.8', unit: 'kg' }, { label: '왼팔', value: '0.8', unit: 'kg' }, { label: '몸통', value: '0.8', unit: 'kg' }, { label: '오른다리', value: '0.8', unit: 'kg' }, { label: '왼다리', value: '0.8', unit: 'kg' }]
+const muscle: Field[] = [{ label: '오른팔 (kg)', value: '2.65' }, { label: '왼팔 (kg)', value: '2.55' }, { label: '몸통 (kg)', value: '2.13' }, { label: '오른다리 (kg)', value: '8.35' }, { label: '왼다리 (kg)', value: '8.25' }]
+const fat: Field[] = [{ label: '오른팔 (kg)', value: '0.8' }, { label: '왼팔 (kg)', value: '0.8' }, { label: '몸통 (kg)', value: '0.8' }, { label: '오른다리 (kg)', value: '0.8' }, { label: '왼다리 (kg)', value: '0.8' }]
 
 function ErrorGlyph({ compact = false }: { compact?: boolean }) {
   return <span className={`inbody-range-error-glyph ${compact ? 'is-compact' : ''}`} aria-hidden="true"><img src={inbodyErrorLineOne} alt="" /><img src={inbodyErrorLineTwo} alt="" /></span>
@@ -35,6 +35,6 @@ export function InbodyRangeErrorScreen({ onConfirm, onPrevious }: InbodyRangeErr
     <section className="inbody-range-column inbody-range-composition"><h2>2. 체성분</h2>{composition.map((field, index) => <RangeField key={field.label} field={field} invalid={index === 0} onCorrect={() => setIsCorrected(true)} />)}</section>
     <section className="inbody-range-column inbody-range-muscle"><h2>3. 부위별 근육량</h2>{muscle.map(field => <RangeField key={field.label} field={field} />)}</section>
     <section className="inbody-range-column inbody-range-fat"><h2>4. 부위별 체지방량</h2>{fat.map(field => <RangeField key={field.label} field={field} />)}</section>
-    <button className="inbody-range-confirm" type="button" disabled={!isCorrected} onClick={onConfirm}>{!isCorrected && <img src={inbodyErrorLock} alt="" />}확인 완료</button><button className="inbody-range-previous" type="button" onClick={onPrevious}><img src={previousArrow} alt="" />이전 단계</button><p className="inbody-range-note">* 오류가 있는 경우 지정할 수 없습니다.</p><img className="inbody-range-required" src={inbodyRequiredDot} alt="필수" />
+    <button className="inbody-range-confirm" type="button" disabled={!isCorrected} onClick={onConfirm}>{!isCorrected && <img src={inbodyErrorLock} alt="" />}확인 완료</button><button className="inbody-range-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button><p className="inbody-range-note">* 오류가 있는 경우 지정할 수 없습니다.</p><img className="inbody-range-required" src={inbodyRequiredDot} alt="필수" />
   </div></FixedStepFrame>
 }

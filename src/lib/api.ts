@@ -10,11 +10,6 @@ export const API_BASE_URL = (configuredBaseUrl || 'https://api.refit.live/api/v1
 
 const USER_ID_KEY = 'refit.user-id'
 const ACTIVE_SESSION_KEY = 'refit.active-session-id'
-// 마지막 사용자 사진이 어느 파이프라인으로 올라갔는가 (웹캠 촬영=quick · 갤러리=full).
-// ⚠️ localStorage 인 이유: 분석 대기 중 새로고침하면 state 는 'full' 로 초기화되는데,
-//    퀵 세션(세그 잡 없음)에 full 분석을 걸면 세그 대기 409 를 «기다리라»로 읽는
-//    kickOff 가 영원히 돈다. 세션 복원과 같은 수명으로 남긴다.
-const ANALYSIS_MODE_KEY = 'refit.analysis-mode'
 
 export type ApiErrorPayload = {
   code?: string
@@ -62,10 +57,7 @@ export type ActiveSession = Session & { steps: Record<string, unknown> }
 export type PoseScaleBasis = 'TORSO' | 'HIP_KNEE'
 export type CaptureSource = 'CAPTURE' | 'UPLOAD'
 export type PoseLandmark = { x: number; y: number; z?: number; visibility?: number }
-export type JobStatus = 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED'
-/** stalled 는 서버 모니터링용이다 — 프론트는 읽지 않는다. AnalysisProgress.stalled 주석 참고. */
-export type Job = { job_id: string; session_id: string; kind: string; status: JobStatus; attempts: number; stalled?: boolean; result?: Record<string, unknown> | null; error?: string | null }
-export type JobSummary = { job_id: string; kind: string; status: JobStatus; attempts: number; created_at: string }
+export type Job = { job_id: string; session_id: string; kind: string; status: 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED'; attempts: number; result?: Record<string, unknown> | null; error?: string | null }
 
 function asApiErrorPayload(value: unknown): ApiErrorPayload {
   if (!value || typeof value !== 'object') return {}
@@ -93,15 +85,9 @@ async function request<T>(path: string, init: RequestInit = {}, requiresUser = t
 export function getStoredUserId() { return localStorage.getItem(USER_ID_KEY) }
 export function getStoredSessionId() { return localStorage.getItem(ACTIVE_SESSION_KEY) }
 
-export type AnalysisMode = 'full' | 'quick'
-/** 저장값이 없거나 이상하면 full — 기존 세그 파이프라인이 언제나 기본이다. */
-export function getStoredAnalysisMode(): AnalysisMode { return localStorage.getItem(ANALYSIS_MODE_KEY) === 'quick' ? 'quick' : 'full' }
-export function setStoredAnalysisMode(mode: AnalysisMode) { localStorage.setItem(ANALYSIS_MODE_KEY, mode) }
-
 export function clearStoredIdentity() {
   localStorage.removeItem(USER_ID_KEY)
   localStorage.removeItem(ACTIVE_SESSION_KEY)
-  localStorage.removeItem(ANALYSIS_MODE_KEY)
 }
 
 export async function createUser() {
@@ -169,16 +155,15 @@ export function uploadReferencePhoto(sessionId: string, input: {
   poseScaleBasis: PoseScaleBasis
   posePersonAreaRatio?: number | null
   multiPerson?: boolean
-  /** 'quick' = 웹캠 퀵 진단 경로 — 서버가 세그 잡을 걸지 않는다 (job_id null). */
-  pipeline?: 'full' | 'quick'
+  isMirrored?: boolean
 }) {
   const form = new FormData()
   form.set('file', input.file)
-  if (input.pipeline) form.set('pipeline', input.pipeline)
   form.set('pose_landmarks', JSON.stringify(input.poseLandmarks))
   form.set('pose_scale_basis', input.poseScaleBasis)
   if (input.posePersonAreaRatio != null) form.set('pose_person_area_ratio', String(input.posePersonAreaRatio))
   form.set('multi_person', String(input.multiPerson ?? false))
+  form.set('is_mirrored', String(input.isMirrored ?? false))
   return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/reference`, { method: 'POST', body: form })
 }
 
@@ -193,12 +178,10 @@ export function uploadUserPhoto(sessionId: string, input: {
   poseOks?: number | null
   posePersonAreaRatio?: number | null
   multiPerson?: boolean
-  /** 'quick' = 웹캠 퀵 진단 경로 — 서버가 세그 잡을 걸지 않는다 (job_id null). */
-  pipeline?: 'full' | 'quick'
+  isMirrored?: boolean
 }) {
   const form = new FormData()
   form.set('file', input.file)
-  if (input.pipeline) form.set('pipeline', input.pipeline)
   form.set('capture_source', input.captureSource)
   form.set('pose_landmarks', JSON.stringify(input.poseLandmarks))
   form.set('pose_similarity', String(input.poseSimilarity))
@@ -208,6 +191,7 @@ export function uploadUserPhoto(sessionId: string, input: {
   if (input.poseOks != null) form.set('pose_oks', String(input.poseOks))
   if (input.posePersonAreaRatio != null) form.set('pose_person_area_ratio', String(input.posePersonAreaRatio))
   form.set('multi_person', String(input.multiPerson ?? false))
+  form.set('is_mirrored', String(input.isMirrored ?? false))
   return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/user`, { method: 'POST', body: form })
 }
 
@@ -246,8 +230,6 @@ export interface AnalysisOverall {
   priority_parts: string[]
   strengths: string[]
   cautions: string[]
-  /** 두 사진을 직접 본 전체 형태 판단 — summary 보다 구체적인 실루엣 서술 */
-  silhouette: string | null
   status: string
 }
 
@@ -265,17 +247,6 @@ export interface AnalysisProgress {
   part: { done: number; failed: number; total: number; status: string }
   overall: { status: string }
   completed: boolean
-  /**
-   * 워커 풀이 이 잡을 집어가지 않고 있다(서버 판정). completed 와 독립 필드다.
-   *
-   * ⚠️ **프론트는 이 값을 쓰지 않는다 — 화면에 옮기지 말 것.** 서버 사정은 사용자가
-   *    손쓸 수 없어서 로딩 화면에 «지연되고 있어요 + 다시 시도»를 띄웠더니 불안만 줬다.
-   *    (게다가 판정 자체도 한동안 오탐이었다 — 워커가 다른 kind 를 처리 중이면 정상
-   *    대기를 정지로 봤다. 2026-08-19 서버에서 풀 단위 판정으로 수정됨.)
-   *    지금 이 신호의 용도는 **서버 경고 로그**다. 정지는 거기서 감지한다.
-   *    타입만 남겨 두는 이유는 응답에 계속 내려오기 때문이다.
-   */
-  stalled?: boolean
 }
 
 export interface SegPaletteEntry {
@@ -334,9 +305,6 @@ export interface RoutineExercise {
   name: string
   exercise_ref: string | null
   image_url: string | null
-  /** 시연 영상(mp4). ⚠️ null 가능 — 없으면 image_url 로 폴백한다.
-   *  저장값이 아니라 조회 시 카탈로그에서 붙으므로 옛 루틴에도 나온다. */
-  video_url: string | null
   exercise_kind: string
   muscle_group: string | null
   sets: number | null
@@ -373,15 +341,7 @@ export interface RoutineDetail {
   days: RoutineDay[]
   progress: RoutineProgress
   notice: string | null
-  //: 루틴 구성 근거. LLM 이 쓴 글이 아니라 실제 생성된 루틴에서 조립한 것.
-  //  이 필드 이전 루틴은 null 이므로 goal/focus_areas 폴백을 쓴다.
-  strategy: RoutineStrategy | null
   disclaimer: string
-}
-
-export interface RoutineStrategy {
-  headline: string | null
-  body: string | null
 }
 
 export interface TodayRoutine { month_routine_id: string; cycle_no: number; day: RoutineDay; progress: RoutineProgress; disclaimer: string }
@@ -392,6 +352,7 @@ export interface InbodySegmentDto { segment: InbodySegmentKey; lean_mass: number
 export interface InbodyDetail {
   inbody_id: string
   status: string
+  device_type: string | null
   measured_at: string | null
   /** inbody 테이블 컬럼 (weight, bmi, height, age, gender, skeletal_muscle_mass, body_fat_percentage, …) */
   fields: Record<string, unknown>
@@ -415,7 +376,7 @@ export interface CoachChatResponse {
 }
 
 export function getJob(jobId: string) { return request<Job>(`/jobs/${jobId}`) }
-export function getSessionJobs(sessionId: string) { return request<{ items: JobSummary[] }>(`/sessions/${sessionId}/jobs`) }
+export function getSessionJobs(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/jobs`) }
 export function getReferencePhoto(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/reference`) }
 export function getSessionSegmentation(sessionId: string) { return request<SessionSegmentation>(`/sessions/${sessionId}/segmentation`) }
 export function getPhotoSegmentation(photoId: string) { return request<Record<string, unknown>>(`/photos/${photoId}/segmentation`) }
@@ -428,10 +389,7 @@ export function patchInbody(inbodyId: string, body: { fields?: Record<string, un
   return request<Record<string, unknown>>(`/inbody/${inbodyId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 }
 export function deleteInbody(inbodyId: string) { return request<void>(`/inbody/${inbodyId}`, { method: 'DELETE' }) }
-/** force=true — 이미 끝난 분석을 무시하고 다시 돌린다. 실패 후 «다시 시도» 전용. */
-export function startAnalysis(sessionId: string, force = false) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis${force ? '?force=true' : ''}`, { method: 'POST' }) }
-/** 퀵 진단(웹캠) — 세그 없이 원본 2장 전체 비교. 부위 카드·점수 없음. 진행은 getAnalysisProgress 의 completed 로 본다. */
-export function startQuickAnalysis(sessionId: string, force = false) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis?mode=quick${force ? '&force=true' : ''}`, { method: 'POST' }) }
+export function startAnalysis(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis`, { method: 'POST' }) }
 export function getAnalysisProgress(sessionId: string) { return request<AnalysisProgress>(`/sessions/${sessionId}/analysis/progress`) }
 export function getAnalysis(sessionId: string) { return request<AnalysisResult>(`/sessions/${sessionId}/analysis`) }
 export function createRoutine(sessionId: string, exerciseDaysPerWeek: number) {
