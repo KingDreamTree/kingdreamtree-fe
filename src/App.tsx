@@ -77,6 +77,14 @@ type AppView = 'onboarding' | 'reference-notice' | 'reference' | 'pose-capture' 
  * 섹션 윗변이 들어올 때(= 화면 아래 절반쯤을 채울 때) 시작한다. 섹션 높이에
  * 영향받지 않으므로 섹션마다 체감이 같다.
  */
+/** 히어로 배경·인물은 각각 2MB 급 PNG 다. JSX 로 렌더될 때까지 기다리면 그만큼
+ *  늦게 도착해서 등장 애니메이션도 그만큼 밀린다. 모듈이 평가되는 즉시 —
+ *  즉 첫 렌더보다 먼저 — 내려받기를 걸어둔다. */
+for (const source of [heroBackground, heroPhone]) {
+  const preload = new Image()
+  preload.src = source
+}
+
 const REVEAL_OBSERVER: IntersectionObserverInit = { threshold: 0, rootMargin: '0px 0px -45% 0px' }
 
 /** 잠깐 스쳐 가는 화면 — 뒤로가기 기록에 남기지 않는다. */
@@ -144,6 +152,30 @@ function restoreView(): AppView {
   return RESUMABLE_VIEWS.includes(target) ? target : 'onboarding'
 }
 
+/** 섹션 안의 이미지가 다 그려질 때까지 기다렸다가 실행한다.
+ *
+ *  ⚠️ 이게 없으면 등장 애니메이션이 **빈 자리에서 혼자 끝난다**. 히어로 배경·인물은
+ *     2MB 짜리 PNG 라, 화면 진입을 감지한 시점엔 아직 내려받는 중이다. 전환은
+ *     제 시간에 끝나고 사진은 그 뒤에 도착해서, 사용자에게는 «PNG 가 위에서부터
+ *     그려지는» 모습만 보인다 (사용자 신고 2026-08-20).
+ *
+ *  ⚠️ 상한을 둔다. 이미지 하나가 끝내 안 오면 화면이 영영 opacity 0 으로 남는다 —
+ *     애니메이션을 못 보는 것보다 화면이 안 나오는 쪽이 훨씬 나쁘다. */
+const REVEAL_IMAGE_TIMEOUT_MS = 2500
+
+function whenImagesReady(section: HTMLElement, start: () => void) {
+  const pending = Array.from(section.querySelectorAll('img')).filter(image => !image.complete)
+  if (!pending.length) { start(); return () => {} }
+  let done = false
+  const run = () => { if (!done) { done = true; start() } }
+  const timer = window.setTimeout(run, REVEAL_IMAGE_TIMEOUT_MS)
+  void Promise.all(pending.map(image => new Promise<void>(resolve => {
+    image.addEventListener('load', () => resolve(), { once: true })
+    image.addEventListener('error', () => resolve(), { once: true })
+  }))).then(() => { window.clearTimeout(timer); run() })
+  return () => window.clearTimeout(timer)
+}
+
 /** Reveals a design section once it reaches the viewport. */
 function RevealSection({ children, className, label, scaleToViewport = false, designHeight = 1024 }: SectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
@@ -153,14 +185,16 @@ function RevealSection({ children, className, label, scaleToViewport = false, de
   useEffect(() => {
     const section = sectionRef.current
     if (!section) return
+    let cancelWait = () => {}
     const observer = new IntersectionObserver(([entry]) => {
       // 이미 지나친 섹션(새로고침 스크롤 복원)도 즉시 드러낸다 — 안 그러면 영영 opacity 0
       if (!entry.isIntersecting && entry.boundingClientRect.top >= 0) return
-      setIsVisible(true)
       observer.unobserve(entry.target)
+      // 사진이 도착한 뒤에 시작해야 등장 애니메이션이 실제로 보인다.
+      cancelWait = whenImagesReady(section, () => setIsVisible(true))
     }, REVEAL_OBSERVER)
     observer.observe(section)
-    return () => observer.disconnect()
+    return () => { observer.disconnect(); cancelWait() }
   }, [])
 
   useEffect(() => {

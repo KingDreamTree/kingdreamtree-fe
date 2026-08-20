@@ -570,7 +570,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .pose-live-hold span { display: block; height: 100%; background: #ffe250; transition: width 120ms linear; }
 .pose-live-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(17, 17, 17, .55); }
 .pose-live-capture { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; } /* 사진 자체가 거울 방향으로 저장되므로 표시 반전이 필요 없다 */
-.pose-live-overlay__text { position: relative; margin: 0; padding: 8px 24px; border-radius: 12px; background: rgba(17, 17, 17, .68); color: #f6f6f6; font: 600 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; text-align: center; }
+.pose-live-overlay__text { position: relative; margin: 0; white-space: pre-line; padding: 8px 24px; border-radius: 12px; background: rgba(17, 17, 17, .68); color: #f6f6f6; font: 600 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; text-align: center; }
 .pose-live-overlay__retry { position: relative; margin-top: 18px; padding: 8px 26px; border: 1px solid #f6f6f6; border-radius: 30px; background: transparent; color: #f6f6f6; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; cursor: pointer; }
 
 .pose-status--retry strong, .pose-status--failure strong { max-width: 700px; }
@@ -1056,17 +1056,21 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 }
 .comparison-analysis-logo strong { color: #ffe250; font: inherit; }
 
-/* 비교 분석 하단 영역(선택 탭 → 진단 카드 → 루틴 버튼 → 안내문)의 간격은
-   .comparison-analysis-footer 흐름 배치가 맡는다 — 진단 카드가 세로로 자라면
-   아래가 같이 밀려 내려가므로 겹치지 않는다.
-
-   ⚠️ 여기서 height 를 고정하거나 overflow 를 visible 로 바꾸지 말 것.
-      .comparison-analysis-page 의 overflow: hidden 은 장식이 아니라
-      **footer 의 margin-top: 2177px 을 가둬두는 장치**다(BFC). visible 로
-      바꾸면 그 마진이 <main> 밖으로 새어 나가 문서 전체가 ~1959px 밀리고,
-      그 자리가 <body> 의 밝은 배경으로 남는다 — «맨 위가 온통 흰색» 이
-      그것이다. 하단 블록은 반대로 페이지 맨 위로 올라와 헤더와 겹친다.
-      (2026-08-20 실측 재현) */
+/* 비교 분석 하단 영역은 선택 탭 → 진단 카드 → 루틴 버튼 → 안내문 순서로
+   충분한 세로 간격을 확보해 축소 화면에서도 서로 겹치지 않도록 한다. */
+.comparison-analysis-page {
+  height: 2780px;
+  overflow: visible;
+  /* ⚠️ overflow:hidden 이 만들던 BFC 를 여기서 없앴는데, .comparison-analysis-footer
+     의 margin-top(2177px, App.css:903)이 BFC 없이는 부모 밖으로 "마진 상쇄"돼
+     페이지 전체가 그만큼 떠밀려 내려가고 그 위가 통째로 빈다(실측 2026-08-20 —
+     header 가 top:197px 이 아니라 화면 아래쪽 y≈2136px 에 나옴, 버튼이 헤더
+     바로 밑에 붙어 보임). display: flow-root 는 overflow:hidden 과 달리
+     잘라내지 않으면서 새 BFC 만 만들어 margin 을 이 박스 안에 가둔다. */
+  display: flow-root;
+}
+.comparison-analysis-routine { top: 2470px; }
+.comparison-analysis-disclaimer { top: 2590px; }
 
 /* Figma 884:390 — 비교 분석도 공통 이전 단계 버튼 규격 사용 */
 .comparison-analysis-header .previous-button {
