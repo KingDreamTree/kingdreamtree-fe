@@ -45,12 +45,14 @@ function estimatedDuration(day: RoutineDay | null): number | null {
   return totalSeconds > 0 ? Math.ceil(totalSeconds / 60) : null
 }
 
-/** 첫 세트를 집을 때의 출발 무게. 맨몸이거나 인바디가 없으면 null 이라 줄이 안 나온다. */
+/** 이 운동에서 들 무게. 맨몸이거나 인바디가 없으면 null 이라 줄이 안 나온다.
+ *  ⚠️ «로 시작» 이라고 부르지 않는다 — 백엔드는 kg 을 저장하지 않고 배율(load_adjust)만
+ *     남겨 조회할 때마다 다시 계산한다. 피드백에서 «무겁다» 가 나오면 배율이 내려가
+ *     이 값 자체가 바뀌므로, 조정된 뒤에는 시작 무게가 아니라 지금 들 무게다. */
 function loadText(exercise: RoutineDay['exercises'][number]): string | null {
   const load = exercise.load_guide
   if (!load) return null
-  const span = load.min_kg === load.max_kg ? `${load.min_kg}kg` : `${load.min_kg}~${load.max_kg}kg`
-  return `${span}로 시작`
+  return load.min_kg === load.max_kg ? `${load.min_kg}kg` : `${load.min_kg}~${load.max_kg}kg`
 }
 
 /** 세트·횟수·휴식을 한 줄 요약으로. 유산소는 시간 기준. */

@@ -14,8 +14,11 @@ import { displayProgress } from '../lib/routine-progress'
 function loadText(exercise: RoutineExercise | undefined): string | null {
   const load = exercise?.load_guide
   if (!load) return null
-  const span = load.min_kg === load.max_kg ? `${load.min_kg}kg` : `${load.min_kg}~${load.max_kg}kg`
-  return `${span}로 시작`
+  // ⚠️ «로 시작» 이라고 부르지 않는다. 백엔드는 kg 을 저장하지 않고 배율(load_adjust)만
+  //    남겨 조회할 때마다 현재 체중으로 다시 계산한다 — 피드백에서 «무겁다» 가 나오면
+  //    배율이 내려가 이 값 자체가 바뀐다(routes/routines.py 가 today 에도 적용).
+  //    조정된 뒤에는 시작 무게가 아니라 «지금 들 무게» 다.
+  return load.min_kg === load.max_kg ? `${load.min_kg}kg` : `${load.min_kg}~${load.max_kg}kg`
 }
 
 function exerciseDose(exercise: RoutineExercise | undefined): string {
@@ -114,7 +117,7 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
     {current && <section key={`current-${step}`} className={`today-routine-page__current ${isTransitioning ? 'is-exiting' : ''} ${isLastStep ? 'is-last-step' : ''}`} aria-label={`현재 운동 Step ${step + 1}`}>
       <span>Step {step + 1}/{exercises.length}</span><h2 className={titleSizeClass(current.name).trim()}>{current.name}</h2><small>{exerciseDose(current)}</small>
       {loadText(current) && <p className="today-routine-page__load" title={current.load_guide?.basis}>
-        <em>{loadText(current)}</em> — 가볍게 느껴지면 한 단계 올리면 돼요
+        <em>{loadText(current)}</em> · 가볍게 느껴지면 한 단계 올리세요
       </p>}
       <button type="button" disabled={!current.video_url} onClick={() => setGuideOpen(true)}>자세 가이드</button><ExerciseMedia videoUrl={current.video_url} imageUrl={current.image_url} fallback={todayRoutineExercise} label={`${current.name} 동작`} />
     </section>}
