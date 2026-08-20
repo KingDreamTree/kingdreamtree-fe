@@ -494,7 +494,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   display: grid;
   grid-template-columns: minmax(0, 360px) 191px;
   grid-template-rows: auto auto auto auto auto;
-  column-gap: 64px;
+  column-gap: 32px;
   align-content: start;
   padding: 72px 74px;
 }
@@ -521,8 +521,19 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   grid-row: 1 / 6;
   align-self: center;
   width: 191px;
-  height: 236px;
+  height: 180px;
   object-fit: contain;
+}
+
+/* 마지막 운동 카드에서는 텍스트와 모션을 가까운 2열 콘텐츠 그룹으로 배치 */
+.today-routine-page__current.is-last-step {
+  grid-template-columns: minmax(0, 460px) 285px;
+  column-gap: 32px;
+}
+
+.today-routine-page__current.is-last-step > img {
+  width: 285px;
+  height: 180px;
 }
 
 /* ── 실시간 자세 촬영 (Step 2) ─────────────────────────────────────────── */
