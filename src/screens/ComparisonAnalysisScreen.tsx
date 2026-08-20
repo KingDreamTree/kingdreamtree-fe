@@ -122,15 +122,36 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
 
   const topClass = overall?.priority_parts?.[0] ?? null
   const topPart = topClass ? parts.find(part => part.class_name === topClass) : null
-  // 좌우 쌍은 격차·신뢰도가 항상 같게 나온다(백엔드 규칙) — 짝도 우선순위에 들었으면
-  // 한쪽만 짚는 게 아니라 "양쪽"으로 부른다. 안 그러면 오른쪽도 똑같이 문제인데
-  // 왼쪽만 지목하는 짝짝이 문구가 된다.
-  const mirrorClass = topClass ? mirrorClassName(topClass) : null
-  const isPairedTop = mirrorClass != null && (overall?.priority_parts?.includes(mirrorClass) ?? false)
-  const priorityName = isPairedTop
-    ? topPart?.name_ko?.replace(/^(왼팔|오른팔|왼쪽|오른쪽)\s*/, '양쪽 ') ?? null
-    : topPart?.name_ko ?? null
-  const headline = priorityName ? `${priorityName} 중심 개선 필요` : '개선 포인트 요약'
+  // priority_parts[0] 하나만 쓰면 "팔·복부가 둘 다 확연히 다른" 사진에서도
+  // "위팔 중심 개선 필요"처럼 단 하나만 콕 집은 것처럼 보인다. 규칙(rank_priority)이
+  // 이미 격차 등급 순으로 정렬해 주므로, 1순위와 **같은 gap_level**(동률로 가장
+  // 큰 격차)인 항목은 전부 같이 짚는다.
+  const worstGapLevel = topPart?.gap_level ?? null
+  const tiedClasses = worstGapLevel
+    ? (overall?.priority_parts ?? []).filter(
+        name => parts.find(part => part.class_name === name)?.gap_level === worstGapLevel,
+      )
+    : []
+  // 좌우 쌍은 격차·신뢰도가 항상 같게 나온다(백엔드 규칙) — 짝도 동률에 들었으면
+  // 한쪽만 짚는 게 아니라 "양쪽"으로 합쳐서 부른다. 안 그러면 오른쪽도 똑같이
+  // 문제인데 왼쪽만 지목하는 짝짝이 문구가 된다.
+  const seenClasses = new Set<string>()
+  const priorityNames: string[] = []
+  for (const className of tiedClasses) {
+    if (seenClasses.has(className)) continue
+    const part = parts.find(p => p.class_name === className)
+    if (!part) continue
+    const mirrorClass = mirrorClassName(className)
+    const isPaired = mirrorClass != null && tiedClasses.includes(mirrorClass)
+    seenClasses.add(className)
+    if (isPaired && mirrorClass) seenClasses.add(mirrorClass)
+    priorityNames.push(
+      isPaired
+        ? part.name_ko?.replace(/^(왼팔|오른팔|왼쪽|오른쪽)\s*/, '양쪽 ') ?? className
+        : part.name_ko ?? className,
+    )
+  }
+  const headline = priorityNames.length ? `${priorityNames.join('·')} 중심 개선 필요` : '개선 포인트 요약'
 
   // 퀵 진단(웹캠) 세션 — 세그가 없어 부위 카드·점수가 **설계상 없다** (백엔드
   // docs/quick-pipeline.md). 모드 플래그를 따로 받지 않는다: 진단은 완료(overall 有)
