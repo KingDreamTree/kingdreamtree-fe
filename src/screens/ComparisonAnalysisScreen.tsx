@@ -117,8 +117,12 @@ type ComparisonAnalysisScreenProps = {
 /** Figma 41:189 — 비교 분석. 모든 수치·문구는 GET /analysis · /segmentation 응답에서 온다. */
 export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRoutine, onPrevious }: ComparisonAnalysisScreenProps) {
   const parts = analysis?.parts ?? []
+  // 시각적으로 판별이 안 된 부위(gap_level null — 옷/각도로 못 봄)는 버튼도, 기본
+  // 선택 대상도 되지 않는다. 눌러도 "확인 못 했다"만 나오는 버튼을 없애는 것이다 —
+  // 그 사유는 위의 comparison_limitations 안내문이 이미 부위 이름과 함께 보여준다.
+  const judgedParts = parts.filter(part => part.gap_level != null)
   const [selectedClass, setSelectedClass] = useState<string | null>(null)
-  const selected = parts.find(part => part.class_name === selectedClass) ?? parts[0] ?? null
+  const selected = judgedParts.find(part => part.class_name === selectedClass) ?? judgedParts[0] ?? null
 
   const overall = analysis?.overall ?? null
   const score = overall?.similarity_score ?? null
@@ -157,11 +161,16 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
   }
   const headline = priorityNames.length ? `${priorityNames.join('·')} 중심 개선 필요` : '개선 포인트 요약'
 
-  // 퀵 진단(웹캠) 세션 — 세그가 없어 부위 카드·점수가 **설계상 없다** (백엔드
-  // docs/quick-pipeline.md). 모드 플래그를 따로 받지 않는다: 진단은 완료(overall 有)
-  // 인데 부위가 0건이면 퀵이다. 풀 모드 로딩 중간 상태는 이 화면에 오지 않는다
+  // ⚠️ 2026-08-20 — 퀵(웹캠)도 이제 세그 없이 부위별 진단을 낸다(백엔드
+  // prompts/part_comparison.py). 그래서 parts.length===0 은 이제 "부위 진단
+  // 자체가 하나도 안 나온" 진짜 예외 상태만 가리킨다 — 정상적인 퀵 세션은
+  // 여기 안 걸린다. 풀 모드 로딩 중간 상태는 이 화면에 오지 않는다
   // (isAnalysisRenderable 이 DONE 만 통과시킨다).
   const isQuick = overall != null && parts.length === 0
+  // 세그멘테이션 오버레이 사진은 별개 신호다 — 퀵은 부위 진단이 있어도 Sapiens2 를
+  // 안 돌리므로 세그 자체가 없다. isQuick 을 여기 쓰면 퀵인데 부위가 있는
+  // 세션에서 빈 검은 상자 두 개가 뜬다 (2026-08-20 실측).
+  const hasSegImages = Boolean(segmentation?.user && segmentation?.reference)
 
   const disclaimer = analysis?.disclaimer
   const disclaimerBoundary = '상담하세요.'
@@ -207,12 +216,16 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
             (되살릴 일이 생기면 analysis.overall.strengths / cautions / analysis.excluded 다.) */}
       </section>
 
-      {!isQuick && <p className="comparison-analysis-count">총 <em>{parts.length}건</em>의 부위별 진단 결과</p>}
+      {!isQuick && <p className="comparison-analysis-count">총 <em>{judgedParts.length}건</em>의 부위별 진단 결과</p>}
 
       {/* 촬영본은 거울 방향으로 저장되므로(2026-08-18 개정) 두 사진 모두 부위명
           그대로 칠하면 시각적으로 같은 편이 붙는다 — 교차·표시 반전 없음. */}
-      {/* 퀵은 세그멘테이션이 없어 캔버스가 빈 검은 상자 두 개로 남는다 — 통째로 뺀다 */}
-      {!isQuick && <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
+      {/* ⚠️ isQuick 이 아니라 세그멘테이션 유무로 가른다 (2026-08-20) — 퀵(웹캠)도
+          이제 부위 진단이 나와 isQuick 이 false 가 될 수 있는데, 그래도 세그
+          자체는 없다(Sapiens2 미실행). segmentation.user/reference 가 둘 다
+          있어야 캔버스에 그릴 사진·맵이 있다는 뜻이다 — 없으면 빈 검은 상자만 남아
+          섹션째 감춘다. */}
+      {hasSegImages && <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
         <PhotoWithOverlay seg={segmentation?.user ?? null} selected={selected} label="현재 체형" />
         <PhotoWithOverlay seg={segmentation?.reference ?? null} selected={selected} label="목표 레퍼런스" />
       </section>}
@@ -228,8 +241,10 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
           {overall.comparison_limitations.map(text => text.split(':')[0].trim()).join(', ')} 부위는 시각적 판별이 어려워서 비교분석에서 제외되었습니다.
         </p>
       )}
+      {/* 시각적으로 판별이 안 된 부위(judgedParts 밖)는 버튼을 만들지 않는다 —
+          위 comparison-analysis-excluded 문장이 이미 사유를 이름과 함께 안내한다. */}
       {!isQuick && <nav className="comparison-analysis-parts" aria-label="분석 부위 선택">
-        {parts.map(part => <button
+        {judgedParts.map(part => <button
           className={part.class_name === selected?.class_name ? 'is-selected' : ''}
           type="button" key={part.class_name}
           aria-pressed={part.class_name === selected?.class_name}
