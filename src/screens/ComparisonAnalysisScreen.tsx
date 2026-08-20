@@ -16,6 +16,10 @@ const GAP_LABELS: Record<string, string> = {
 const SCORE_RING_RADIUS = (300 - 24.83) / 2
 const SCORE_RING_CIRCUMFERENCE = 2 * Math.PI * SCORE_RING_RADIUS
 
+function displayPartName(name: string | null | undefined): string {
+  return (name ?? '부위').replaceAll('팔뚝', '전완').replaceAll('위팔', '상완')
+}
+
 /** 좌우 짝 class_name을 서로 바꾼다. 짝이 없는 부위(Torso 등)는 null. */
 function mirrorClassName(className: string): string | null {
   if (className.startsWith('Left_')) return `Right_${className.slice(5)}`
@@ -229,7 +233,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
           className={part.class_name === selected?.class_name ? 'is-selected' : ''}
           type="button" key={part.class_name}
           aria-pressed={part.class_name === selected?.class_name}
-          onClick={() => setSelectedClass(part.class_name)}>{part.name_ko ?? part.class_name}</button>)}
+          onClick={() => setSelectedClass(part.class_name)}>{displayPartName(part.name_ko ?? part.class_name)}</button>)}
       </nav>}
 
       {/* ⚠️ 진단 블록 · 버튼 · 안내문구는 **한 흐름으로 묶어야 한다.** 종전에는 셋 다
@@ -239,7 +243,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
       <div className="comparison-analysis-footer">
       {!isQuick && <section className="comparison-analysis-diagnosis" aria-labelledby="comparison-diagnosis-title">
         <h2 id="comparison-diagnosis-title">
-          <em>{selected?.name_ko ?? selected?.class_name ?? '부위'}</em>의 진단 결과
+          <em>{displayPartName(selected?.name_ko ?? selected?.class_name)}</em>의 진단 결과
           {/* 차이 정도를 색으로도 읽히게 한다 — 노랑(차이 없음) → 빨강(큰 차이).
               ⚠️ 색은 거들 뿐이고 문구가 정보를 다 담는다. 색만으로 뜻이 갈리면
                  색을 구분하기 어려운 사람에게는 배지가 통째로 사라지는 셈이다. */}
