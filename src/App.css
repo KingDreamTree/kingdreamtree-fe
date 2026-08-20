@@ -154,7 +154,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 /* Figma 41:189 — 비교 분석 */
 .comparison-analysis-viewport { min-width: 1440px; min-height: 2691px; background: #222; color: #f6f6f6; }
 .comparison-analysis-page { position: relative; width: 1440px; height: 2691px; margin: 0 auto; overflow: hidden; background: #222; color: #f6f6f6; zoom: .9; }
-.comparison-analysis-top-rule { position: absolute; top: 82px; left: 0; width: 100%; height: 1px; background: rgb(246 246 246 / .08); }
 .comparison-analysis-header { position: absolute; top: 197px; left: 133px; }
 .comparison-analysis-header p, .comparison-analysis-header h1, .comparison-analysis-header span { display: block; margin: 0; }
 .comparison-analysis-header p { color: #ffe250; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }
@@ -1054,17 +1053,8 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   margin: 0;
 }
 
-.comparison-analysis-logo {
-  position: absolute;
-  top: 32px;
-  left: 131px;
-  z-index: 1;
-  margin: 0;
-  color: #f6f6f6;
-  font: 700 25px/1 "Isamanru", Pretendard, sans-serif;
-  letter-spacing: -.75px;
-}
-.comparison-analysis-logo strong { color: #ffe250; font: inherit; }
+/* 로고는 공통 .refit-logo(누르면 온보딩으로) 를 쓴다. 이 화면의 디자인 좌표만 맞춘다. */
+.comparison-analysis-page .refit-logo { top: 32px; }
 
 /* 비교 분석 하단 영역은 선택 탭 → 진단 카드 → 루틴 버튼 → 안내문 순서로
    충분한 세로 간격을 확보해 축소 화면에서도 서로 겹치지 않도록 한다. */
