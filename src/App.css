@@ -844,3 +844,5 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .comparison-analysis-page--quick .comparison-analysis-summary { position: static; width: 1178px; margin: 420px auto 0; transform: none; }
 .comparison-analysis-page--quick .comparison-analysis-summary > div { width: auto; }
 .comparison-analysis-page--quick .comparison-analysis-footer { margin-top: 88px; }
+/* 실시간 자세 점수 링은 인식값과 동시에 갱신 */
+.pose-score__fill circle { transition: none !important; }
