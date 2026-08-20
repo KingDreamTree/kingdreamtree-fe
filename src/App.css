@@ -1026,6 +1026,28 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   transform: translateY(1px);
 }
 
+/* 화살표와 텍스트를 같은 수직 중심에 맞추고 한 줄로 유지 */
+.comparison-analysis-header .previous-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 21px;
+  font-size: 14px;
+  line-height: 21px;
+  white-space: nowrap;
+}
+.comparison-analysis-header .previous-button img {
+  width: 14px;
+  height: 13px;
+  transform: none;
+}
+.comparison-analysis-header .previous-button span {
+  display: inline-flex;
+  align-items: center;
+  height: 21px;
+  line-height: 21px;
+}
+
 /* 참고 화면처럼 화살표를 글자와 같은 중앙선에 고정 */
 .comparison-analysis-header .previous-button img {
   transform: none;
