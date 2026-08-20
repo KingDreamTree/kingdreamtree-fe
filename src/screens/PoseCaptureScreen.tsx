@@ -213,11 +213,12 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     let lastPass: { lm: PoseLandmarks; result: EvaluateResult; multiPerson: boolean } | null = null
     setCountdown(null)
 
-    // 점수·게이지는 프레임마다 튀므로 지수 이동 평균으로 부드럽게 따라가게 한다.
+    // 점수는 최신 인식 결과를 즉시 보여준다. 과도한 평활화는 점수와 초록 링이
+    // 실제 자세보다 늦게 따라오는 원인이 되어 실시간 피드백을 어렵게 한다.
     const smooth = { score: 0, hasScore: false, progress: 0 }
     const updateHud = (result: EvaluateResult | null, messageOverride?: string) => {
       if (result) {
-        smooth.score = smooth.hasScore ? smooth.score + (result.pose_similarity - smooth.score) * 0.12 : result.pose_similarity
+        smooth.score = result.pose_similarity
         smooth.hasScore = true
       } else {
         smooth.hasScore = false
