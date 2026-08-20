@@ -863,3 +863,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .custom-routine-detail-page__info dl > div {
   white-space: nowrap;
 }
+/* 원본 모션 이미지의 여백을 감안해 실제 동작이 크게 보이도록 확대 */
+.custom-routine-detail-page__info > img {
+  right: -4px;
+  bottom: -12px;
+  width: 360px;
+  height: 390px;
+  object-fit: contain;
+  object-position: center bottom;
+}
