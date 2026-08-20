@@ -23,6 +23,7 @@ type FixedStepFrameProps = {
 /** Renders one 1440 × 1024 Figma screen within the available desktop viewport. */
 export function FixedStepFrame({ children, label, fitContent = false }: FixedStepFrameProps) {
   const canvasRef = useRef<HTMLDivElement>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
   const [canvasHeight, setCanvasHeight] = useState(DESIGN_HEIGHT)
   const [scale, setScale] = useState(1)
 
@@ -31,6 +32,21 @@ export function FixedStepFrame({ children, label, fitContent = false }: FixedSte
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [])
+
+  // ⚠️ .step-frame은 절대 스크롤되면 안 된다 — overflow:hidden은 스크롤바만 숨길
+  //    뿐, scrollLeft/scrollTop이 프로그램적으로(포커스 이동 등의 브라우저 기본
+  //    "스크롤해서 보여주기" 동작으로) 바뀌는 건 막지 못한다. 이 화면이 매 턴
+  //    다시 마운트되던 시절엔 그때마다 새 DOM이라 값이 저절로 0이었는데, 한
+  //    화면을 계속 재사용하도록 고치고 나니(대화가 쌓이는 채팅 화면 등) 그
+  //    드리프트가 누적되어 화면이 옆으로 밀려 잘리는 채로 남았다. 매 렌더 후
+  //    확인해서 0으로 되돌린다 — 의존성 배열 없이 매번 돈다.
+  useEffect(() => {
+    const frame = frameRef.current
+    if (frame && (frame.scrollLeft !== 0 || frame.scrollTop !== 0)) {
+      frame.scrollLeft = 0
+      frame.scrollTop = 0
+    }
+  })
 
   /**
    * 내용 높이를 재서 필요한 만큼만 늘린다.
@@ -54,8 +70,12 @@ export function FixedStepFrame({ children, label, fitContent = false }: FixedSte
    * ⚠️ 늘어난 내용 높이로 배율을 잡으면 안 된다 — 내용이 길어질수록 화면이 작아지고
    *    스크롤은 영영 생기지 않는다. 설계 높이 기준이어야 «평소엔 창에 딱 맞고,
    *    1024 를 넘은 만큼만 아래로 넘쳐 스크롤이 생긴다».
+   *
+   * ⚠️ useLayoutEffect 여야 한다. useEffect 면 scale=1(초기값)로 첫 페인트가
+   *    나간 뒤 다음 틱에야 축소돼, 화면(특히 매 턴 다시 마운트되는 대화 카드)이
+   *    "커졌다 줄어드는" 플래시로 보인다 — 페인트 전에 계산을 끝낸다.
    */
-  useEffect(() => {
+  useLayoutEffect(() => {
     const updateScale = () => setScale(Math.min(
       1,
       document.documentElement.clientWidth / DESIGN_WIDTH,
@@ -72,7 +92,7 @@ export function FixedStepFrame({ children, label, fitContent = false }: FixedSte
   } as CSSProperties
 
   return <main className={`step-page ${fitContent ? 'step-page--fit' : ''}`.trim()} aria-label={label}>
-    <div className="step-frame" style={{ width: DESIGN_WIDTH * scale, height: canvasHeight * scale }}>
+    <div className="step-frame" ref={frameRef} style={{ width: DESIGN_WIDTH * scale, height: canvasHeight * scale }}>
       <div className="step-canvas" ref={canvasRef} style={canvasStyle}><RefitHomeLogo />{children}</div>
     </div>
   </main>

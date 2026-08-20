@@ -18,14 +18,20 @@ const loadingSteps = ['체형 데이터를 불러오는 중...', '레퍼런스�
  * phase       지금 어느 단계인가 (0~3). App 이 실제 서버 진행 상황을 보고 올려준다.
  * isComplete  결과까지 다 받았는가. **이게 오기 전에는 100%가 되지 않는다.**
  * onComplete  100% 를 찍은 뒤 호출된다 — 화면 전환은 여기서 시작한다.
+ *
+ * ⚠️ **이 화면의 문구는 «잠시만 기다려주세요!» 하나뿐이다.** 지연·연결·실패 같은 서버
+ *    사정을 여기에 옮기지 않는다 — 사용자가 손쓸 수 없는 말이라 불안만 준다.
+ *    수습은 App.beginAnalysis 가 조용히 재시도로 처리한다.
  */
 type LoadingOneScreenProps = { phase: number; isComplete: boolean; onComplete: () => void }
 
 export function LoadingOneScreen({ phase, isComplete, onComplete }: LoadingOneScreenProps) {
   const progress = useLoadingProgress(phase, loadingSteps.length, isComplete)
-  // 막대는 점근하느라 단계 끝에 딱 안 닿는다. 그래서 강조 단계는 막대가 아니라
-  // phase 를 그대로 쓴다 — 안 그러면 3단계인데 2번 항목에 불이 들어와 있다.
-  const activeStep = Math.min(loadingSteps.length - 1, phase)
+  // ⚠️ 아래 목록은 **막대에서 끌어온다** — phase 를 따로 읽지 않는다. 둘이 각자 움직이면
+  //    막대는 2구간에 있는데 목록은 3번째에 불이 들어와 있는 식으로 어긋난다.
+  //    막대가 자기 구간 끝에 점근해 머무는 값(예: 1구간이면 48.5%)도 몫을 내리면 그 구간
+  //    번호가 그대로 나오므로, 구간과 항목은 항상 같이 간다.
+  const activeStep = Math.min(loadingSteps.length - 1, Math.floor(progress / (100 / loadingSteps.length)))
   const guideOffset = activeStep * 43
   const hasFinished = useRef(false)
 
@@ -38,7 +44,8 @@ export function LoadingOneScreen({ phase, isComplete, onComplete }: LoadingOneSc
 
   return <FixedStepFrame label="로딩1"><div className="loading-two-page">
     <div className="loading-two-figure"><img className="loading-two-shadow" src={loadingTwoShadow} alt="" /><img className={`loading-two-runner ${progress === 100 ? 'is-finished' : ''}`} src={loadingTwoRunner} alt="" /></div>
-    <h1><em>결과지를</em> 분석 중이에요</h1><p className="loading-two-message">잠시만 기다려주세요!</p>
+    <h1><em>결과지를</em> 분석 중이에요</h1>
+    <p className="loading-two-message">잠시만 기다려주세요!</p>
     <section className="loading-two-progress" aria-label={`결과지 분석 진행률 ${progress}%`} style={{ '--loading-two-progress': `${progress}%` } as CSSProperties}><img className="loading-two-progress__track" src={loadingTwoProgressTrack} alt="" /><span className="loading-two-progress__fill"><img src={loadingTwoProgressFill} alt="" /></span><img className="loading-two-progress__runner" src={loadingTwoRunnerIcon} alt="" /><strong>{progress}%</strong></section>
     <img className="loading-two-glow" style={{ transform: `translateY(${guideOffset}px)` }} src={loadingTwoActiveGlow} alt="" />
     <ol className="loading-two-steps">{loadingSteps.map((step, index) => <li className={index === activeStep ? 'is-active' : ''} key={step}>

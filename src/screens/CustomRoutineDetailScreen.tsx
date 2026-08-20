@@ -3,6 +3,7 @@ import customRoutineDetailWarmup from '../assets/custom-routine-detail-warmup.pn
 import { useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import { PreviousButton } from '../components/PreviousButton'
+import { ExerciseMedia } from '../components/ExerciseMedia'
 import type { RoutineDay } from '../lib/api'
 
 function exerciseDurationMin(exercise: RoutineDay['exercises'][number]): number {
@@ -63,7 +64,8 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
         {selected.rir !== null && selected.rir !== undefined && <div><dt>운동 강도</dt><dd>{selected.rir}회 더 할 수 있는 여유</dd></div>}
         {selected.rest_sec && <div><dt>세트 사이 휴식</dt><dd>{selected.rest_sec}초</dd></div>}
       </dl>
-      <img src={selected.image_url ?? customRoutineDetailWarmup} alt={`${selected.name} 동작`} />
+      {/* 목록 썸네일은 사진 그대로 둔다 — 한 화면에서 영상을 여러 개 동시에 돌릴 이유가 없다 */}
+      <ExerciseMedia videoUrl={selected.video_url} imageUrl={selected.image_url} fallback={customRoutineDetailWarmup} label={`${selected.name} 동작`} />
     </aside>}
   </div></FixedStepFrame>
 }
