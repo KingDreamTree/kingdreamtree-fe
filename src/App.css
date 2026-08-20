@@ -788,3 +788,15 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 
 /* 카드 간격을 기본 고정값으로 되돌립니다. */
 .custom-routine-page__cards { width: auto; justify-content: flex-start; gap: 14px; }
+/* 인바디 부위 단위는 본문 라벨보다 작고 가볍게 표시 */
+.inbody-after-field > span small,
+.inbody-fixed-field > span small,
+.inbody-range-field > span small,
+.inbody-warning-field > span small,
+.inbody-unreadable-field > span small {
+  margin-left: 1px;
+  color: #aaa;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: -.3px;
+}
