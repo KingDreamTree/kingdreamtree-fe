@@ -901,3 +901,31 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   left: auto;
   margin: 40px auto 0;
 }
+/* 대화 내역만 스크롤하고 입력창은 화면 하단에 항상 유지 */
+.feedback-attention-page {
+  height: 1024px;
+  min-height: 0;
+  overflow: hidden;
+}
+.feedback-chat-history {
+  position: absolute;
+  top: 120px;
+  right: 131px;
+  bottom: 130px;
+  left: 131px;
+  display: flex;
+  margin: 0;
+  padding: 0 0 28px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.feedback-attention-page__input {
+  position: absolute;
+  z-index: 3;
+  top: auto;
+  right: auto;
+  bottom: 32px;
+  left: 50%;
+  margin: 0;
+  transform: translateX(-50%);
+}
