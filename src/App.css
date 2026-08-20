@@ -963,6 +963,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   transform: translateY(1px);
 }
 
+/* 참고 화면처럼 화살표를 글자와 같은 중앙선에 고정 */
+.comparison-analysis-header .previous-button img {
+  transform: none;
+  vertical-align: middle;
+}
+
 /* 화살표와 텍스트를 같은 세로 기준선에 맞춤 */
 .comparison-analysis-header .previous-button {
   display: inline-flex;
