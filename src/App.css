@@ -578,6 +578,14 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .today-routine-page__next.is-promoting > p { grid-row: 1; margin-bottom: 14px; }
 .today-routine-page__next.is-promoting h2 { grid-row: 2; margin-bottom: 10px; }
 .today-routine-page__next.is-promoting span { grid-row: 3; }
+/* ⚠️ 무게 줄·«자세 가이드» 는 승격 중 카드에도 있어야 한다 — 현재 카드는 전환이
+   끝난 뒤에야 mount 되므로, 여기 없으면 그 520ms 동안 둘만 비어 있다가 뒤늦게
+   나타난다. 특이도를 «클래스 두 개 + 요소»로 올려 위쪽 Next→ 배지·절대배치 규칙을
+   이긴다 (그 규칙들은 > p 로 모든 p 를 잡는다). */
+.today-routine-page__next p.today-routine-page__load { position: static; display: block; place-items: initial; width: auto; height: auto; margin: 0; border-radius: 0; background: none; text-align: left; color: #b0b0b0; font: 500 16px/1.45 Pretendard, sans-serif; letter-spacing: -.48px; }
+.today-routine-page__next.is-promoting p.today-routine-page__load { grid-column: 1; grid-row: 4; align-self: start; max-width: 328px; margin-bottom: 8px; }
+.today-routine-page__next.is-promoting p.today-routine-page__load em { color: #ffe250; font-style: normal; font-weight: 700; }
+.today-routine-page__next.is-promoting button { position: static; grid-column: 1; grid-row: 6; box-sizing: border-box; height: 34px; padding: 0 14px; align-self: start; justify-self: start; margin-top: 10px; border: 1px solid rgb(246 246 246 / .2); border-radius: 6.011px; background: rgb(59 59 59 / .3); color: #f6f6f6; font: 500 16px/1 Pretendard, sans-serif; letter-spacing: -.48px; }
 
 /* ⚠️ 승격 중에는 안쪽 배치가 절대 → 그리드로 바뀌어 위치를 tween 할 수 없다.
    카드 상자는 left/width 가 520ms 로 미끄러지는데 안쪽만 뚝 바뀌면 «바로 다른
@@ -604,9 +612,12 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   object-fit: contain;
 }
 
-/* 마지막 운동 카드에서는 텍스트와 모션을 가까운 2열 콘텐츠 그룹으로 배치 */
+/* 마지막 운동 카드에서는 텍스트와 모션을 가까운 2열 콘텐츠 그룹으로 배치.
+   ⚠️ 첫 열은 620px 다 — 위쪽 «마지막 스텝» 블록의 글자 크기(38/34/30px)가
+      이 폭을 전제로 계산돼 있다. 460px 으로 좁히면 긴 이름이 다시 접히거나
+      한 단계 더 작아진다 (2026-08-20 그렇게 되어 있었다). */
 .today-routine-page__current.is-last-step {
-  grid-template-columns: minmax(0, 460px) 285px;
+  grid-template-columns: minmax(0, 620px) 285px;
   column-gap: 32px;
 }
 
@@ -1172,6 +1183,8 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
    올라온 뒤에 보여준다. ⚠️ :not(.is-promoting) 이라 승격이 시작되는 순간 둘 다
    같이 나타난다 (같은 DOM 노드다). */
 .today-routine-page__next:not(.is-promoting) span,
+.today-routine-page__next:not(.is-promoting) p.today-routine-page__load,
+.today-routine-page__next:not(.is-promoting) button,
 .today-routine-page__next:not(.is-promoting) :is(img, video) { display: none; }
 
 /* 다음 카드(폭 335px)도 이름이 길면 영상 위로 흘러 넘쳤다. */

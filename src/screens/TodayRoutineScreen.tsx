@@ -127,7 +127,14 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
         박아두고 있어서 3스텝 이후에도 매번 "Step 2" 가 스쳐 지나갔다. */}
     {next && !isLastStep && <aside key={`next-${step}`}
       className={`today-routine-page__next ${isTransitioning ? 'is-promoting' : ''} ${isNextLastStep ? 'is-promoting-last' : ''}`} aria-label="다음 운동">
-      <p data-next-step={`Step ${step + 2}/${exercises.length}`}>Next →</p><h2 className={titleSizeClass(next.name).trim()}>{next.name}</h2><span>{exerciseDose(next)}</span><ExerciseMedia videoUrl={next.video_url} imageUrl={next.image_url} fallback={todayRoutineNextExercise} label={`다음 ${next.name} 동작`} />
+      <p data-next-step={`Step ${step + 2}/${exercises.length}`}>Next →</p><h2 className={titleSizeClass(next.name).trim()}>{next.name}</h2><span>{exerciseDose(next)}</span>
+      {/* ⚠️ 무게 줄과 «자세 가이드» 도 여기 둔다. 승격 중 카드는 **이 노드**이고,
+          현재 카드는 전환이 끝난 뒤에야 mount 된다 — 여기 없으면 그 520ms 동안만
+          둘이 비어 있다가 뒤늦게 나타난다. 평소에는 CSS 가 감춘다(다음 카드는 이름만).
+          ⚠️ aria-hidden — 승격 중에만 보이는 사본이라 읽어줄 필요가 없다. */}
+      {loadText(next) && <p className="today-routine-page__load" aria-hidden="true"><em>{loadText(next)}</em> · 가볍게 느껴지면 한 단계 올리세요</p>}
+      <button type="button" aria-hidden="true" tabIndex={-1}>자세 가이드</button>
+      <ExerciseMedia videoUrl={next.video_url} imageUrl={next.image_url} fallback={todayRoutineNextExercise} label={`다음 ${next.name} 동작`} />
     </aside>}
 
     <button className="today-routine-page__complete" type="button" disabled={isTransitioning || !current} onClick={completeSet}>{isLastStep ? '운동 마치기' : '세트 완료'}</button>
