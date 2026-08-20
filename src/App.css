@@ -481,6 +481,17 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .custom-routine-detail-page__empty { color: #b0b0b0; font: 500 18px/1.5 Pretendard, sans-serif; }
 .today-routine-page__disclaimer { position: absolute; bottom: 18px; left: 0; width: 100%; margin: 0; color: #707070; font: 500 12px/1.5 Pretendard, sans-serif; letter-spacing: -.36px; text-align: center; }
 
+/* 운동 설명 바로 옆에 모션 이미지를 배치해 콘텐츠 간 빈 공간을 줄입니다. */
+.today-routine-page__current > img {
+  right: auto;
+  left: 360px;
+}
+
+.today-routine-page__next.is-promoting img {
+  right: auto;
+  left: 360px;
+}
+
 /* ── 실시간 자세 촬영 (Step 2) ─────────────────────────────────────────── */
 .reference-error { position: absolute; top: 818px; left: 273px; width: 893px; margin: 0; color: #e52f28; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; text-align: center; }
 .reference-start:disabled { cursor: default; transform: none; }
