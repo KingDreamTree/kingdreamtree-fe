@@ -581,7 +581,9 @@ function App() {
         } else if (resumed === 'custom-routine') {
           const routine = await getActiveRoutine(sessionId)
           if (!cancelled) setRoutineData(routine)
-        } else if (resumed === 'today-routine') {
+        } else if (resumed === 'today-routine' || resumed === 'feedback') {
+          // ⚠️ feedback 도 함께 채운다. 이 화면의 [완료]가 «몇 번째 Day 를 했는지»를
+          //    todayRoutine 에서 읽기 때문이다 — 비워 두면 기록이 엉뚱한 Day 로 남는다.
           const today = await getTodayRoutine(sessionId)
           if (!cancelled) setTodayRoutine(today)
         }
@@ -960,8 +962,21 @@ function App() {
   const completeWorkout = async (feedbackText?: string) => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
-    const dayOrder = todayRoutine?.progress.next_day_order ?? 1
-    const cycleNo = todayRoutine?.progress.cycle_no ?? 1
+    // ⚠️ **어느 Day 를 했는지 추측하지 않는다.** 종전에는 todayRoutine 이 비어 있으면
+    //    «?? 1» 로 Day 1 을 적어 넣었다. 새로고침으로 feedback 화면에 복귀하면 이 값이
+    //    실제로 비는데(아래 복원 분기 참고), 그러면 Day 4 를 한 사람의 기록이 Day 1 로
+    //    남는다. 코치도 그 기록을 보고 대화하므로 «오늘 한 운동»을 통째로 잘못 안다 —
+    //    "플랭크는 오늘 운동 목록에 없었어요"가 그렇게 나왔다. 진행률도 같이 틀어진다.
+    //
+    //    그래서 기록 직전에 서버에서 다시 확인한다. 아직 기록을 남기기 전이라 이때의
+    //    today 가 «방금 한 Day» 그대로다. 확인이 안 되면 **적지 않는다.**
+    const today = await getTodayRoutine(sessionId).catch(() => todayRoutine)
+    const dayOrder = today?.day.day_order ?? today?.progress.next_day_order
+    const cycleNo = today?.cycle_no ?? today?.progress.cycle_no
+    if (dayOrder === undefined || cycleNo === undefined) {
+      window.alert('오늘의 루틴 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
+      return
+    }
     try {
       await createWorkoutLog(sessionId, { day_order: dayOrder, cycle_no: cycleNo, feedback_text: null })
     } catch (error) {
