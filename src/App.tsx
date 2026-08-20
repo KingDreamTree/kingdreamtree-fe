@@ -569,6 +569,10 @@ function App() {
         } else if (resumed === 'comparison') {
           const analysis = await getAnalysis(sessionId)
           if (cancelled) return
+          // ⚠️ 점수·요약이 없는 응답을 그대로 꽂으면 «—점 / 요약을 준비하고 있어요»가
+          //    사용자에게 보인다. 그럴 땐 결과 화면을 채우지 말고 **정상 분석 흐름**으로
+          //    돌린다 — 로딩 화면을 띄우고 폴링해서, 다 갖춰졌을 때 결과로 넘긴다.
+          if (!isAnalysisRenderable(analysis)) { void beginAnalysis(); return }
           setAnalysisData(analysis)
           const segmentation = await getSessionSegmentation(sessionId).catch(() => null)
           if (!cancelled) setSegmentationData(segmentation)
@@ -1065,6 +1069,11 @@ function App() {
   // 이어서 받아 상태를 채우므로, 네트워크 응답 때문에 로딩 화면이 멈춰 있지 않는다.
     if (view === 'inbody-loading') return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady}
       onComplete={() => setView('comparison')} />
+  // ⚠️ 점수·요약이 다 있을 때만 결과 화면을 그린다. 사용자가 «—점» 이나
+  //    «요약을 준비하고 있어요» 를 보는 일이 없어야 한다 — 로딩 화면의 존재 이유다.
+  //    새로고침 복원처럼 로딩을 안 거치고 들어오는 길이 있어서 여기서 한 번 더 막는다.
+  if (view === 'comparison' && !isAnalysisRenderable(analysisData))
+    return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady} onComplete={() => setView('comparison')} />
   if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} photoUrls={photoUrls} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
   if (view === 'loading-two') return <LoadingTwoScreen phase={routinePhase} isComplete={isRoutineReady} onComplete={() => setView('custom-routine')} />
