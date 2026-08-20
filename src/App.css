@@ -264,8 +264,8 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .custom-routine-detail-page__groups article { width: 724px; border: 1px solid transparent; background: #3b3b3b; cursor: pointer; transition: border-color 180ms ease; }
 .custom-routine-detail-page__groups article:hover, .custom-routine-detail-page__groups article:focus-visible, .custom-routine-detail-page__groups article.is-selected { border-color: #ffe250; background: #3b3b3b; }
 .custom-routine-detail-page__groups article:focus-visible { outline: 0; }
-.custom-routine-detail-page__groups article > img { width: 85.746px; height: 84px; margin: 12px 8.074px 12px 14px; border-radius: 0; object-fit: cover; object-position: center; }
-.custom-routine-detail-page__info { position: absolute; top: 382px; left: 884px; box-sizing: border-box; width: 424px; height: 485px; min-height: 0; padding: 54px 40px; overflow: hidden; border: 0; border-radius: 15.98px; background: rgb(59 59 59 / .4); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.custom-routine-detail-page__groups article > img { width: 102px; height: 96px; margin: 6px 8px 6px 14px; border-radius: 0; object-fit: cover; object-position: center; }
+.custom-routine-detail-page__info { position: absolute; top: 382px; left: 884px; box-sizing: border-box; width: 474px; height: 485px; min-height: 0; padding: 54px 40px; overflow: hidden; border: 0; border-radius: 15.98px; background: rgb(59 59 59 / .4); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
 /* ⚠️ max-width 는 패널이 실제로 내주는 폭(424 − 좌우 패딩 40×2 = 344px)이다.
    종전 200px 은 그보다 144px 좁아서, 한 줄에 들어가는 이름도 접혔다
    ("덤벨 싱글 레그 카프 / 레이즈"). 넘칠 때만 접히게 하고, 접히더라도
@@ -275,7 +275,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .custom-routine-detail-page__info dl > div { display: flex; gap: 10px; }
 .custom-routine-detail-page__info dt, .custom-routine-detail-page__info dd { margin: 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
 .custom-routine-detail-page__info dt { color: #f6f6f6; }.custom-routine-detail-page__info dd { color: #707070; }
-.custom-routine-detail-page__info > :is(img, video) { position: absolute; right: 45px; bottom: -10px; width: 194px; height: 240px; object-fit: contain; object-position: center; filter: none; mix-blend-mode: normal; }
+.custom-routine-detail-page__info > :is(img, video) { position: absolute; right: 24px; bottom: -10px; width: 280px; height: 330px; object-fit: contain; object-position: center; filter: none; mix-blend-mode: normal; }
 
 /* Figma 657:4412 — 오늘 루틴 */
 .today-routine-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; }.today-routine-page__eyebrow { position: absolute; top: 138px; left: 131px; margin: 0; color: #ffe250; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }.today-routine-page h1 { position: absolute; top: 198px; left: 131px; margin: 0; font: 600 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; }.today-routine-page__notice { position: absolute; top: 259px; left: 131px; margin: 0; color: #b0b0b0; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }.today-routine-page__progress { position: absolute; top: 322px; left: 131px; display: flex; width: 1178px; height: 5px; gap: 6px; }.today-routine-page__finish { position: absolute; top: 198px; left: 1144px; box-sizing: border-box; width: 165px; height: 63px; padding: 0; border: 1px solid rgb(246 246 246 / .2); border-radius: 13px; background: rgb(59 59 59 / .3); color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; }.today-routine-page__finish:disabled { cursor: not-allowed; opacity: .42; }
