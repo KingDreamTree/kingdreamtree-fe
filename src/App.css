@@ -332,7 +332,9 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
       카드가 왼쪽으로 나가지 못하고 제자리에서 사라진다. */
 @media (prefers-reduced-motion: no-preference) {
   .today-routine-page__next { animation: today-card-in 300ms ease 40ms both; }
-  .today-routine-page__current > p, .today-routine-page__current > button { animation: today-card-in 260ms ease 120ms both; }
+  /* ⚠️ 지연을 두지 않는다. 120ms 를 기다리면 무게 줄과 «자세 가이드» 만 뒤늦게
+     떠서, 카드가 바뀔 때마다 두 번에 나눠 그려지는 것처럼 보였다. */
+  .today-routine-page__current > p, .today-routine-page__current > button { animation: today-card-in 180ms ease both; }
 }
 @keyframes today-card-in { from { opacity: 0; } }
 
@@ -726,6 +728,14 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   word-break: keep-all;
 }
 .feedback-chat-history__message.is-typing { color: #b0b0b0; }
+/* «말하는 중» 표시 — 점 세 개가 차례로 떠오른다. 글로 쓰면 지연 안내처럼 읽혀서 점만 둔다. */
+.feedback-chat-history__message.is-typing { display: flex; width: fit-content; gap: 4px; align-items: center; }
+/* 점은 **글자**로 찍는다 — 빈 상자로 두면 글줄 높이에 안 잡혀 거품이 납작해진다. */
+.feedback-chat-history__message.is-typing span { color: #f6f6f6; font-size: 26px; line-height: 1; opacity: .3; animation: chat-typing 1.2s ease-in-out infinite; }
+.feedback-chat-history__message.is-typing span:nth-child(2) { animation-delay: .16s; }
+.feedback-chat-history__message.is-typing span:nth-child(3) { animation-delay: .32s; }
+@keyframes chat-typing { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .feedback-chat-history__message.is-typing span { animation: none; opacity: .6; } }
 .feedback-chat-history__tool-event { display: flex; width: fit-content; height: 50px; align-items: center; justify-content: center; gap: 16px; margin-left: 50px; padding: 0 22px; border-radius: 46px; background: rgb(75 194 125 / .2); }
 .feedback-chat-history__tool-event span { display: grid; width: 22px; height: 22px; place-items: center; border: .5px solid #4bc27d; border-radius: 50%; background: rgb(75 194 125 / .2); }
 .feedback-chat-history__tool-event span img { width: 9.917px; height: 7px; }

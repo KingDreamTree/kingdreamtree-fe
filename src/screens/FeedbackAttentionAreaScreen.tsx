@@ -15,6 +15,16 @@ type FeedbackAttentionAreaScreenProps = {
 }
 
 /** tool_events를 사용자 언어 배지로 — 금기 등록은 [적용]을 기다리지 않고 즉시 반영된다. */
+/** 대화 거품에 그릴 글. 도구 호출 JSON 이 그대로 답으로 나오는 경우가 있어서
+ *  («세션이 꼬였다» 던 그때 화면에 «{ … }» 만 떴다) 원문 JSON 은 그리지 않는다.
+ *  ⚠️ 사용자에게 보여줄 말이 아니다 — 감추고 넘어가는 편이 낫다. */
+function chatText(content: string | null | undefined): string | null {
+  const text = (content ?? '').trim()
+  if (!text) return null
+  const looksLikeJson = (text.startsWith('{') && text.endsWith('}')) || (text.startsWith('[') && text.endsWith(']'))
+  return looksLikeJson ? null : text
+}
+
 function toolEventLabel(event: { name: string; args: Record<string, unknown> }): string {
   if (event.name === 'flag_contraindication') {
     const area = typeof event.args.area === 'string' ? event.args.area : typeof event.args.body_part === 'string' ? event.args.body_part : null
@@ -62,13 +72,16 @@ export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit, onEx
   return <FixedStepFrame label="피드백 대화"><div className="feedback-attention-page">
     <header className="feedback-attention-page__header"><span>운동 완료{coach ? ` · 대화 ${coach.turn}/${coach.max_turns}` : ''}</span><button type="button" onClick={onExit}>나가기 →</button></header>
     <section ref={historyRef} className="feedback-chat-history" aria-label="피드백 대화">
-      {messages.map((message, index) => <div className={`feedback-chat-history__row ${message.role === 'user' ? 'is-user' : 'is-assistant'}`} key={`${message.role}-${index}`}>
+      {messages.map((message, index) => chatText(message.content) && <div className={`feedback-chat-history__row ${message.role === 'user' ? 'is-user' : 'is-assistant'}`} key={`${message.role}-${index}`}>
         {message.role === 'assistant' && <img className="feedback-chat-history__avatar" src={feedbackIllustration} alt="" />}
-        <p className={`feedback-chat-history__message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}>{message.content}</p>
+        <p className={`feedback-chat-history__message ${message.role === 'user' ? 'is-user' : 'is-assistant'}`}>{chatText(message.content)}</p>
       </div>)}
       {pendingText && <div className="feedback-chat-history__row is-assistant">
         <img className="feedback-chat-history__avatar" src={feedbackIllustration} alt="" />
-        <p className="feedback-chat-history__message is-assistant is-typing">코치가 답장을 작성하고 있어요…</p>
+        {/* 말하고 있다는 표시 — 점 세 개. 글로 쓰면 «지연 안내»처럼 읽혀서 점으로만 둔다. */}
+        <p className="feedback-chat-history__message is-assistant is-typing" role="status" aria-label="코치가 답장을 작성하고 있어요">
+          <span>•</span><span>•</span><span>•</span>
+        </p>
       </div>}
       {coach?.tool_events?.map((event, index) => <div className="feedback-chat-history__tool-event" key={`${event.name}-${index}`}><span><img src={feedbackCheck} alt="" /></span><strong>{toolEventLabel(event)}</strong></div>)}
     </section>
