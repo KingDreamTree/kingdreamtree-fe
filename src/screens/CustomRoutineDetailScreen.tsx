@@ -2,13 +2,14 @@ import customRoutineDetailTime from '../assets/custom-routine-detail-time.svg'
 import customRoutineDetailWarmup from '../assets/custom-routine-detail-warmup.png'
 import { useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
-import { PreviousButton } from '../components/PreviousButton'
-import { ExerciseMedia } from '../components/ExerciseMedia'
 import type { RoutineDay } from '../lib/api'
 
-const DEFAULT_REP_SECONDS = 3
-const DEFAULT_TRANSITION_SECONDS = 60
-const INITIAL_SETUP_SECONDS = 2 * 60
+const WARMUP_SECONDS = 5 * 60
+const EXERCISE_SETUP_SECONDS = 3 * 60
+const REP_SECONDS_AT_TEN_REPS = 45
+const FORMULA_DEFAULT_REST_SECONDS = 2 * 60
+const EXERCISE_BUFFER_SECONDS = 3 * 60
+const FORMULA_TRANSITION_SECONDS = 2 * 60
 
 type RoutineExercise = RoutineDay['exercises'][number]
 
@@ -17,31 +18,24 @@ function isTimeBasedExercise(exercise: RoutineExercise): boolean {
     || (exercise.duration_min !== null && exercise.duration_min > 0 && !exercise.reps)
 }
 
-function defaultRestSeconds(exercise: RoutineExercise): number {
-  const name = exercise.name.toLowerCase()
-  if (/(스쿼트|데드리프트|벤치 ?프레스|squat|deadlift|bench press)/i.test(name)) return 120
-  if (/(컬|플라이|레이즈|익스텐션|curl|fly|raise|extension)/i.test(name)) return 60
-  return 90
-}
-
 function calculateExerciseDurationSeconds(exercise: RoutineExercise): number {
-  if (exercise.exercise_kind.toUpperCase() === 'CARDIO') return Math.max(exercise.duration_min ?? 0, 0) * 60
-
-  const sets = Math.max(exercise.sets ?? 0, 0)
-  if (isTimeBasedExercise(exercise)) return Math.max(exercise.duration_min ?? 0, 0) * 60 * Math.max(sets, 1)
-
-  const reps = Math.max(exercise.reps ?? 0, 0)
-  const workSeconds = sets * reps * DEFAULT_REP_SECONDS
-  const restSeconds = exercise.rest_sec ?? defaultRestSeconds(exercise)
-  return workSeconds + Math.max(sets - 1, 0) * Math.max(restSeconds, 0)
+  const sets = Math.max(exercise.sets ?? 1, 1)
+  const isCardio = exercise.exercise_kind.toUpperCase() === 'CARDIO'
+  if (isCardio) return Math.max(exercise.duration_min ?? 0, 0) * 60
+  const isTimed = isTimeBasedExercise(exercise)
+  const performanceSeconds = isTimed
+    ? Math.max(exercise.duration_min ?? 0, 0) * 60 * sets
+    : sets * (Math.max(exercise.reps ?? 0, 0) / 10) * REP_SECONDS_AT_TEN_REPS
+  const restSeconds = Math.max(exercise.rest_sec ?? FORMULA_DEFAULT_REST_SECONDS, 0) * Math.max(sets - 1, 0)
+  return EXERCISE_SETUP_SECONDS + performanceSeconds + restSeconds + EXERCISE_BUFFER_SECONDS
 }
 
 function calculateWorkoutDurationSeconds(day: RoutineDay): number {
   const exercises = day.exercises
   if (exercises.length === 0) return 0
   const exerciseSeconds = exercises.reduce((total, exercise) => total + calculateExerciseDurationSeconds(exercise), 0)
-  const transitionSeconds = Math.max(exercises.length - 1, 0) * DEFAULT_TRANSITION_SECONDS
-  return INITIAL_SETUP_SECONDS + exerciseSeconds + transitionSeconds
+  const transitionSeconds = Math.max(exercises.length - 1, 0) * FORMULA_TRANSITION_SECONDS
+  return WARMUP_SECONDS + exerciseSeconds + transitionSeconds
 }
 
 function estimatedDuration(day: RoutineDay | null): number | null {
@@ -72,7 +66,7 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
   return <FixedStepFrame label="맞춤 루틴 상세 보기"><div className="custom-routine-detail-page">
     <p className="custom-routine-detail-page__eyebrow">상세 보기</p>
     <h1>DAY {day?.day_order ?? 1}</h1>
-    <PreviousButton className="custom-routine-detail-page__previous" onClick={onPrevious} />
+    <button className="custom-routine-detail-page__previous" type="button" onClick={onPrevious}>이전 단계</button>
     <p className="custom-routine-detail-page__duration"><img src={customRoutineDetailTime} alt="" />예상 운동시간 <strong>{duration ?? '-'}분</strong></p>
     <section className="custom-routine-detail-page__groups" aria-label={`DAY ${day?.day_order ?? 1} 운동 목록`}>
       {exercises.map((exercise, index) => <article className={selected?.order_index === exercise.order_index ? 'is-selected' : ''} key={exercise.order_index} tabIndex={0} onMouseEnter={() => setSelectedIndex(index)} onFocus={() => setSelectedIndex(index)} onClick={() => setSelectedIndex(index)}>
@@ -93,8 +87,7 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
         {selected.rir !== null && selected.rir !== undefined && <div><dt>운동 강도</dt><dd>{selected.rir}회 더 할 수 있는 여유</dd></div>}
         {selected.rest_sec && <div><dt>세트 사이 휴식</dt><dd>{selected.rest_sec}초</dd></div>}
       </dl>
-      {/* 목록 썸네일은 사진 그대로 둔다 — 한 화면에서 영상을 여러 개 동시에 돌릴 이유가 없다 */}
-      <ExerciseMedia videoUrl={selected.video_url} imageUrl={selected.image_url} fallback={customRoutineDetailWarmup} label={`${selected.name} 동작`} />
+      <img src={selected.image_url ?? customRoutineDetailWarmup} alt={`${selected.name} 동작`} />
     </aside>}
   </div></FixedStepFrame>
 }
