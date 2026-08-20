@@ -474,7 +474,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 /* ── 실데이터 바인딩 요소 ── */
 .inbody-after-field.has-warning input { border: 1px solid #ffc646; }
 .inbody-after-warning { display: block; margin-top: 3px; color: #ffc646; font: 500 11px/1.4 Pretendard, sans-serif; letter-spacing: -.33px; font-style: normal; }
-.custom-routine-page__notice { margin-top: 10px !important; color: #ffc646 !important; font-size: 16px !important; }
+.custom-routine-page__notice { margin-top: 14px !important; }
 .custom-routine-page__progress { position: absolute; bottom: 64px; left: 131px; margin: 0; color: #b0b0b0; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }
 .custom-routine-page__disclaimer { position: absolute; bottom: 24px; left: 131px; width: 1178px; margin: 0; color: #707070; font: 500 12px/1.5 Pretendard, sans-serif; letter-spacing: -.36px; }
 .custom-routine-detail-page__note { margin-top: 4px !important; color: #b0b0b0 !important; font-size: 14px !important; }
