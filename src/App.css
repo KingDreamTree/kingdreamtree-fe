@@ -1031,6 +1031,34 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   transform: translateY(1px);
 }
 
+/* Figma 884:390 — 비교 분석도 공통 이전 단계 버튼 규격 사용 */
+.comparison-analysis-header .previous-button {
+  display: inline-flex;
+  height: 27px;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f6f6f6;
+  font: 500 18px/27px Pretendard, sans-serif;
+  letter-spacing: -.54px;
+  white-space: nowrap;
+}
+.comparison-analysis-header .previous-button img {
+  width: 18px;
+  height: 16px;
+  flex: 0 0 auto;
+  object-fit: contain;
+  transform: none;
+}
+.comparison-analysis-header .previous-button span {
+  display: inline-flex;
+  align-items: center;
+  height: 27px;
+  line-height: 27px;
+}
+
 /* 화살표와 텍스트를 같은 수직 중심에 맞추고 한 줄로 유지 */
 .comparison-analysis-header .previous-button {
   display: inline-flex;
