@@ -162,7 +162,7 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, onCreateRouti
         {(overall?.strengths?.length || overall?.cautions?.length || excluded.length) ? <ul className="comparison-analysis-notes">
           {overall?.strengths?.map(item => <li key={item}>💪 {item}</li>)}
           {overall?.cautions?.map(item => <li key={item}>⚠️ {item}</li>)}
-          {excluded.length > 0 && <li>⚠️ {excluded.map(part => part.name_ko ?? part.class_name).join(', ')}은(는) 이번 사진에서 확인할 수 없었습니다.</li>}
+          {excluded.length > 0 && <li>⚠️ {excluded.map(part => part.name_ko ?? part.class_name).join(', ')} 부위는 시각적 판별이 어려워서 비교 분석에서 제외되었습니다.</li>}
         </ul> : null}
       </section>
 
