@@ -2,6 +2,7 @@ import customRoutineDetailTime from '../assets/custom-routine-detail-time.svg'
 import customRoutineDetailWarmup from '../assets/custom-routine-detail-warmup.png'
 import { useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
+import { ExerciseMedia } from '../components/ExerciseMedia'
 import type { RoutineDay } from '../lib/api'
 
 const WARMUP_SECONDS = 5 * 60
@@ -44,15 +45,34 @@ function estimatedDuration(day: RoutineDay | null): number | null {
   return totalSeconds > 0 ? Math.ceil(totalSeconds / 60) : null
 }
 
-/** 세트·횟수·휴식을 한 줄 요약으로. 유산소는 시간 기준 (중량 kg은 서버가 제공하지 않음 — rir만). */
+/** 이 운동에서 들 무게. 맨몸이거나 인바디가 없으면 null 이라 줄이 안 나온다.
+ *  ⚠️ «로 시작» 이라고 부르지 않는다 — 백엔드는 kg 을 저장하지 않고 배율(load_adjust)만
+ *     남겨 조회할 때마다 다시 계산한다. 피드백에서 «무겁다» 가 나오면 배율이 내려가
+ *     이 값 자체가 바뀌므로, 조정된 뒤에는 시작 무게가 아니라 지금 들 무게다. */
+function loadText(exercise: RoutineDay['exercises'][number]): string | null {
+  const load = exercise.load_guide
+  if (!load) return null
+  return load.min_kg === load.max_kg ? `${load.min_kg}kg` : `${load.min_kg}~${load.max_kg}kg`
+}
+
+/** 세트·횟수·휴식을 한 줄 요약으로. 유산소는 시간 기준. */
 function exerciseSummary(exercise: RoutineDay['exercises'][number]): string {
   if (exercise.exercise_kind === 'CARDIO') return `${exercise.duration_min ?? '-'}분`
   const parts: string[] = []
   if (exercise.sets) parts.push(`${exercise.sets}세트`)
   if (exercise.reps) parts.push(`${exercise.reps}회`)
-  if (exercise.rir !== null && exercise.rir !== undefined) parts.push(`${exercise.rir}회 더 할 수 있는 강도`)
   if (exercise.rest_sec) parts.push(`휴식 ${exercise.rest_sec}초`)
   return parts.join(' × ') || '자유 진행'
+}
+
+/** 오른쪽 정보판 제목이 한 줄에 들어가는 글자 수. 폭 344px(424 - 좌우 여백 40)을
+ *  글자당 폭으로 나눈 값이다 — 22.372px 기준 15자, 19px 기준 18자.
+ *  ⚠️ 카탈로그에는 30자짜리 이름도 있어서 줄바꿈을 아예 없앨 수는 없다.
+ *     한 줄에 들어갈 만한 이름이 굳이 접히는 것만 막는다. */
+function titleSizeClass(name: string): string {
+  if (name.length > 18) return ' is-very-long'
+  if (name.length > 15) return ' is-long'
+  return ''
 }
 
 type CustomRoutineDetailScreenProps = { day: RoutineDay | null; onPrevious: () => void }
@@ -74,20 +94,34 @@ export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDeta
         <div>
           <h2>{exercise.name}</h2>
           <p>{exerciseSummary(exercise)}{exercise.muscle_group ? ` · ${exercise.muscle_group}` : ''}</p>
-          {exercise.note && <p className="custom-routine-detail-page__note">{exercise.note}</p>}
+          {/* ⚠️ 서버 note 는 RIR 을 되풀이하는 문장(«N회를 마쳤을 때 …»)이라 쓰지 않는다.
+              여기서는 «얼마로 시작해서 어떻게 올리는지»만 말한다. */}
+          {loadText(exercise) && <p className="custom-routine-detail-page__note">
+            <em>{loadText(exercise)}</em> · 가볍게 느껴지면 한 단계 올리세요
+          </p>}
         </div>
       </article>)}
       {exercises.length === 0 && <p className="custom-routine-detail-page__empty">이 Day의 운동 정보를 불러오지 못했어요.</p>}
     </section>
     {selected && <aside className="custom-routine-detail-page__info" aria-live="polite">
-      <h2>{selected.name}</h2>
+      <h2 className={`custom-routine-detail-page__info-title${titleSizeClass(selected.name)}`}>{selected.name}</h2>
       <dl>
         {selected.sets && <div><dt>세트 수</dt><dd>{selected.sets}세트</dd></div>}
         {selected.reps && <div><dt>반복 횟수</dt><dd>{selected.reps}회</dd></div>}
-        {selected.rir !== null && selected.rir !== undefined && <div><dt>운동 강도</dt><dd>{selected.rir}회 더 할 수 있는 여유</dd></div>}
+        {/* ⚠️ 값만 적는다. 피드백으로 무게가 조정되면 그 값이 여기로 그대로 내려오므로,
+            «시작»이라고 부르면 조정된 뒤에는 틀린 말이 된다. 올리는 법 안내는 왼쪽
+            목록의 한 줄이 담당한다. load_guide 가 null 이면(맨몸·인바디 없음) 줄이 없다. */}
+        {selected.load_guide && <div>
+          <dt>무게</dt>
+          <dd title={selected.load_guide.basis}>
+            {selected.load_guide.min_kg === selected.load_guide.max_kg
+              ? `${selected.load_guide.min_kg}kg`
+              : `${selected.load_guide.min_kg}~${selected.load_guide.max_kg}kg`}
+          </dd>
+        </div>}
         {selected.rest_sec && <div><dt>세트 사이 휴식</dt><dd>{selected.rest_sec}초</dd></div>}
       </dl>
-      <img src={selected.image_url ?? customRoutineDetailWarmup} alt={`${selected.name} 동작`} />
+      <ExerciseMedia videoUrl={selected.video_url} imageUrl={selected.image_url} fallback={customRoutineDetailWarmup} label={`${selected.name} 동작`} />
     </aside>}
   </div></FixedStepFrame>
 }
