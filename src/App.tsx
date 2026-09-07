@@ -29,7 +29,7 @@ import poseFailLineTwo from './assets/pose-fail-line-2.svg'
 import { FixedStepFrame } from './components/FixedStepFrame'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, clearStoredIdentity, createRoutine, createWorkoutLog, getActiveRoutine, getAnalysis, getAnalysisProgress, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatResponse, type CoachFinalized, type Job, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, createRoutine, createWorkoutLog, getActiveRoutine, getAnalysis, getAnalysisProgress, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, startFreshSession, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, type AnalysisResult, type CoachChatResponse, type CoachFinalized, type Job, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -300,14 +300,36 @@ function App() {
   const applyingRef = useRef(false)
   const [applyBusy, setApplyBusy] = useState(false)
 
+  const resetSessionState = () => {
+    setWorkoutDays(1)
+    setFeedbackMessage('')
+    setFollowupFeedbackMessage('')
+    setCriteria(null)
+    setRefData(previous => {
+      if (previous) URL.revokeObjectURL(previous.url)
+      return null
+    })
+    setRefBusy(false)
+    setRefError(null)
+    setLastUserPhoto(null)
+    setPoseEvaluation(null)
+    setPoseMessage(undefined)
+    setInbodyId(null)
+    setInbodyJobId(null)
+    setTodayRoutine(null)
+    setRoutine(null)
+    setAnalysisData(null)
+    setSegmentationData(null)
+  }
+
   // 세션과 판정 기준(GET /pose-criteria)은 시작 시 한 번만. 모델·wasm도 미리 로드.
   const openReference = async () => {
     if (isPreparingSession) return
     setIsPreparingSession(true)
     void loadVideoLandmarker().catch(() => undefined)
-    clearStoredIdentity()
+    resetSessionState()
     try {
-      const [, poseCriteria] = await Promise.all([ensureActiveSession(), getPoseCriteria()])
+      const [, poseCriteria] = await Promise.all([startFreshSession(), getPoseCriteria()])
       setCriteria(poseCriteria as unknown as PoseCriteria)
       setView('reference-notice')
     } catch (error) {
@@ -505,9 +527,8 @@ function App() {
     completingRef.current = true
     setCompleteBusy(true)
     try {
-      const progress = todayRoutine?.progress as Record<string, unknown> | undefined
-      const dayOrder = typeof progress?.next_day_order === 'number' ? progress.next_day_order : 1
-      const cycleNo = typeof progress?.cycle_no === 'number' ? progress.cycle_no : 1
+      const dayOrder = todayRoutine?.day.day_order ?? 1
+      const cycleNo = todayRoutine?.cycle_no ?? todayRoutine?.progress.cycle_no ?? 1
       await createWorkoutLog(sessionId, { day_order: dayOrder, cycle_no: cycleNo, feedback_text: feedbackText || null })
       if (feedbackText) {
         setFeedbackMessage(feedbackText)
