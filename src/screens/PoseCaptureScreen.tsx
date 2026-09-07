@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FixedStepFrame } from '../components/FixedStepFrame'
-import { PreviousButton } from '../components/PreviousButton'
 import { PoseScore } from '../components/PoseScore'
 import { createHoldGate, evaluate, IDX, MESSAGES, mirrorLandmarks, SEGMENTS, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
 import { loadVideoLandmarker } from '../lib/landmarkers'
 import { areaRatio, chooseScaleBasis, findOutOfRangeLandmark } from '../lib/pose-detector'
-import { RefitApiError, setStoredAnalysisMode, uploadUserPhoto, userFacingMessage } from '../lib/api'
+import { RefitApiError, uploadUserPhoto, userFacingMessage } from '../lib/api'
 import poseCornerTopLeft from '../assets/pose-corner-top-left.svg'
 import poseCornerTopRight from '../assets/pose-corner-top-right.svg'
 import poseCornerBottomLeft from '../assets/pose-corner-bottom-left.svg'
@@ -23,7 +22,6 @@ type PoseCaptureScreenProps = {
   refScaleBasis: 'TORSO' | 'HIP_KNEE'
   referenceUrl: string
   onNext: () => void
-  onPrevious: () => void
   /** 갤러리에서 사진을 골라 업로드 판정 경로로 전환한다. */
   onBrowse: (file: File) => void
 }
@@ -49,17 +47,12 @@ type CapturePayload = {
 
 type Hud = { message: string; score: number | null; progress: number }
 
-// 촬영 안내 — 근거는 백엔드 docs/FRONTEND.md 와 2차 검사 프롬프트(photo_screening.py).
-// ⚠️ "머리부터 발까지"는 틀렸다 — 머리·발끝이 잘려도 통과하고, 전신을 다 넣으려 멀리 서면
-//    사람이 작게 나와 부위별 픽셀이 오히려 부족해진다.
-// ⚠️ "팔을 15~30도 벌리기"도 여기 둘 문구가 아니다 — 사용자는 레퍼런스 포즈를 따라야 하고
-//    (안 따르면 자세 점수 미달), 팔이 붙은 레퍼런스면 그 팔은 레퍼런스 쪽에서 이미 검출되지
-//    않아 양쪽 다 비교에서 빠진다. 팔 벌림은 **레퍼런스를 고를 때** 필요한 조건이다.
+// docs/FRONTEND-HANDOFF.md §2 촬영 안내 문구 (필수)
 const CAPTURE_GUIDES = [
   '레퍼런스를 화면에 보이는 대로 따라 하세요',
-  '발끝까지 안 나와도 괜찮아요 — 몸통과 팔다리만 보이면 됩니다',
-  '카메라와 적당한 거리를 두세요 — 너무 멀면 인식이 어려워요',
-  '맨살이나 몸에 붙는 옷으로 — 옷이 헐렁하면 팔다리 윤곽이 가려져요',
+  '정면으로 서고, 머리부터 발까지 나오게',
+  '팔을 몸에서 15~30도 벌려주세요',
+  '몸에 붙는 옷을 입어주세요',
   '배경이 단순한 곳에서 촬영해 주세요',
 ]
 
@@ -132,7 +125,7 @@ function cameraErrorMessage(error: unknown) {
   return '카메라를 열 수 없어요. 브라우저 카메라 권한을 확인해주세요.'
 }
 
-export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refScaleBasis, referenceUrl, onNext, onPrevious, onBrowse }: PoseCaptureScreenProps) {
+export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refScaleBasis, referenceUrl, onNext, onBrowse }: PoseCaptureScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const refImageRef = useRef<HTMLImageElement>(null)
   const skeletonRef = useRef<HTMLCanvasElement>(null)
@@ -184,11 +177,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
         poseOks: payload.result.oks,
         posePersonAreaRatio: areaRatio(payload.lm, 1, 1),
         multiPerson: payload.multiPerson,
-        // 웹캠 경로 = 퀵 파이프라인. 서버가 세그 잡을 걸지 않는다(Sapiens2 미사용) —
-        // 분석 시작도 mode=quick 이어야 하므로 업로드 성공과 같은 순간에 모드를 기록한다.
-        pipeline: 'quick',
       })
-      setStoredAnalysisMode('quick')
       setPhase({ kind: 'done' })
     } catch (error) {
       if (error instanceof RefitApiError && error.status === 503) {
@@ -213,28 +202,21 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     let lastPass: { lm: PoseLandmarks; result: EvaluateResult; multiPerson: boolean } | null = null
     setCountdown(null)
 
-    // 점수는 최신 인식 결과를 즉시 보여준다. 과도한 평활화는 점수와 초록 링이
-    // 실제 자세보다 늦게 따라오는 원인이 되어 실시간 피드백을 어렵게 한다.
+    // 점수·게이지는 프레임마다 튀므로 지수 이동 평균으로 부드럽게 따라가게 한다.
     const smooth = { score: 0, hasScore: false, progress: 0 }
-    const recentScores: number[] = []
     const updateHud = (result: EvaluateResult | null, messageOverride?: string) => {
       if (result) {
-        recentScores.push(result.pose_similarity)
-        if (recentScores.length > 5) recentScores.shift()
-        const ordered = [...recentScores].sort((a, b) => a - b)
-        const median = ordered[Math.floor(ordered.length / 2)]
-        // 중앙값으로 한두 프레임의 오인식 스파이크를 제거한 뒤 짧게만 보정한다.
-        smooth.score = smooth.hasScore ? smooth.score + (median - smooth.score) * 0.35 : median
+        smooth.score = smooth.hasScore ? smooth.score + (result.pose_similarity - smooth.score) * 0.12 : result.pose_similarity
         smooth.hasScore = true
+      } else {
+        smooth.hasScore = false
       }
       smooth.progress += (hold.progress - smooth.progress) * 0.2
       if (Math.abs(hold.progress - smooth.progress) < 0.004) smooth.progress = hold.progress
 
       const next: Hud = {
         message: messageOverride ?? (result ? result.message : MESSAGES.NOT_ENOUGH_JOINTS),
-        // 자세가 잠시 끊겨도 실시간 점수 HUD를 숨기지 않고 0점으로 유지한다.
-        // 저점 구간도 사용자가 현재 점수를 확인할 수 있어야 한다.
-        score: smooth.hasScore ? Math.round(smooth.score * 10) / 10 : 0,
+        score: smooth.hasScore ? Math.round(smooth.score * 10) / 10 : null,
         progress: Math.round(smooth.progress * 200) / 200,
       }
       const prev = hudRef.current
@@ -255,11 +237,9 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       const canvas = document.createElement('canvas')
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
-      // 미리보기(거울) 방향 그대로 저장한다 (FRONTEND.md §7, 2026-08-18 개정).
-      // 저장본이 레퍼런스와 같은 방향이 되므로 저장 이후 처리가 갤러리 업로드와
-      // 완전히 같아진다 — 서버의 교차 짝짓기·표시 반전이 필요 없다.
-      // ⚠️ 좌표도 아래에서 함께 반전한다. 사진과 좌표는 반드시 세트로 움직여야
-      //    하고, 한쪽만 뒤집으면 에러 없이 좌우 진단이 통째로 어긋난다.
+      // 로컬 실험: 미리보기(거울) 방향 그대로 저장 — 사피엔스가 레퍼런스와 같은
+      // 방향의 사진을 분할하게 해서, 같은 이름끼리 비교해도 시각적으로 같은 쪽이
+      // 붙는다. 좌표도 아래에서 같이 반전해 사진과 세트를 맞춘다.
       const ctx = canvas.getContext('2d')
       if (ctx) {
         ctx.translate(canvas.width, 0)
@@ -412,7 +392,6 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
   const showOverlay = phase.kind !== 'live' && phase.kind !== 'starting'
 
   return <FixedStepFrame label="Step 2 실시간 자세 촬영"><div className="pose-page">
-    <PreviousButton onClick={onPrevious} />
     <p className="step-label">Step 2/3</p>
     <h1>실시간 자세 촬영</h1>
     <p className="step-description">레퍼런스와 같은 포즈를 유지하면 자동으로 촬영됩니다.</p>
@@ -429,8 +408,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
     </section>
 
     <div className="pose-live-area">
-      {/* 미리보기·스켈레톤은 CSS 반전으로 거울처럼 보여준다. 판정에 쓰는 좌표는 카메라 원본이고,
-          저장은 셔터에서 사진·좌표를 함께 반전해 화면에서 본 방향으로 남긴다 (shutter 주석 참고) */}
+      {/* 거울 미리보기는 CSS 반전만 — 좌표·캡처는 비반전 원본. 스켈레톤도 같은 반전을 받아 화면과 일치한다 */}
       <video ref={videoRef} className="pose-live-video" playsInline muted />
       <canvas ref={liveSkeletonRef} className="pose-live-skeleton" aria-hidden="true" />
       {phase.kind === 'starting' && <p className="pose-live-starting">카메라를 준비하고 있어요…</p>}
@@ -459,7 +437,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
       onChange={event => { const file = event.currentTarget.files?.[0]; if (file) onBrowse(file); event.currentTarget.value = '' }} />
     {(phase.kind === 'live' || phase.kind === 'camera-error') && <button className="pose-gallery" type="button" onClick={() => fileInputRef.current?.click()}>갤러리에서 업로드</button>}
 
-    {phase.kind === 'live' && <PoseScore score={hud.score ?? 0} />}
+    {hud.score !== null && phase.kind === 'live' && <PoseScore score={hud.score} />}
 
     {phase.kind === 'done' && <>
       <div className="pose-status pose-status--success">

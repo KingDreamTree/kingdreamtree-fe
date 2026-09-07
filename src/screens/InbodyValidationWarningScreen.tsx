@@ -1,5 +1,5 @@
 import inbodyCalendar from '../assets/inbody-calendar.svg'
-import previousArrow from '../assets/previous-arrow.svg'
+import inbodyPreviousArrow from '../assets/inbody-previous-arrow.svg'
 import inbodyRequiredDot from '../assets/inbody-required-dot.svg'
 import inbodyWarningGuideIcon from '../assets/inbody-warning-guide-icon.svg'
 import inbodyWarningInputIcon from '../assets/inbody-warning-input-icon.svg'
@@ -16,8 +16,8 @@ const composition: Field[] = [
   { label: '체지방량', value: '15.6', unit: 'kg' },
   { label: '기초대사량', value: '1524', unit: 'kcal' },
 ]
-const muscle: Field[] = [{ label: '오른팔', value: '2.65', unit: 'kg' }, { label: '왼팔', value: '2.55', unit: 'kg' }, { label: '몸통', value: '2.13', unit: 'kg' }, { label: '오른다리', value: '8.35', unit: 'kg' }, { label: '왼다리', value: '8.25', unit: 'kg' }]
-const fat: Field[] = [{ label: '오른팔', value: '0.8', unit: 'kg' }, { label: '왼팔', value: '0.8', unit: 'kg' }, { label: '몸통', value: '0.8', unit: 'kg' }, { label: '오른다리', value: '0.8', unit: 'kg' }, { label: '왼다리', value: '0.8', unit: 'kg' }]
+const muscle: Field[] = [{ label: '오른팔 (kg)', value: '2.65' }, { label: '왼팔 (kg)', value: '2.55' }, { label: '몸통 (kg)', value: '2.13' }, { label: '오른다리 (kg)', value: '8.35' }, { label: '왼다리 (kg)', value: '8.25' }]
+const fat: Field[] = [{ label: '오른팔 (kg)', value: '0.8' }, { label: '왼팔 (kg)', value: '0.8' }, { label: '몸통 (kg)', value: '0.8' }, { label: '오른다리 (kg)', value: '0.8' }, { label: '왼다리 (kg)', value: '0.8' }]
 
 function WarningGlyph({ compact = false }: { compact?: boolean }) {
   return <span className={`inbody-warning-glyph ${compact ? 'is-compact' : ''}`} aria-hidden="true"><img src={compact ? inbodyWarningInputIcon : inbodyWarningGuideIcon} alt="" /></span>
@@ -44,6 +44,6 @@ export function InbodyValidationWarningScreen({ onConfirm, onPrevious }: InbodyV
     <section className="inbody-warning-column inbody-warning-composition"><h2>2. 체성분</h2>{composition.map(field => <WarningField key={field.label} field={field} warning={warnedFields.has(field.label)} />)}</section>
     <section className="inbody-warning-column inbody-warning-muscle"><h2>3. 부위별 근육량</h2>{muscle.map(field => <WarningField key={field.label} field={field} />)}</section>
     <section className="inbody-warning-column inbody-warning-fat"><h2>4. 부위별 체지방량</h2>{fat.map(field => <WarningField key={field.label} field={field} />)}</section>
-    <button className="inbody-warning-confirm" type="button" onClick={onConfirm}>확인 완료</button><button className="inbody-warning-previous" type="button" onClick={onPrevious}><img src={previousArrow} alt="" />이전 단계</button><p className="inbody-warning-note">* 이 값으로 진행 및 확인 기록이 저장됩니다.</p>
+    <button className="inbody-warning-confirm" type="button" onClick={onConfirm}>확인 완료</button><button className="inbody-warning-previous" type="button" onClick={onPrevious}><img src={inbodyPreviousArrow} alt="" />이전 단계</button><p className="inbody-warning-note">* 이 값으로 진행 및 확인 기록이 저장됩니다.</p>
   </div></FixedStepFrame>
 }
