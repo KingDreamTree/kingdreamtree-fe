@@ -295,6 +295,8 @@ function App() {
   const [finalized] = useState<CoachFinalized | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null)
   const [segmentationData, setSegmentationData] = useState<SessionSegmentation | null>(null)
+  const completingRef = useRef(false)
+  const [completeBusy, setCompleteBusy] = useState(false)
 
   // 세션과 판정 기준(GET /pose-criteria)은 시작 시 한 번만. 모델·wasm도 미리 로드.
   const openReference = async () => {
@@ -494,12 +496,15 @@ function App() {
   }
 
   const completeWorkout = async (feedbackText?: string) => {
+    if (completingRef.current) return
     const sessionId = getStoredSessionId()
     if (!sessionId) return
-    const progress = todayRoutine?.progress as Record<string, unknown> | undefined
-    const dayOrder = typeof progress?.next_day_order === 'number' ? progress.next_day_order : 1
-    const cycleNo = typeof progress?.cycle_no === 'number' ? progress.cycle_no : 1
+    completingRef.current = true
+    setCompleteBusy(true)
     try {
+      const progress = todayRoutine?.progress as Record<string, unknown> | undefined
+      const dayOrder = typeof progress?.next_day_order === 'number' ? progress.next_day_order : 1
+      const cycleNo = typeof progress?.cycle_no === 'number' ? progress.cycle_no : 1
       await createWorkoutLog(sessionId, { day_order: dayOrder, cycle_no: cycleNo, feedback_text: feedbackText || null })
       if (feedbackText) {
         setFeedbackMessage(feedbackText)
@@ -509,6 +514,10 @@ function App() {
       }
     } catch (error) {
       window.alert(userFacingMessage(error, '운동 완료를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.'))
+    }
+    finally {
+      completingRef.current = false
+      setCompleteBusy(false)
     }
   }
 
@@ -550,7 +559,7 @@ function App() {
   if (view === 'custom-routine') return <CustomRoutineScreen routine={routine} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setTodayRoutine(routine ? { month_routine_id: routine.month_routine_id, cycle_no: routine.progress.cycle_no, day, progress: routine.progress, disclaimer: routine.disclaimer } : null); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />
   if (view === 'custom-routine-detail') return routine?.days[0] ? <CustomRoutineDetailScreen day={routine.days[0]} onPrevious={() => setView('custom-routine')} /> : null
   if (view === 'today-routine') return <TodayRoutineScreen today={todayRoutine} onFinish={() => setView('feedback')} />
-  if (view === 'feedback') return <FeedbackScreen onSubmit={message => void completeWorkout(message)} onSkip={() => void completeWorkout()} />
+  if (view === 'feedback') return <FeedbackScreen busy={completeBusy} onSubmit={message => void completeWorkout(message)} onSkip={() => void completeWorkout()} />
   if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => setView('feedback-attention-area')} />
   if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => { setFollowupFeedbackMessage(message); setView('feedback-exercise-intensity') }} />
   if (view === 'feedback-exercise-intensity') return <FeedbackExerciseIntensityScreen userMessage={followupFeedbackMessage} coach={coach} onSubmit={message => setFollowupFeedbackMessage(message)} onNext={() => setView('feedback-reflection')} />
