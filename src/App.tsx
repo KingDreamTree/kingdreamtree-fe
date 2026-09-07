@@ -29,7 +29,7 @@ import poseFailLineTwo from './assets/pose-fail-line-2.svg'
 import { FixedStepFrame } from './components/FixedStepFrame'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { clearStoredIdentity, createRoutine, createWorkoutLog, getActiveRoutine, getAnalysis, getAnalysisProgress, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatResponse, type CoachFinalized, type Job, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, clearStoredIdentity, createRoutine, createWorkoutLog, getActiveRoutine, getAnalysis, getAnalysisProgress, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatResponse, type CoachFinalized, type Job, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -297,6 +297,8 @@ function App() {
   const [segmentationData, setSegmentationData] = useState<SessionSegmentation | null>(null)
   const completingRef = useRef(false)
   const [completeBusy, setCompleteBusy] = useState(false)
+  const applyingRef = useRef(false)
+  const [applyBusy, setApplyBusy] = useState(false)
 
   // 세션과 판정 기준(GET /pose-criteria)은 시작 시 한 번만. 모델·wasm도 미리 로드.
   const openReference = async () => {
@@ -522,6 +524,26 @@ function App() {
     }
   }
 
+  const applyCoach = async () => {
+    if (applyingRef.current) return
+    const sessionId = getStoredSessionId()
+    if (!sessionId || !coach) {
+      setView('feedback-kept')
+      return
+    }
+    applyingRef.current = true
+    setApplyBusy(true)
+    try {
+      await applyCoachChanges(sessionId, coach.messages)
+      setView('feedback-applied')
+    } catch (error) {
+      window.alert(userFacingMessage(error, '변경 사항을 적용하지 못했어요. 잠시 후 다시 시도해주세요.'))
+    } finally {
+      applyingRef.current = false
+      setApplyBusy(false)
+    }
+  }
+
   useEffect(() => {
     if (view !== 'feedback-applied' && view !== 'feedback-kept') return
     const timer = window.setTimeout(() => setView('feedback-conversation-locked'), 2000)
@@ -564,7 +586,7 @@ function App() {
   if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => setView('feedback-attention-area')} />
   if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => { setFollowupFeedbackMessage(message); setView('feedback-exercise-intensity') }} />
   if (view === 'feedback-exercise-intensity') return <FeedbackExerciseIntensityScreen userMessage={followupFeedbackMessage} coach={coach} onSubmit={message => setFollowupFeedbackMessage(message)} onNext={() => setView('feedback-reflection')} />
-  if (view === 'feedback-reflection') return <FeedbackReflectionScreen finalized={finalized} onApply={() => setView('feedback-applied')} onKeep={() => setView('feedback-kept')} />
+  if (view === 'feedback-reflection') return <FeedbackReflectionScreen busy={applyBusy} finalized={finalized} onApply={() => void applyCoach()} onKeep={() => setView('feedback-kept')} />
   if (view === 'feedback-conversation-locked') return <FeedbackConversationLockedScreen finalized={finalized} />
   if (view === 'feedback-applied') return <FeedbackAppliedScreen onViewRoutine={() => setView('custom-routine')} />
   if (view === 'feedback-kept') return <FeedbackKeptScreen />

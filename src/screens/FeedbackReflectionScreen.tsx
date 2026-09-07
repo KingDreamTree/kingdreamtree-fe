@@ -3,10 +3,10 @@ import reflectionGlow from '../assets/feedback-reflection-glow.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
 import type { CoachFinalized } from '../lib/api'
 
-type FeedbackReflectionScreenProps = { finalized: CoachFinalized | null; onApply: () => void; onKeep: () => void }
+type FeedbackReflectionScreenProps = { finalized: CoachFinalized | null; onApply: () => void; onKeep: () => void; busy?: boolean }
 
 /** Figma 657:4711 — 피드백-반영여부. 변경 요약은 코치 대화 finalized 실데이터. */
-export function FeedbackReflectionScreen({ finalized, onApply, onKeep }: FeedbackReflectionScreenProps) {
+export function FeedbackReflectionScreen({ finalized, onApply, onKeep, busy = false }: FeedbackReflectionScreenProps) {
   return <FixedStepFrame label="피드백 반영 여부"><div className="feedback-reflection-page">
     <img className="feedback-reflection-page__glow" src={reflectionGlow} alt="" />
     <img className="feedback-reflection-page__coach" src={reflectionCoach} alt="피드백을 정리하는 운동 코치" />
@@ -17,8 +17,8 @@ export function FeedbackReflectionScreen({ finalized, onApply, onKeep }: Feedbac
       {(!finalized || finalized.changes.length === 0) && <article><strong>변경 사항 없음</strong><span>지금 루틴을 그대로 유지해도 좋아요.</span></article>}
     </section>
     <div className="feedback-reflection-page__choices" aria-label="피드백 반영 선택">
-      <button className="is-selected" type="button" onClick={onApply}>이대로 적용할게요</button>
-      <button type="button" onClick={onKeep}>그대로 둘게요</button>
+      <button className="is-selected" type="button" disabled={busy} onClick={onApply}>이대로 적용할게요</button>
+      <button type="button" disabled={busy} onClick={onKeep}>그대로 둘게요</button>
     </div>
   </div></FixedStepFrame>
 }
