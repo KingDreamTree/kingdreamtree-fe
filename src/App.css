@@ -253,6 +253,9 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .custom-routine-detail-page__info dt { color: #f6f6f6; }.custom-routine-detail-page__info dd { color: #707070; }
 .custom-routine-detail-page__info > img { position: absolute; right: 45px; bottom: -10px; width: 194px; height: 240px; object-fit: contain; object-position: center; filter: none; mix-blend-mode: normal; }
 
+/* 상세 보기 운동 모션을 정보 열 왼쪽 기준선에 맞춤 */
+.custom-routine-detail-page__info > img { left: 40px; right: auto; }
+
 /* Figma 657:4412 — 오늘 루틴 */
 .today-routine-page { position: relative; width: 1440px; height: 1024px; overflow: hidden; background: #222; color: #f6f6f6; }.today-routine-page__eyebrow { position: absolute; top: 138px; left: 131px; margin: 0; color: #ffe250; font: 700 28px/1.5 Pretendard, sans-serif; letter-spacing: -.84px; }.today-routine-page h1 { position: absolute; top: 198px; left: 131px; margin: 0; font: 600 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; }.today-routine-page__notice { position: absolute; top: 259px; left: 131px; margin: 0; color: #b0b0b0; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; }.today-routine-page__progress { position: absolute; top: 322px; left: 131px; width: 1178px; height: 5px; }.today-routine-page__finish { position: absolute; top: 198px; left: 1144px; box-sizing: border-box; width: 165px; height: 63px; padding: 0; border: 1px solid rgb(246 246 246 / .2); border-radius: 13px; background: rgb(59 59 59 / .3); color: #f6f6f6; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; cursor: pointer; }.today-routine-page__finish:disabled { cursor: not-allowed; opacity: .42; }
 .today-routine-page__current { position: absolute; top: 364px; left: 131px; box-sizing: border-box; width: 824px; height: 455px; overflow: hidden; border: 1px solid #ffe250; border-radius: 20px; background: #3b3b3b; transition: transform 520ms cubic-bezier(.4, 0, .2, 1), opacity 520ms ease; }.today-routine-page__current.is-exiting { opacity: 0; transform: translateX(-900px); }.today-routine-page__current > span { position: absolute; top: 72px; left: 74px; display: grid; width: 83.757px; height: 29.844px; place-items: center; border-radius: 24.578px; background: #ffe250; color: #000; font: 500 16px/1.5 Pretendard, sans-serif; letter-spacing: -.48px; }.today-routine-page__current h2 { position: absolute; top: 124px; left: 74px; margin: 0; font: 600 38px/1.5 Pretendard, sans-serif; letter-spacing: -1.14px; }.today-routine-page__current small { position: absolute; top: 174px; left: 74px; color: #8e8e8e; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; }.today-routine-page__current p { position: absolute; top: 207px; left: 74px; margin: 0; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }.today-routine-page__current button { position: absolute; top: 286px; left: 74px; box-sizing: border-box; width: 88.63px; height: 29.466px; border: 1px solid rgb(246 246 246 / .2); border-radius: 6.011px; background: rgb(59 59 59 / .3); color: #f6f6f6; font: 500 14px/1.5 Pretendard, sans-serif; letter-spacing: -.42px; cursor: pointer; }.today-routine-page__current > img { position: absolute; top: 177px; right: 78px; width: 191px; height: 236px; object-fit: contain; }
@@ -525,13 +528,83 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   gap: 0;
 }
 
+/* 비교 분석 안내 문구와 부위 토글 사이 간격 */
+.comparison-analysis-parts {
+  top: 1927px;
+}
+
+/* Figma 41:189 final layout overrides (keep these after legacy rules). */
+.comparison-analysis-page {
+  height: 2691px;
+  overflow: hidden;
+}
+.comparison-analysis-page > .comparison-analysis-diagnosis {
+  top: 2040px;
+}
+.comparison-analysis-routine {
+  top: 2410px;
+}
+.comparison-analysis-disclaimer {
+  top: 2530px;
+}
+.comparison-analysis-parts {
+  top: 1927px;
+}
+
+/* Figma 41:189 — 비교 분석 페이지 기준 좌표 */
+.comparison-analysis-page {
+  height: 2691px;
+  overflow: hidden;
+}
+.comparison-analysis-logo {
+  top: 32px;
+}
+.comparison-analysis-logo::after {
+  position: absolute;
+  top: 51px;
+  left: -131px;
+  width: 1178px;
+  border-bottom: 1px solid #3b3b3b;
+  content: '';
+}
+.comparison-analysis-page > .comparison-analysis-diagnosis {
+  top: 2040px;
+}
+.comparison-analysis-routine {
+  top: 2410px;
+}
+.comparison-analysis-disclaimer {
+  top: 2530px;
+}
+
 /* 비교 분석 진단 결과는 부위 선택 영역 아래에 고정 배치 */
 .comparison-analysis-page > .comparison-analysis-diagnosis {
   position: absolute;
-  top: 2040px;
+  top: 2120px;
   left: 129px;
   margin: 0;
 }
+
+.comparison-analysis-logo {
+  position: absolute;
+  top: 32px;
+  left: 131px;
+  z-index: 1;
+  margin: 0;
+  color: #f6f6f6;
+  font: 700 25px/1 "Isamanru", Pretendard, sans-serif;
+  letter-spacing: -.75px;
+}
+.comparison-analysis-logo strong { color: #ffe250; font: inherit; }
+
+/* 비교 분석 하단 영역은 선택 탭 → 진단 카드 → 루틴 버튼 → 안내문 순서로
+   충분한 세로 간격을 확보해 축소 화면에서도 서로 겹치지 않도록 한다. */
+.comparison-analysis-page {
+  height: 2780px;
+  overflow: visible;
+}
+.comparison-analysis-routine { top: 2470px; }
+.comparison-analysis-disclaimer { top: 2590px; }
 
 /* 비교 분석 이전 단계: 화살표와 텍스트를 한 줄의 중앙선에 정렬 */
 .comparison-analysis-header .previous-button {

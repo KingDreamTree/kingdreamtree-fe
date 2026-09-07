@@ -29,7 +29,7 @@ import poseFailLineTwo from './assets/pose-fail-line-2.svg'
 import { FixedStepFrame } from './components/FixedStepFrame'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { createRoutine, createWorkoutLog, getActiveRoutine, getAnalysis, getAnalysisProgress, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatResponse, type CoachFinalized, type Job, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { clearStoredIdentity, createRoutine, createWorkoutLog, getActiveRoutine, getAnalysis, getAnalysisProgress, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatResponse, type CoachFinalized, type Job, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -303,6 +303,7 @@ function App() {
     if (isPreparingSession) return
     setIsPreparingSession(true)
     void loadVideoLandmarker().catch(() => undefined)
+    clearStoredIdentity()
     try {
       const [, poseCriteria] = await Promise.all([ensureActiveSession(), getPoseCriteria()])
       setCriteria(poseCriteria as unknown as PoseCriteria)
