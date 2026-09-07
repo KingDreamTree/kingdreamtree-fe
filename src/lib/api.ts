@@ -10,6 +10,11 @@ export const API_BASE_URL = (configuredBaseUrl || 'https://api.refit.live/api/v1
 
 const USER_ID_KEY = 'refit.user-id'
 const ACTIVE_SESSION_KEY = 'refit.active-session-id'
+// 마지막 사용자 사진이 어느 파이프라인으로 올라갔는가 (웹캠 촬영=quick · 갤러리=full).
+// ⚠️ localStorage 인 이유: 분석 대기 중 새로고침하면 state 는 'full' 로 초기화되는데,
+//    퀵 세션(세그 잡 없음)에 full 분석을 걸면 세그 대기 409 를 «기다리라»로 읽는
+//    kickOff 가 영원히 돈다. 세션 복원과 같은 수명으로 남긴다.
+const ANALYSIS_MODE_KEY = 'refit.analysis-mode'
 
 export type ApiErrorPayload = {
   code?: string
@@ -57,7 +62,10 @@ export type ActiveSession = Session & { steps: Record<string, unknown> }
 export type PoseScaleBasis = 'TORSO' | 'HIP_KNEE'
 export type CaptureSource = 'CAPTURE' | 'UPLOAD'
 export type PoseLandmark = { x: number; y: number; z?: number; visibility?: number }
-export type Job = { job_id: string; session_id: string; kind: string; status: 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED'; attempts: number; result?: Record<string, unknown> | null; error?: string | null }
+export type JobStatus = 'PENDING' | 'PROCESSING' | 'DONE' | 'FAILED'
+/** stalled 는 서버 모니터링용이다 — 프론트는 읽지 않는다. AnalysisProgress.stalled 주석 참고. */
+export type Job = { job_id: string; session_id: string; kind: string; status: JobStatus; attempts: number; stalled?: boolean; result?: Record<string, unknown> | null; error?: string | null }
+export type JobSummary = { job_id: string; kind: string; status: JobStatus; attempts: number; created_at: string }
 
 function asApiErrorPayload(value: unknown): ApiErrorPayload {
   if (!value || typeof value !== 'object') return {}
@@ -85,9 +93,15 @@ async function request<T>(path: string, init: RequestInit = {}, requiresUser = t
 export function getStoredUserId() { return localStorage.getItem(USER_ID_KEY) }
 export function getStoredSessionId() { return localStorage.getItem(ACTIVE_SESSION_KEY) }
 
+export type AnalysisMode = 'full' | 'quick'
+/** 저장값이 없거나 이상하면 full — 기존 세그 파이프라인이 언제나 기본이다. */
+export function getStoredAnalysisMode(): AnalysisMode { return localStorage.getItem(ANALYSIS_MODE_KEY) === 'quick' ? 'quick' : 'full' }
+export function setStoredAnalysisMode(mode: AnalysisMode) { localStorage.setItem(ANALYSIS_MODE_KEY, mode) }
+
 export function clearStoredIdentity() {
   localStorage.removeItem(USER_ID_KEY)
   localStorage.removeItem(ACTIVE_SESSION_KEY)
+  localStorage.removeItem(ANALYSIS_MODE_KEY)
 }
 
 export async function createUser() {
@@ -155,15 +169,16 @@ export function uploadReferencePhoto(sessionId: string, input: {
   poseScaleBasis: PoseScaleBasis
   posePersonAreaRatio?: number | null
   multiPerson?: boolean
-  isMirrored?: boolean
+  /** 'quick' = 웹캠 퀵 진단 경로 — 서버가 세그 잡을 걸지 않는다 (job_id null). */
+  pipeline?: 'full' | 'quick'
 }) {
   const form = new FormData()
   form.set('file', input.file)
+  if (input.pipeline) form.set('pipeline', input.pipeline)
   form.set('pose_landmarks', JSON.stringify(input.poseLandmarks))
   form.set('pose_scale_basis', input.poseScaleBasis)
   if (input.posePersonAreaRatio != null) form.set('pose_person_area_ratio', String(input.posePersonAreaRatio))
   form.set('multi_person', String(input.multiPerson ?? false))
-  form.set('is_mirrored', String(input.isMirrored ?? false))
   return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/reference`, { method: 'POST', body: form })
 }
 
@@ -178,10 +193,12 @@ export function uploadUserPhoto(sessionId: string, input: {
   poseOks?: number | null
   posePersonAreaRatio?: number | null
   multiPerson?: boolean
-  isMirrored?: boolean
+  /** 'quick' = 웹캠 퀵 진단 경로 — 서버가 세그 잡을 걸지 않는다 (job_id null). */
+  pipeline?: 'full' | 'quick'
 }) {
   const form = new FormData()
   form.set('file', input.file)
+  if (input.pipeline) form.set('pipeline', input.pipeline)
   form.set('capture_source', input.captureSource)
   form.set('pose_landmarks', JSON.stringify(input.poseLandmarks))
   form.set('pose_similarity', String(input.poseSimilarity))
@@ -191,7 +208,6 @@ export function uploadUserPhoto(sessionId: string, input: {
   if (input.poseOks != null) form.set('pose_oks', String(input.poseOks))
   if (input.posePersonAreaRatio != null) form.set('pose_person_area_ratio', String(input.posePersonAreaRatio))
   form.set('multi_person', String(input.multiPerson ?? false))
-  form.set('is_mirrored', String(input.isMirrored ?? false))
   return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/user`, { method: 'POST', body: form })
 }
 
@@ -230,6 +246,12 @@ export interface AnalysisOverall {
   priority_parts: string[]
   strengths: string[]
   cautions: string[]
+  /** 두 사진을 직접 본 전체 형태 판단 — summary 보다 구체적인 실루엣 서술 */
+  silhouette: string | null
+  /** 이번 비교에서 못 본 부위 + 사유. 규칙이 DB 에서 만든다 — LLM 문장이 아니다
+   *  (백엔드 handlers/vlm.py `_comparison_limitations`). "왼쪽 팔뚝: 대부분
+   *  옷에 가려져 있어 비교에서 뺐습니다" 처럼 부위명이 이미 문장 안에 있다. */
+  comparison_limitations: string[]
   status: string
 }
 
@@ -247,6 +269,17 @@ export interface AnalysisProgress {
   part: { done: number; failed: number; total: number; status: string }
   overall: { status: string }
   completed: boolean
+  /**
+   * 워커 풀이 이 잡을 집어가지 않고 있다(서버 판정). completed 와 독립 필드다.
+   *
+   * ⚠️ **프론트는 이 값을 쓰지 않는다 — 화면에 옮기지 말 것.** 서버 사정은 사용자가
+   *    손쓸 수 없어서 로딩 화면에 «지연되고 있어요 + 다시 시도»를 띄웠더니 불안만 줬다.
+   *    (게다가 판정 자체도 한동안 오탐이었다 — 워커가 다른 kind 를 처리 중이면 정상
+   *    대기를 정지로 봤다. 2026-08-19 서버에서 풀 단위 판정으로 수정됨.)
+   *    지금 이 신호의 용도는 **서버 경고 로그**다. 정지는 거기서 감지한다.
+   *    타입만 남겨 두는 이유는 응답에 계속 내려오기 때문이다.
+   */
+  stalled?: boolean
 }
 
 export interface SegPaletteEntry {
@@ -305,14 +338,30 @@ export interface RoutineExercise {
   name: string
   exercise_ref: string | null
   image_url: string | null
+  /** 시연 영상(mp4). ⚠️ null 가능 — 없으면 image_url 로 폴백한다.
+   *  저장값이 아니라 조회 시 카탈로그에서 붙으므로 옛 루틴에도 나온다. */
+  video_url: string | null
   exercise_kind: string
   muscle_group: string | null
   sets: number | null
   reps: number | null
   duration_min: number | null
   rest_sec: number | null
-  /** N회 남기고 멈추는 무게 — 중량(kg)은 서버가 제공하지 않는다 */
+  /** N회 남기고 멈추는 무게. 강도의 **본체**는 여전히 이것이다 */
   rir: number | null
+  /** 첫 세트를 몇 kg 으로 집을지 — **처방이 아니라 출발점**이다.
+   *  ⚠️ null 인 경우가 정상이다: 맨몸 운동 / 인바디 없음(체중 모름) / 근육군 미상.
+   *     그때는 화면에 무게를 **띄우지 않는다** — 서버가 지어내지 않기 때문이다.
+   *  ⚠️ 반드시 rir 안내와 함께 보여야 한다. 숫자만 있으면 "이 무게로 하라"는
+   *     처방으로 읽힌다. */
+  load_guide: {
+    min_kg: number
+    max_kg: number
+    equipment: string
+    /** 사용자에게 그대로 보여도 되는 근거 문장 (서버가 만든다) */
+    basis: string
+    adjust: number
+  } | null
   boosted_by: string | null
   note: string | null
 }
@@ -340,8 +389,27 @@ export interface RoutineDetail {
   is_active: boolean
   days: RoutineDay[]
   progress: RoutineProgress
+  //: 옛 필드 — 소제목과 본문이 빈 줄로 이어 붙은 한 덩어리. 새 화면은 notices 를 쓴다.
   notice: string | null
+  //: 안내를 **조건별로 나눈** 목록. 감량 안내(체지방률 기준)와 주 7일 안내처럼
+  //  대상이 서로 다른 이야기가 한 문단으로 섞여 읽히지 않아서 나뉘었다.
+  //  ⚠️ 이 필드 이전에 만들어진 루틴은 빈 배열이다 — notice 로 폴백할 것.
+  notices: RoutineNotice[]
+  //: 루틴 구성 근거. LLM 이 쓴 글이 아니라 실제 생성된 루틴에서 조립한 것.
+  //  이 필드 이전 루틴은 null 이므로 goal/focus_areas 폴백을 쓴다.
+  strategy: RoutineStrategy | null
   disclaimer: string
+}
+
+/** 루틴 안내 한 건 — 소제목과 본문. */
+export interface RoutineNotice {
+  title: string
+  body: string
+}
+
+export interface RoutineStrategy {
+  headline: string | null
+  body: string | null
 }
 
 export interface TodayRoutine { month_routine_id: string; cycle_no: number; day: RoutineDay; progress: RoutineProgress; disclaimer: string }
@@ -352,7 +420,6 @@ export interface InbodySegmentDto { segment: InbodySegmentKey; lean_mass: number
 export interface InbodyDetail {
   inbody_id: string
   status: string
-  device_type: string | null
   measured_at: string | null
   /** inbody 테이블 컬럼 (weight, bmi, height, age, gender, skeletal_muscle_mass, body_fat_percentage, …) */
   fields: Record<string, unknown>
@@ -376,8 +443,13 @@ export interface CoachChatResponse {
 }
 
 export function getJob(jobId: string) { return request<Job>(`/jobs/${jobId}`) }
-export function getSessionJobs(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/jobs`) }
+export function getSessionJobs(sessionId: string) { return request<{ items: JobSummary[] }>(`/sessions/${sessionId}/jobs`) }
 export function getReferencePhoto(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/photos/reference`) }
+/** 업로드된 사진 1장의 메타 + signed_url. **세그멘테이션 없이 사진만** 보여줄 때 쓴다
+ *  (퀵/웹캠 경로는 Sapiens2 를 안 돌려 세그가 없지만 사진은 있다). */
+export function getSessionPhoto(sessionId: string, kind: 'reference' | 'user') {
+  return request<{ signed_url?: string | null }>(`/sessions/${sessionId}/photos/${kind}`)
+}
 export function getSessionSegmentation(sessionId: string) { return request<SessionSegmentation>(`/sessions/${sessionId}/segmentation`) }
 export function getPhotoSegmentation(photoId: string) { return request<Record<string, unknown>>(`/photos/${photoId}/segmentation`) }
 export function getSignedUrls(items: Array<{ bucket: string; path: string }>, expiresIn?: number) {
@@ -389,7 +461,10 @@ export function patchInbody(inbodyId: string, body: { fields?: Record<string, un
   return request<Record<string, unknown>>(`/inbody/${inbodyId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
 }
 export function deleteInbody(inbodyId: string) { return request<void>(`/inbody/${inbodyId}`, { method: 'DELETE' }) }
-export function startAnalysis(sessionId: string) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis`, { method: 'POST' }) }
+/** force=true — 이미 끝난 분석을 무시하고 다시 돌린다. 실패 후 «다시 시도» 전용. */
+export function startAnalysis(sessionId: string, force = false) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis${force ? '?force=true' : ''}`, { method: 'POST' }) }
+/** 퀵 진단(웹캠) — 세그 없이 원본 2장 전체 비교. 부위 카드·점수 없음. 진행은 getAnalysisProgress 의 completed 로 본다. */
+export function startQuickAnalysis(sessionId: string, force = false) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis?mode=quick${force ? '&force=true' : ''}`, { method: 'POST' }) }
 export function getAnalysisProgress(sessionId: string) { return request<AnalysisProgress>(`/sessions/${sessionId}/analysis/progress`) }
 export function getAnalysis(sessionId: string) { return request<AnalysisResult>(`/sessions/${sessionId}/analysis`) }
 export function createRoutine(sessionId: string, exerciseDaysPerWeek: number) {
