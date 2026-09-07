@@ -30,7 +30,7 @@ function toolEventLabel(event: { name: string; args: Record<string, unknown> }):
     const area = typeof event.args.area === 'string' ? event.args.area : typeof event.args.body_part === 'string' ? event.args.body_part : null
     return area ? `${area} → 주의 부위 등록` : '주의 부위 등록'
   }
-  if (event.name === 'swap_exercise') return '운동 교체'
+  if (event.name === 'replace_exercise') return '운동 교체'
   if (event.name === 'adjust_intensity') return '강도 조절'
   return event.name
 }
