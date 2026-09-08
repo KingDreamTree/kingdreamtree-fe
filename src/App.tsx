@@ -29,7 +29,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, archiveSession, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, archiveSession, clearStoredIdentity, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -533,6 +533,10 @@ function App() {
   const [routineData, setRoutineData] = useState<RoutineDetail | null>(null)
   const [selectedDay, setSelectedDay] = useState<RoutineDay | null>(null)
   const [coach, setCoach] = useState<CoachChatResponse | null>(null)
+  const completingRef = useRef(false)
+  const [completeBusy, setCompleteBusy] = useState(false)
+  const applyingRef = useRef(false)
+  const [applyBusy, setApplyBusy] = useState(false)
   // 로딩 화면 진행률 — 화면이 스스로 시간을 재지 않고 **여기서 실제 단계를 받아 간다.**
   // ⚠️ ...Ready 는 결과까지 다 받은 뒤에만 true 로 만든다. 이걸 먼저 켜면 진행률이
   //    다시 거짓말을 하게 되고, 그게 이 화면들을 고친 이유였다.
@@ -640,6 +644,7 @@ function App() {
     if (isPreparingSession) return
     setIsPreparingSession(true)
     void loadVideoLandmarker().catch(() => undefined)
+    clearStoredIdentity()
     try {
       const [, poseCriteria] = await Promise.all([ensureActiveSession(), getPoseCriteria()])
       setCriteria(poseCriteria as unknown as PoseCriteria)
@@ -959,7 +964,7 @@ function App() {
     try { setRoutineData(await getActiveRoutine(sessionId)) } catch { /* 옛 값 유지 */ }
   }
 
-  const completeWorkout = async (feedbackText?: string) => {
+  const completeWorkoutInner = async (feedbackText?: string) => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
     // ⚠️ **어느 Day 를 했는지 추측하지 않는다.** 종전에는 todayRoutine 이 비어 있으면
@@ -1001,6 +1006,18 @@ function App() {
   }
 
   /** 코치 대화 왕복 — 응답의 messages를 그대로 되돌려 보낸다 (서버는 stateless). */
+  const completeWorkout = async (feedbackText?: string) => {
+    if (completingRef.current) return
+    completingRef.current = true
+    setCompleteBusy(true)
+    try {
+      await completeWorkoutInner(feedbackText)
+    } finally {
+      completingRef.current = false
+      setCompleteBusy(false)
+    }
+  }
+
   const sendCoach = async (messages: CoachChatMessage[]) => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
@@ -1027,7 +1044,7 @@ function App() {
     await sendCoach([...coach.messages, { role: 'user', content: text }])
   }
 
-  const applyCoach = async () => {
+  const applyCoachInner = async () => {
     const sessionId = getStoredSessionId()
     if (!sessionId || !coach) {
       setView('feedback-kept')
@@ -1042,6 +1059,23 @@ function App() {
   }
 
   /** [적용] 후 "바뀐 루틴 보기" — 새 버전이 활성화됐으므로 다시 불러온다. */
+  const applyCoach = async () => {
+    if (applyingRef.current) return
+    const sessionId = getStoredSessionId()
+    if (!sessionId || !coach) {
+      setView('feedback-kept')
+      return
+    }
+    applyingRef.current = true
+    setApplyBusy(true)
+    try {
+      await applyCoachInner()
+    } finally {
+      applyingRef.current = false
+      setApplyBusy(false)
+    }
+  }
+
   const viewChangedRoutine = async () => {
     const sessionId = getStoredSessionId()
     if (sessionId) {
@@ -1095,11 +1129,11 @@ function App() {
   if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setSelectedDay(day); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />
   if (view === 'custom-routine-detail') return <CustomRoutineDetailScreen day={selectedDay} onPrevious={() => setView('custom-routine')} />
   if (view === 'today-routine') return <TodayRoutineScreen today={todayRoutine} onFinish={() => setView('feedback')} onPrevious={() => { void refreshRoutine(); setView('custom-routine') }} />
-  if (view === 'feedback') return <FeedbackScreen onSubmit={message => void completeWorkout(message)} onSkip={() => void completeWorkout()} />
+  if (view === 'feedback') return <FeedbackScreen busy={completeBusy} onSubmit={message => void completeWorkout(message)} onSkip={() => void completeWorkout()} />
   if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => undefined} />
     if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => void continueCoach(message)} onExit={() => setView('today-routine')} />
     if (view === 'feedback-exercise-intensity') return <FeedbackExerciseIntensityScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => void continueCoach(message)} onExit={() => setView('today-routine')} />
-  if (view === 'feedback-reflection') return <FeedbackReflectionScreen finalized={coach?.finalized ?? null} onApply={() => void applyCoach()} onKeep={() => setView('feedback-kept')} />
+  if (view === 'feedback-reflection') return <FeedbackReflectionScreen busy={applyBusy} finalized={coach?.finalized ?? null} onApply={() => void applyCoach()} onKeep={() => setView('feedback-kept')} />
   if (view === 'feedback-applied') return <FeedbackAppliedScreen onViewRoutine={() => void viewChangedRoutine()} />
   if (view === 'feedback-kept') return <FeedbackKeptScreen onNext={() => void openTodayRoutine()} />
   return <main className="onboarding"><OnboardingOne /><OnboardingTwo /><OnboardingThree /><OnboardingFour onStart={openReference} /></main>
