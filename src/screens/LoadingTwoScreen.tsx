@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import loadingTwoActiveRing from '../assets/loading2-active-ring.svg'
 import loadingTwoActiveGlow from '../assets/loading2-active-step.svg'
 import loadingTwoConnector from '../assets/loading2-connector.svg'
@@ -10,34 +10,30 @@ import loadingTwoRunnerIcon from '../assets/loading2-running-icon.svg'
 import loadingTwoShadow from '../assets/loading2-shadow.svg'
 import loadingTwoStepCheck from '../assets/loading2-step-check.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
+import { useLoadingProgress } from '../lib/use-loading-progress'
 
 const loadingSteps = ['비교 결과 데이터 불러오는 중...', '가능한 운동 일수 분석 중...', '오늘의 루틴 생성 중...', '4주간 핵심 목표 생성 중...']
-const loadingDuration = 3500
 
-/** Figma 763:699 — 로딩2 */
-export function LoadingTwoScreen({ onComplete }: { onComplete: () => void }) {
-  const [progress, setProgress] = useState(0)
-  const activeStep = Math.min(3, Math.floor(progress / 25))
-  const guideOffset = Math.min(3, progress / 25) * 43
+/**
+ * Figma 763:699 — 로딩2
+ *
+ * ⚠️ 루틴 생성 잡은 PENDING/PROCESSING/DONE **세 상태밖에 없다** (한 번의 LLM 호출이라
+ *    쪼갤 중간 지점이 없다). 그래서 여기 phase 는 결과지 분석만큼 촘촘하지 않다 —
+ *    대신 각 단계 구간 안에서 점근하므로 멈춰 보이지는 않고, 잡이 끝나기 전에
+ *    100%가 뜨지도 않는다.
+ */
+type LoadingTwoScreenProps = { phase: number; isComplete: boolean; onComplete: () => void }
 
-  useEffect(() => {
-    let animationFrame = 0
-    let startedAt: number | undefined
-
-    const advance = (timestamp: number) => {
-      startedAt ??= timestamp
-      const nextProgress = Math.min(100, Math.round(((timestamp - startedAt) / loadingDuration) * 100))
-      setProgress(nextProgress)
-      if (nextProgress < 100) animationFrame = window.requestAnimationFrame(advance)
-    }
-
-    animationFrame = window.requestAnimationFrame(advance)
-    return () => window.cancelAnimationFrame(animationFrame)
-  }, [])
+export function LoadingTwoScreen({ phase, isComplete, onComplete }: LoadingTwoScreenProps) {
+  const progress = useLoadingProgress(phase, loadingSteps.length, isComplete)
+  const activeStep = Math.min(loadingSteps.length - 1, phase)
+  const guideOffset = activeStep * 43
+  const hasFinished = useRef(false)
 
   useEffect(() => {
-    if (progress !== 100) return
-    const transitionTimer = window.setTimeout(onComplete, 650)
+    if (progress !== 100 || hasFinished.current) return
+    hasFinished.current = true
+    const transitionTimer = window.setTimeout(onComplete, 400)
     return () => window.clearTimeout(transitionTimer)
   }, [onComplete, progress])
 

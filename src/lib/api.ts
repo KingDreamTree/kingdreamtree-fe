@@ -10,16 +10,11 @@ export const API_BASE_URL = (configuredBaseUrl || 'https://api.refit.live/api/v1
 
 const USER_ID_KEY = 'refit.user-id'
 const ACTIVE_SESSION_KEY = 'refit.active-session-id'
-const SESSION_STORAGE_PREFIX = 'refit.session.'
 // 마지막 사용자 사진이 어느 파이프라인으로 올라갔는가 (웹캠 촬영=quick · 갤러리=full).
 // ⚠️ localStorage 인 이유: 분석 대기 중 새로고침하면 state 는 'full' 로 초기화되는데,
 //    퀵 세션(세그 잡 없음)에 full 분석을 걸면 세그 대기 409 를 «기다리라»로 읽는
 //    kickOff 가 영원히 돈다. 세션 복원과 같은 수명으로 남긴다.
-const LEGACY_ANALYSIS_MODE_KEY = 'refit.analysis-mode'
-
-function sessionStorageKey(sessionId: string, name: string) {
-  return `${SESSION_STORAGE_PREFIX}${sessionId}.${name}`
-}
+const ANALYSIS_MODE_KEY = 'refit.analysis-mode'
 
 export type ApiErrorPayload = {
   code?: string
@@ -98,37 +93,15 @@ async function request<T>(path: string, init: RequestInit = {}, requiresUser = t
 export function getStoredUserId() { return localStorage.getItem(USER_ID_KEY) }
 export function getStoredSessionId() { return localStorage.getItem(ACTIVE_SESSION_KEY) }
 
-/** Removes only browser values that belong to a completed REFIT session. */
-export function clearStoredSessionData(sessionId?: string | null) {
-  const targetSessionId = sessionId ?? getStoredSessionId()
-  if (targetSessionId) {
-    const prefix = `${SESSION_STORAGE_PREFIX}${targetSessionId}.`
-    for (let index = localStorage.length - 1; index >= 0; index -= 1) {
-      const key = localStorage.key(index)
-      if (key?.startsWith(prefix)) localStorage.removeItem(key)
-    }
-    for (let index = sessionStorage.length - 1; index >= 0; index -= 1) {
-      const key = sessionStorage.key(index)
-      if (key?.startsWith(prefix)) sessionStorage.removeItem(key)
-    }
-  }
-  localStorage.removeItem(ACTIVE_SESSION_KEY)
-}
-
 export type AnalysisMode = 'full' | 'quick'
 /** 저장값이 없거나 이상하면 full — 기존 세그 파이프라인이 언제나 기본이다. */
-export function getStoredAnalysisMode(sessionId = getStoredSessionId()): AnalysisMode {
-  if (!sessionId) return 'full'
-  return localStorage.getItem(sessionStorageKey(sessionId, 'analysis-mode')) === 'quick' ? 'quick' : 'full'
-}
-export function setStoredAnalysisMode(mode: AnalysisMode, sessionId = getStoredSessionId()) {
-  if (sessionId) localStorage.setItem(sessionStorageKey(sessionId, 'analysis-mode'), mode)
-}
+export function getStoredAnalysisMode(): AnalysisMode { return localStorage.getItem(ANALYSIS_MODE_KEY) === 'quick' ? 'quick' : 'full' }
+export function setStoredAnalysisMode(mode: AnalysisMode) { localStorage.setItem(ANALYSIS_MODE_KEY, mode) }
 
 export function clearStoredIdentity() {
-  clearStoredSessionData()
   localStorage.removeItem(USER_ID_KEY)
-  localStorage.removeItem(LEGACY_ANALYSIS_MODE_KEY)
+  localStorage.removeItem(ACTIVE_SESSION_KEY)
+  localStorage.removeItem(ANALYSIS_MODE_KEY)
 }
 
 export async function createUser() {
@@ -145,30 +118,6 @@ export async function createSession() {
   const session = await request<Session>('/sessions', { method: 'POST' })
   localStorage.setItem(ACTIVE_SESSION_KEY, session.session_id)
   return session
-}
-
-/** Archives the current session and starts an empty one for the same user. */
-export async function startFreshSession(): Promise<Session> {
-  if (!getStoredUserId()) await createUser()
-
-  let activeSessionId = getStoredSessionId()
-  try {
-    const active = await getActiveSession()
-    activeSessionId = active.session_id
-    await archiveSession(active.session_id)
-  } catch (error) {
-    if (!(error instanceof RefitApiError)) throw error
-    if (error.status === 422) {
-      clearStoredIdentity()
-      await createUser()
-      return createSession()
-    }
-    if (error.status !== 404) throw error
-  }
-
-  clearStoredSessionData(activeSessionId)
-  localStorage.removeItem(LEGACY_ANALYSIS_MODE_KEY)
-  return createSession()
 }
 
 /** Restores one in-progress session, or creates the anonymous user/session pair. */
