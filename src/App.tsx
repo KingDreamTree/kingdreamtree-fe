@@ -30,6 +30,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
 import { applyCoachChanges, createRoutine, createWorkoutLog, getActiveRoutine, getAnalysis, getAnalysisProgress, getJob, getPoseCriteria, getSessionSegmentation, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, startAnalysis, startFreshSession, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, type AnalysisResult, type CoachChatResponse, type CoachFinalized, type Job, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { sendCoachMessage, type CoachChatMessage } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -291,7 +292,7 @@ function App() {
   const [inbodyJobId, setInbodyJobId] = useState<string | null>(null)
   const [todayRoutine, setTodayRoutine] = useState<TodayRoutine | null>(null)
   const [routine, setRoutine] = useState<RoutineDetail | null>(null)
-  const [coach] = useState<CoachChatResponse | null>(null)
+  const [coach, setCoach] = useState<CoachChatResponse | null>(null)
   const [finalized] = useState<CoachFinalized | null>(null)
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null)
   const [segmentationData, setSegmentationData] = useState<SessionSegmentation | null>(null)
@@ -527,14 +528,21 @@ function App() {
     completingRef.current = true
     setCompleteBusy(true)
     try {
-      const dayOrder = todayRoutine?.day.day_order ?? 1
-      const cycleNo = todayRoutine?.cycle_no ?? todayRoutine?.progress.cycle_no ?? 1
-      await createWorkoutLog(sessionId, { day_order: dayOrder, cycle_no: cycleNo, feedback_text: feedbackText || null })
+      const today = await getTodayRoutine(sessionId).catch(() => todayRoutine)
+      const dayOrder = today?.day.day_order ?? today?.progress.next_day_order
+      const cycleNo = today?.cycle_no ?? today?.progress.cycle_no
+      if (dayOrder === undefined || cycleNo === undefined) {
+        window.alert('오늘의 루틴 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
+        return
+      }
+      await createWorkoutLog(sessionId, { day_order: dayOrder, cycle_no: cycleNo, feedback_text: null })
       if (feedbackText) {
         setFeedbackMessage(feedbackText)
-        setView('feedback-loading')
+        setView('feedback-attention-area')
+        await sendCoach([{ role: 'user', content: feedbackText }])
       } else {
-        setView('feedback-conversation-locked')
+        setCoach(null)
+        await openTodayRoutine()
       }
     } catch (error) {
       window.alert(userFacingMessage(error, '운동 완료를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.'))
@@ -543,6 +551,25 @@ function App() {
       completingRef.current = false
       setCompleteBusy(false)
     }
+  }
+
+  const sendCoach = async (messages: CoachChatMessage[]) => {
+    const sessionId = getStoredSessionId()
+    if (!sessionId) return
+    try {
+      const response = await sendCoachMessage(sessionId, messages)
+      setCoach(response)
+      setView(response.finalized ? 'feedback-reflection' : 'feedback-attention-area')
+    } catch (error) {
+      window.alert(userFacingMessage(error, '코치와 연결하지 못했어요. 잠시 후 다시 시도해주세요.'))
+      await openTodayRoutine()
+    }
+  }
+
+  const continueCoach = async (text: string) => {
+    if (!coach) return
+    setFeedbackMessage(text)
+    await sendCoach([...coach.messages, { role: 'user', content: text }])
   }
 
   const applyCoach = async () => {
@@ -605,9 +632,9 @@ function App() {
   if (view === 'today-routine') return <TodayRoutineScreen today={todayRoutine} onFinish={() => setView('feedback')} />
   if (view === 'feedback') return <FeedbackScreen busy={completeBusy} onSubmit={message => void completeWorkout(message)} onSkip={() => void completeWorkout()} />
   if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => setView('feedback-attention-area')} />
-  if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => { setFollowupFeedbackMessage(message); setView('feedback-exercise-intensity') }} />
-  if (view === 'feedback-exercise-intensity') return <FeedbackExerciseIntensityScreen userMessage={followupFeedbackMessage} coach={coach} onSubmit={message => setFollowupFeedbackMessage(message)} onNext={() => setView('feedback-reflection')} />
-  if (view === 'feedback-reflection') return <FeedbackReflectionScreen busy={applyBusy} finalized={finalized} onApply={() => void applyCoach()} onKeep={() => setView('feedback-kept')} />
+  if (view === 'feedback-attention-area') return <FeedbackAttentionAreaScreen userMessage={feedbackMessage} coach={coach} onSubmit={message => void continueCoach(message)} />
+  if (view === 'feedback-exercise-intensity') return <FeedbackExerciseIntensityScreen userMessage={followupFeedbackMessage} coach={coach} onSubmit={message => void continueCoach(message)} onNext={() => setView('feedback-reflection')} />
+  if (view === 'feedback-reflection') return <FeedbackReflectionScreen busy={applyBusy} finalized={coach?.finalized ?? finalized} onApply={() => void applyCoach()} onKeep={() => setView('feedback-kept')} />
   if (view === 'feedback-conversation-locked') return <FeedbackConversationLockedScreen finalized={finalized} />
   if (view === 'feedback-applied') return <FeedbackAppliedScreen onViewRoutine={() => setView('custom-routine')} />
   if (view === 'feedback-kept') return <FeedbackKeptScreen />
