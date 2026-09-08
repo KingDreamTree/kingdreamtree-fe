@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import exerciseDaysArrow from '../assets/exercise-days-arrow.svg'
 import { FixedStepFrame } from '../components/FixedStepFrame'
+import { PreviousButton } from '../components/PreviousButton'
 
 /** Figma 618:3197 — 운동일수 */
-export function ExerciseDaysScreen({ days, onDaysChange, onNext }: { days: number; onDaysChange: (days: number) => void; onNext: () => void }) {
+export function ExerciseDaysScreen({ days, onDaysChange, onNext, onPrevious }: { days: number; onDaysChange: (days: number) => void; onNext: () => void; onPrevious: () => void }) {
   const [isOpen, setIsOpen] = useState(false)
 
   const selectDays = (day: number) => {
@@ -13,7 +14,7 @@ export function ExerciseDaysScreen({ days, onDaysChange, onNext }: { days: numbe
 
   return <FixedStepFrame label="운동일수"><div className="exercise-days-page">
     <p className="exercise-days-page__eyebrow">루틴 제공을 위한 마지막 단계에요</p>
-    <h1>운동 가능 일수</h1>
+    <h1>운동 가능 일수</h1><PreviousButton onClick={onPrevious} />
     <p className="exercise-days-page__question"><em>1주일동안</em> 운동 가능한 일수를 알려주세요.</p>
     <div className={`exercise-days-page__select ${isOpen ? 'is-open' : ''}`}>
       <button type="button" aria-haspopup="listbox" aria-expanded={isOpen} onClick={() => setIsOpen(open => !open)}>{days}<img src={exerciseDaysArrow} alt="" /></button>

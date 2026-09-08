@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react'
  *   ② 구간 안에서는 **남은 거리의 일부씩만** 좁힌다(점근). 그래서 오래 걸려도 멈춰
  *      보이지 않고, 아무리 오래 걸려도 구간 끝을 넘지 않는다.
  *   ③ `isComplete` 전에는 절대 100%가 되지 않는다. 이 화면의 핵심 계약이다.
+ *   ④ **값은 줄어들지 않는다.** 상한이 내려가면 되돌아가는 게 아니라 그 자리에 멈춘다.
  *
  * ⚠️ 프레임 수가 아니라 **경과 시간**으로 좁힌다. 프레임당 고정 비율로 좁히면
  *    120Hz 화면에서 두 배 빨리 차오른다.
@@ -44,6 +45,11 @@ export function useLoadingProgress(phase: number, stepCount: number, isComplete:
       const ceiling = done
         ? 100
         : Math.min(100 - BAND_MARGIN, (Math.min(currentPhase, steps - 1) + 1) * band - BAND_MARGIN)
+
+      // ⚠️ **뒤로는 가지 않는다.** 상한이 지금 값보다 낮아도 되돌리지 않고 그 자리에 선다.
+      //    단계가 내려가는 일(재조회·재시동)은 코드에서 막았지만, 여기서도 한 번 더 잠근다 —
+      //    진행률이 뒤로 흐르는 건 사용자 눈에 «되돌아갔다»로 읽혀서 어떤 이유로도 보이면 안 된다.
+      if (ceiling <= value) { setProgress(Math.round(value)); frame = window.requestAnimationFrame(tick); return }
 
       // 지수 접근 — 남은 거리에 비례해 좁히므로 목표를 넘지 않는다.
       const tau = done ? FINISH_MS : APPROACH_MS
