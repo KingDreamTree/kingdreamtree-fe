@@ -5,8 +5,11 @@
  * lives outside this client because it is the one endpoint without `/api/v1`.
  */
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL
+const configuredPodBaseUrl = import.meta.env.VITE_POD_BASE_URL?.replace(/\/$/, '')
 
 export const API_BASE_URL = (configuredBaseUrl || 'https://api.refit.live/api/v1').replace(/\/$/, '')
+/** An empty pod URL deliberately preserves the legacy API-only upload flow. */
+export const isPrivatePhotoFlow = Boolean(configuredPodBaseUrl)
 
 const USER_ID_KEY = 'refit.user-id'
 const ACTIVE_SESSION_KEY = 'refit.active-session-id'
@@ -173,7 +176,7 @@ export function uploadReferencePhoto(sessionId: string, input: {
   pipeline?: 'full' | 'quick'
 }) {
   const form = new FormData()
-  form.set('file', input.file)
+  if (!isPrivatePhotoFlow) form.set('file', input.file)
   if (input.pipeline) form.set('pipeline', input.pipeline)
   form.set('pose_landmarks', JSON.stringify(input.poseLandmarks))
   form.set('pose_scale_basis', input.poseScaleBasis)
@@ -197,7 +200,7 @@ export function uploadUserPhoto(sessionId: string, input: {
   pipeline?: 'full' | 'quick'
 }) {
   const form = new FormData()
-  form.set('file', input.file)
+  if (!isPrivatePhotoFlow) form.set('file', input.file)
   if (input.pipeline) form.set('pipeline', input.pipeline)
   form.set('capture_source', input.captureSource)
   form.set('pose_landmarks', JSON.stringify(input.poseLandmarks))
@@ -462,6 +465,47 @@ export function patchInbody(inbodyId: string, body: { fields?: Record<string, un
 }
 export function deleteInbody(inbodyId: string) { return request<void>(`/inbody/${inbodyId}`, { method: 'DELETE' }) }
 /** force=true — 이미 끝난 분석을 무시하고 다시 돌린다. 실패 후 «다시 시도» 전용. */
+type UploadTokenResponse = { token: string; expires_at: number; session_id: string }
+type PodUploadResponse = { accepted?: boolean; session_id?: string; mode?: 'full' | 'quick' }
+
+/** The token exists only while this request is being made; never persist it. */
+export async function uploadPhotosToAnalysisPod(sessionId: string, input: {
+  reference: File
+  user: File
+  pipeline: 'full' | 'quick'
+}): Promise<{ analysisInProgress: boolean }> {
+  if (!configuredPodBaseUrl) throw new Error('VITE_POD_BASE_URL is required for the direct pod upload flow')
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    // A fresh, one-use token is requested for every upload attempt.
+    const { token } = await request<UploadTokenResponse>(`/sessions/${sessionId}/upload-token`, { method: 'POST' })
+    const form = new FormData()
+    form.set('reference', input.reference)
+    form.set('user', input.user)
+    form.set('pipeline', input.pipeline)
+    let response: Response
+    try {
+      response = await fetch(`${configuredPodBaseUrl}/upload`, {
+        method: 'POST',
+        headers: { 'X-Upload-Token': token },
+        body: form,
+      })
+    } catch {
+      throw new RefitApiError(503, { code: 'POD_UNAVAILABLE', message: '사진 처리 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.' })
+    }
+    if (response.ok) {
+      await response.json() as PodUploadResponse
+      return { analysisInProgress: false }
+    }
+    let payload: ApiErrorPayload = {}
+    try { payload = asApiErrorPayload(await response.json()) } catch { /* status fallback */ }
+    const error = new RefitApiError(response.status, payload)
+    if (error.status === 409 && error.code === 'ANALYSIS_IN_PROGRESS') return { analysisInProgress: true }
+    if (error.status === 401 && error.code === 'INVALID_UPLOAD_TOKEN' && attempt === 0) continue
+    throw error
+  }
+  throw new Error('Unreachable')
+}
+
 export function startAnalysis(sessionId: string, force = false) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis${force ? '?force=true' : ''}`, { method: 'POST' }) }
 /** 퀵 진단(웹캠) — 세그 없이 원본 2장 전체 비교. 부위 카드·점수 없음. 진행은 getAnalysisProgress 의 completed 로 본다. */
 export function startQuickAnalysis(sessionId: string, force = false) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis?mode=quick${force ? '&force=true' : ''}`, { method: 'POST' }) }

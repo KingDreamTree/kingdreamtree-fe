@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import comparisonCommentCircle from '../assets/comparison-analysis-comment-circle.svg'
 import comparisonScoreTrack from '../assets/comparison-analysis-score-track.svg'
-import type { AnalysisPart, AnalysisResult, SegmentationInfo, SessionSegmentation } from '../lib/api'
+import { isPrivatePhotoFlow, type AnalysisPart, type AnalysisResult, type SegmentationInfo, type SessionSegmentation } from '../lib/api'
 import { PreviousButton } from '../components/PreviousButton'
 import { BodyPartIcon } from '../components/BodyPartIcon'
 import { RefitHomeLogo } from '../components/RefitHomeLogo'
@@ -110,7 +110,9 @@ function PhotoWithOverlay({ seg, photoUrl, selected, label }: { seg: Segmentatio
       // 사용자 사진에서 "색칠이 안 보인다"로 나타났던 문제). 옛 세션은 null → 폴백.
       mapImage.src = seg.merged_map_url ?? seg.map_url
     }
-    photo.src = seg.photo_url
+    const source = photoUrl ?? (isPrivatePhotoFlow ? null : seg.photo_url)
+    if (!source) return () => { cancelled = true }
+    photo.src = source
     return () => { cancelled = true }
   }, [seg, photoUrl, selected])
 
@@ -216,9 +218,9 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
   // ⚠️ 퀵(웹캠)은 Sapiens2 를 안 돌려 세그가 없다 — 세그만 조건으로 걸면
   //    빈 검은 상자 두 개가 뜬다 (2026-08-20 실측). 세그가 없으면 색칠 없이
   //    사진만 그린다 (PhotoWithOverlay 의 photoUrl 경로).
-  const hasImages = Boolean(
-    (segmentation?.user && segmentation?.reference) || (photoUrls?.user && photoUrls?.reference),
-  )
+  const hasImages = isPrivatePhotoFlow
+    ? Boolean(photoUrls?.user && photoUrls?.reference)
+    : Boolean((segmentation?.user && segmentation?.reference) || (photoUrls?.user && photoUrls?.reference))
 
   const disclaimer = analysis?.disclaimer
   const disclaimerBoundary = '상담하세요.'

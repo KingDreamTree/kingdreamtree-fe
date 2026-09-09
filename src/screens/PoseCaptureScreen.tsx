@@ -23,6 +23,7 @@ type PoseCaptureScreenProps = {
   refScaleBasis: 'TORSO' | 'HIP_KNEE'
   referenceUrl: string
   onNext: () => void
+  onPhotoAccepted: (file: File) => void
   onPrevious: () => void
   /** 갤러리에서 사진을 골라 업로드 판정 경로로 전환한다. */
   onBrowse: (file: File) => void
@@ -132,7 +133,7 @@ function cameraErrorMessage(error: unknown) {
   return '카메라를 열 수 없어요. 브라우저 카메라 권한을 확인해주세요.'
 }
 
-export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refScaleBasis, referenceUrl, onNext, onPrevious, onBrowse }: PoseCaptureScreenProps) {
+export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refScaleBasis, referenceUrl, onNext, onPhotoAccepted, onPrevious, onBrowse }: PoseCaptureScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const refImageRef = useRef<HTMLImageElement>(null)
   const skeletonRef = useRef<HTMLCanvasElement>(null)
@@ -189,6 +190,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
         pipeline: 'quick',
       })
       setStoredAnalysisMode('quick')
+      onPhotoAccepted(payload.file)
       setPhase({ kind: 'done' })
     } catch (error) {
       if (error instanceof RefitApiError && error.status === 503) {
@@ -199,7 +201,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
         setPhase({ kind: 'retry', message: RETRY_MESSAGE })
       }
     }
-  }, [sessionId, setPhase])
+  }, [onPhotoAccepted, sessionId, setPhase])
 
   useEffect(() => {
     let cancelled = false
