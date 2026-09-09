@@ -5,11 +5,11 @@
  * lives outside this client because it is the one endpoint without `/api/v1`.
  */
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL
-const configuredPodUploadUrl = import.meta.env.VITE_GPU_POD_UPLOAD_URL
-const privatePhotoFlow = import.meta.env.VITE_PRIVATE_PHOTO_FLOW === 'true'
+const configuredPodBaseUrl = import.meta.env.VITE_POD_BASE_URL?.replace(/\/$/, '')
 
 export const API_BASE_URL = (configuredBaseUrl || 'https://api.refit.live/api/v1').replace(/\/$/, '')
-export const isPrivatePhotoFlow = privatePhotoFlow
+/** An empty pod URL deliberately preserves the legacy API-only upload flow. */
+export const isPrivatePhotoFlow = Boolean(configuredPodBaseUrl)
 
 const USER_ID_KEY = 'refit.user-id'
 const ACTIVE_SESSION_KEY = 'refit.active-session-id'
@@ -465,33 +465,45 @@ export function patchInbody(inbodyId: string, body: { fields?: Record<string, un
 }
 export function deleteInbody(inbodyId: string) { return request<void>(`/inbody/${inbodyId}`, { method: 'DELETE' }) }
 /** force=true — 이미 끝난 분석을 무시하고 다시 돌린다. 실패 후 «다시 시도» 전용. */
-type UploadTokenResponse = { upload_token?: string; token?: string }
+type UploadTokenResponse = { token: string; expires_at: number; session_id: string }
+type PodUploadResponse = { accepted?: boolean; session_id?: string; mode?: 'full' | 'quick' }
 
 /** The token exists only while this request is being made; never persist it. */
 export async function uploadPhotosToAnalysisPod(sessionId: string, input: {
   reference: File
   user: File
   pipeline: 'full' | 'quick'
-}) {
-  if (!configuredPodUploadUrl) throw new Error('VITE_GPU_POD_UPLOAD_URL is required when VITE_PRIVATE_PHOTO_FLOW=true')
-  const tokenResponse = await request<UploadTokenResponse>(`/sessions/${sessionId}/analysis/upload-token`, { method: 'POST' })
-  const uploadToken = tokenResponse.upload_token ?? tokenResponse.token
-  if (!uploadToken) throw new Error('The API did not return an upload token')
-
-  const form = new FormData()
-  form.set('reference', input.reference)
-  form.set('user', input.user)
-  form.set('pipeline', input.pipeline)
-  const response = await fetch(configuredPodUploadUrl, {
-    method: 'POST',
-    headers: { 'X-Upload-Token': uploadToken },
-    body: form,
-  })
-  if (!response.ok) {
+}): Promise<{ analysisInProgress: boolean }> {
+  if (!configuredPodBaseUrl) throw new Error('VITE_POD_BASE_URL is required for the direct pod upload flow')
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    // A fresh, one-use token is requested for every upload attempt.
+    const { token } = await request<UploadTokenResponse>(`/sessions/${sessionId}/upload-token`, { method: 'POST' })
+    const form = new FormData()
+    form.set('reference', input.reference)
+    form.set('user', input.user)
+    form.set('pipeline', input.pipeline)
+    let response: Response
+    try {
+      response = await fetch(`${configuredPodBaseUrl}/upload`, {
+        method: 'POST',
+        headers: { 'X-Upload-Token': token },
+        body: form,
+      })
+    } catch {
+      throw new RefitApiError(503, { code: 'POD_UNAVAILABLE', message: '사진 처리 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.' })
+    }
+    if (response.ok) {
+      await response.json() as PodUploadResponse
+      return { analysisInProgress: false }
+    }
     let payload: ApiErrorPayload = {}
     try { payload = asApiErrorPayload(await response.json()) } catch { /* status fallback */ }
-    throw new RefitApiError(response.status, payload)
+    const error = new RefitApiError(response.status, payload)
+    if (error.status === 409 && error.code === 'ANALYSIS_IN_PROGRESS') return { analysisInProgress: true }
+    if (error.status === 401 && error.code === 'INVALID_UPLOAD_TOKEN' && attempt === 0) continue
+    throw error
   }
+  throw new Error('Unreachable')
 }
 
 export function startAnalysis(sessionId: string, force = false) { return request<Record<string, unknown>>(`/sessions/${sessionId}/analysis${force ? '?force=true' : ''}`, { method: 'POST' }) }

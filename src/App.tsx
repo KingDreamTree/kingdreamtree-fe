@@ -791,6 +791,13 @@ function App() {
           return true
         } catch (error) {
           if (error instanceof RefitApiError && error.code === 'INSUFFICIENT_PARTS') throw error
+          if (isPrivatePhotoFlow && error instanceof RefitApiError && (
+            error.code === 'UNSUITABLE_PHOTO' ||
+            error.code === 'FILE_TOO_LARGE' ||
+            error.code === 'UNSUPPORTED_MEDIA_TYPE' ||
+            error.code === 'PRECONDITION_NOT_MET' ||
+            error.code === 'POD_UNAVAILABLE'
+          )) throw error
           if (!(error instanceof RefitApiError) || error.status !== 409) failures += 1
           await waitTick()
         }
@@ -863,6 +870,9 @@ function App() {
       if (error instanceof RefitApiError && error.code === 'INSUFFICIENT_PARTS' && alive()) {
         window.alert(error.message)
         setView('pose-capture')
+      } else if (isPrivatePhotoFlow && error instanceof RefitApiError && alive()) {
+        window.alert(userFacingMessage(error, '사진 처리 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.'))
+        setView(error.code === 'POD_UNAVAILABLE' ? 'inbody-upload' : 'pose-capture')
       }
     }
   }
