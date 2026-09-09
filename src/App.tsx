@@ -34,6 +34,7 @@ import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
 import { viewportScale } from './lib/viewport-scale'
+import { getLocalPhoto, saveLocalPhoto } from './lib/local-photos'
 
 // 부분 신체(상체/하체만) 레퍼런스를 허용하므로 "전신이 보이도록"은 부정확하다.
 // MESSAGES는 교체 가능하게 export되어 있고 evaluate()가 이 표를 그대로 읽는다.
@@ -458,9 +459,12 @@ function isAnalysisRenderable(analysis: AnalysisResult | null): boolean {
  *  퀵/웹캠 경로는 Sapiens2 를 안 돌려 세그가 없지만 photo 행은 있다. 실패해도
  *  화면을 막지 않는다 — 사진이 없으면 비교 이미지 섹션만 빠진다. */
 async function fetchPhotoUrls(sessionId: string, devicePhotos?: { user: File | null; reference: File | null }): Promise<{ user: string | null; reference: string | null }> {
-  if (isPrivatePhotoFlow) return {
-    user: devicePhotos?.user ? URL.createObjectURL(devicePhotos.user) : null,
-    reference: devicePhotos?.reference ? URL.createObjectURL(devicePhotos.reference) : null,
+  if (isPrivatePhotoFlow) {
+    const [user, reference] = await Promise.all([
+      devicePhotos?.user ?? getLocalPhoto(sessionId, 'user'),
+      devicePhotos?.reference ?? getLocalPhoto(sessionId, 'reference'),
+    ])
+    return { user: user ? URL.createObjectURL(user) : null, reference: reference ? URL.createObjectURL(reference) : null }
   }
   const [user, reference] = await Promise.all([
     getSessionPhoto(sessionId, 'user').then(p => p.signed_url ?? null).catch(() => null),
@@ -679,6 +683,7 @@ function App() {
       await image.decode()
       const pose = await detectPoseFromImage(image)
       await uploadReferencePhoto(sessionId, { file, poseLandmarks: pose.landmarks, poseScaleBasis: pose.scaleBasis, posePersonAreaRatio: pose.personAreaRatio, multiPerson: pose.multiPerson })
+      if (isPrivatePhotoFlow) await saveLocalPhoto(sessionId, 'reference', file)
       setRefData(prev => {
         if (prev) URL.revokeObjectURL(prev.url)
         return { file, pose, url, aspect: image.naturalWidth / image.naturalHeight }
@@ -726,6 +731,7 @@ function App() {
         return
       }
       await uploadUserPhoto(sessionId, { file, captureSource: 'UPLOAD', poseLandmarks: userPose.landmarks, poseSimilarity: result.pose_similarity, framingScore: result.framing_score, poseScaleBasis: userPose.scaleBasis, facingDelta: result.facing_delta, poseOks: result.oks, posePersonAreaRatio: userPose.personAreaRatio, multiPerson: userPose.multiPerson })
+      if (isPrivatePhotoFlow) await saveLocalPhoto(sessionId, 'user', file)
       // 갤러리 업로드 = 기존 세그 파이프라인. 웹캠(quick)을 쓰다 갤러리로 갈아탔으면
       // 마지막으로 올라간 사진이 기준이므로 여기서 full 로 되돌린다.
       setStoredAnalysisMode('full')
@@ -791,8 +797,12 @@ function App() {
         if (!alive()) return false
         try {
           if (isPrivatePhotoFlow) {
-            if (!refData?.file || !lastUserPhoto) throw new RefitApiError(422, { code: 'PHOTOS_UNAVAILABLE', message: '사진을 다시 선택하거나 촬영해주세요.' })
-            const podUpload = await uploadPhotosToAnalysisPod(sessionId, { reference: refData.file, user: lastUserPhoto, pipeline: quick ? 'quick' : 'full' })
+            const [reference, user] = await Promise.all([
+              refData?.file ?? getLocalPhoto(sessionId, 'reference'),
+              lastUserPhoto ?? getLocalPhoto(sessionId, 'user'),
+            ])
+            if (!reference || !user) throw new RefitApiError(422, { code: 'PHOTOS_UNAVAILABLE', message: '사진을 다시 선택하거나 촬영해주세요.' })
+            const podUpload = await uploadPhotosToAnalysisPod(sessionId, { reference, user, pipeline: quick ? 'quick' : 'full' })
             podUploadRef.current = podUpload.response ?? null
             setPhotoCropBoxes({ user: podUpload.response?.crop_box?.USER ?? null, reference: podUpload.response?.crop_box?.REFERENCE ?? null })
             setAnalysisNotice(null)

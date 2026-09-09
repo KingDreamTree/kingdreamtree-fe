@@ -4,6 +4,8 @@
  * The browser only calls the versioned API base URL. `/health` deliberately
  * lives outside this client because it is the one endpoint without `/api/v1`.
  */
+import { deleteLocalSessionPhotos } from './local-photos'
+
 const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL
 const configuredPodBaseUrl = import.meta.env.VITE_POD_BASE_URL?.replace(/\/$/, '')
 
@@ -102,6 +104,8 @@ export function getStoredAnalysisMode(): AnalysisMode { return localStorage.getI
 export function setStoredAnalysisMode(mode: AnalysisMode) { localStorage.setItem(ANALYSIS_MODE_KEY, mode) }
 
 export function clearStoredIdentity() {
+  const sessionId = getStoredSessionId()
+  if (sessionId) void deleteLocalSessionPhotos(sessionId).catch(() => undefined)
   localStorage.removeItem(USER_ID_KEY)
   localStorage.removeItem(ACTIVE_SESSION_KEY)
   localStorage.removeItem(ANALYSIS_MODE_KEY)
@@ -549,4 +553,8 @@ export function sendCoachMessage(sessionId: string, messages: CoachChatMessage[]
 export function applyCoachChanges(sessionId: string, messages: CoachChatMessage[]) {
   return request<{ no_change?: boolean; month_routine_id?: string; version?: number }>(`/sessions/${sessionId}/coach-chat/apply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages }) })
 }
-export function archiveSession(sessionId: string) { return request<Session>(`/sessions/${sessionId}/archive`, { method: 'POST' }) }
+export async function archiveSession(sessionId: string) {
+  const session = await request<Session>(`/sessions/${sessionId}/archive`, { method: 'POST' })
+  await deleteLocalSessionPhotos(sessionId).catch(() => undefined)
+  return session
+}
