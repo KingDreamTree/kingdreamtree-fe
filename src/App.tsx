@@ -29,7 +29,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, archiveSession, clearStoredIdentity, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, isPrivatePhotoFlow, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadPhotosToAnalysisPod, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type PodUploadResponse, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, archiveSession, clearStoredIdentity, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionJobs, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, isPrivatePhotoFlow, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadPhotosToAnalysisPod, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type PodUploadResponse, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -764,6 +764,7 @@ function App() {
     // 퀵은 세그·부위 진단이 없다: 시작은 mode=quick, 부위 신호·세그 조회를 건너뛴다.
     // 결과 화면은 모드 플래그 없이 데이터로 분기한다 (부위 0건 · 점수 null).
     const quick = getStoredAnalysisMode() === 'quick'
+    let podRestartRetries = 0
 
     setAnalysisPhase(0)
     setAnalysisNotice(null)
@@ -788,7 +789,7 @@ function App() {
         if (!alive()) return false
         try {
           if (isPrivatePhotoFlow) {
-            if (!refData?.file || !lastUserPhoto) throw new Error('Photos must remain on this device until analysis starts')
+            if (!refData?.file || !lastUserPhoto) throw new RefitApiError(422, { code: 'PHOTOS_UNAVAILABLE', message: '사진을 다시 선택하거나 촬영해주세요.' })
             const podUpload = await uploadPhotosToAnalysisPod(sessionId, { reference: refData.file, user: lastUserPhoto, pipeline: quick ? 'quick' : 'full' })
             podUploadRef.current = podUpload.response ?? null
             setAnalysisNotice(null)
@@ -807,7 +808,8 @@ function App() {
           }
           if (isPrivatePhotoFlow && error instanceof RefitApiError && (
             error.status === 401 || error.status === 413 || error.status === 415 || error.status === 429 ||
-            error.code === 'UNSUITABLE_PHOTO' || error.code === 'PRECONDITION_NOT_MET' || error.code === 'POD_UNAVAILABLE'
+            error.code === 'UNSUITABLE_PHOTO' || error.code === 'PRECONDITION_NOT_MET' ||
+            error.code === 'POD_UNAVAILABLE' || error.code === 'PHOTOS_UNAVAILABLE'
           )) throw error
           if (!(error instanceof RefitApiError) || error.status !== 409) failures += 1
           await waitTick()
@@ -830,6 +832,22 @@ function App() {
           let progress
           try { progress = await getAnalysisProgress(sessionId); failures = 0 }
           catch { failures += 1; await waitTick(); continue }
+          if (isPrivatePhotoFlow && progress.part.status === 'FAILED') {
+            let partJob: Job | null = null
+            try {
+              const jobId = podUploadRef.current?.jobs?.VLM_PART
+                ?? (await getSessionJobs(sessionId)).items.find(job => job.kind === 'VLM_PART')?.job_id
+              if (jobId) partJob = await getJob(jobId)
+            } catch { /* fall back to the progress failure below */ }
+            const message = partJob?.error || '부위 분석에 실패했습니다. 다시 촬영해주세요.'
+            const podRestarted = message.includes('팟이 재시작') || message.includes('분석은 사라졌습니다')
+            if (podRestarted && podRestartRetries < 1 && refData?.file && lastUserPhoto) {
+              podRestartRetries += 1
+              if (!await kickOff(true)) return
+              continue
+            }
+            throw new RefitApiError(422, { code: 'UNSUITABLE_PHOTO', message })
+          }
           // part.total 은 «부위 진단이 끝났다»는 신호로만 쓴다 (0 → 9 로 한 번에 뛴다).
           // 퀵은 부위 단계가 아예 없어 항상 0 이다 — 이 신호를 기다리지 않는다.
           if (quick || progress.part.total > 0) advancePhase(2)
@@ -883,7 +901,7 @@ function App() {
         setView('pose-capture')
       } else if (isPrivatePhotoFlow && error instanceof RefitApiError && alive()) {
         window.alert(userFacingMessage(error, '사진 처리 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.'))
-        setView(error.code === 'POD_UNAVAILABLE' ? 'inbody-upload' : 'pose-capture')
+        setView(error.code === 'POD_UNAVAILABLE' ? 'inbody-upload' : error.code === 'PHOTOS_UNAVAILABLE' ? 'reference' : 'pose-capture')
       }
     }
   }

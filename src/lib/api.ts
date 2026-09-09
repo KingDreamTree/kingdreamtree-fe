@@ -470,6 +470,7 @@ export type PodUploadResponse = {
   accepted: boolean
   session_id: string
   mode: 'full' | 'quick'
+  jobs?: Record<string, string>
   crop_box?: Record<string, unknown>
   face_masked?: Record<string, boolean>
   photo_size?: Record<string, unknown>
