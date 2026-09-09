@@ -466,14 +466,21 @@ export function patchInbody(inbodyId: string, body: { fields?: Record<string, un
 export function deleteInbody(inbodyId: string) { return request<void>(`/inbody/${inbodyId}`, { method: 'DELETE' }) }
 /** force=true — 이미 끝난 분석을 무시하고 다시 돌린다. 실패 후 «다시 시도» 전용. */
 type UploadTokenResponse = { token: string; expires_at: number; session_id: string }
-type PodUploadResponse = { accepted?: boolean; session_id?: string; mode?: 'full' | 'quick' }
+export type PodUploadResponse = {
+  accepted: boolean
+  session_id: string
+  mode: 'full' | 'quick'
+  crop_box?: Record<string, unknown>
+  face_masked?: Record<string, boolean>
+  photo_size?: Record<string, unknown>
+}
 
 /** The token exists only while this request is being made; never persist it. */
 export async function uploadPhotosToAnalysisPod(sessionId: string, input: {
   reference: File
   user: File
   pipeline: 'full' | 'quick'
-}): Promise<{ analysisInProgress: boolean }> {
+}): Promise<{ analysisInProgress: boolean; response?: PodUploadResponse }> {
   if (!configuredPodBaseUrl) throw new Error('VITE_POD_BASE_URL is required for the direct pod upload flow')
   for (let attempt = 0; attempt < 2; attempt += 1) {
     // A fresh, one-use token is requested for every upload attempt.
@@ -492,9 +499,9 @@ export async function uploadPhotosToAnalysisPod(sessionId: string, input: {
     } catch {
       throw new RefitApiError(503, { code: 'POD_UNAVAILABLE', message: '사진 처리 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.' })
     }
-    if (response.ok) {
-      await response.json() as PodUploadResponse
-      return { analysisInProgress: false }
+    if (response.status === 202) {
+      const accepted = await response.json() as PodUploadResponse
+      return { analysisInProgress: false, response: accepted }
     }
     let payload: ApiErrorPayload = {}
     try { payload = asApiErrorPayload(await response.json()) } catch { /* status fallback */ }

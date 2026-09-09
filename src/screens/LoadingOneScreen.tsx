@@ -23,9 +23,9 @@ const loadingSteps = ['체형 데이터를 불러오는 중...', '레퍼런스�
  *    사정을 여기에 옮기지 않는다 — 사용자가 손쓸 수 없는 말이라 불안만 준다.
  *    수습은 App.beginAnalysis 가 조용히 재시도로 처리한다.
  */
-type LoadingOneScreenProps = { phase: number; isComplete: boolean; onComplete: () => void }
+type LoadingOneScreenProps = { phase: number; isComplete: boolean; onComplete: () => void; notice?: string | null }
 
-export function LoadingOneScreen({ phase, isComplete, onComplete }: LoadingOneScreenProps) {
+export function LoadingOneScreen({ phase, isComplete, onComplete, notice }: LoadingOneScreenProps) {
   const progress = useLoadingProgress(phase, loadingSteps.length, isComplete)
   // ⚠️ 아래 목록은 **막대에서 끌어온다** — phase 를 따로 읽지 않는다. 둘이 각자 움직이면
   //    막대는 2구간에 있는데 목록은 3번째에 불이 들어와 있는 식으로 어긋난다.
@@ -47,6 +47,7 @@ export function LoadingOneScreen({ phase, isComplete, onComplete }: LoadingOneSc
     <h1><em>결과지를</em> 분석 중이에요</h1>
     <p className="loading-two-message">잠시만 기다려주세요!</p>
     <section className="loading-two-progress" aria-label={`결과지 분석 진행률 ${progress}%`} style={{ '--loading-two-progress': `${progress}%` } as CSSProperties}><img className="loading-two-progress__track" src={loadingTwoProgressTrack} alt="" /><span className="loading-two-progress__fill"><img src={loadingTwoProgressFill} alt="" /></span><img className="loading-two-progress__runner" src={loadingTwoRunnerIcon} alt="" /><strong>{progress}%</strong></section>
+    {notice && <p className="loading-two-message" role="status">{notice}</p>}
     <img className="loading-two-glow" style={{ transform: `translateY(${guideOffset}px)` }} src={loadingTwoActiveGlow} alt="" />
     <ol className="loading-two-steps">{loadingSteps.map((step, index) => <li className={index === activeStep ? 'is-active' : ''} key={step}>
       {index > 0 && <img className="loading-two-connector" src={loadingTwoConnector} alt="" />}

@@ -29,7 +29,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, archiveSession, clearStoredIdentity, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, isPrivatePhotoFlow, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadPhotosToAnalysisPod, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, archiveSession, clearStoredIdentity, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, isPrivatePhotoFlow, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadPhotosToAnalysisPod, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type PodUploadResponse, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -95,6 +95,7 @@ const ANALYSIS_POLL_MS = 750
 const ANALYSIS_SLOW_POLL_MS = 2500
 /** 이 시간을 넘기면 «조금 더 걸리고 있어요» 안내를 띄운다 — 포기가 아니라 안내다. */
 const ANALYSIS_SLOW_NOTICE_MS = 30_000
+const POD_BUSY_RETRY_MS = 15_000
 /** 조회가 연달아 이만큼 실패하면 «다시 시도»를 내준다 (서버 다운·네트워크). */
 /** 결과가 빈 채로 완료됐을 때 조용히 다시 걸어보는 횟수. 그 뒤로는 폴링만 계속한다. */
 const ANALYSIS_MAX_RERUNS = 2
@@ -545,8 +546,11 @@ function App() {
   // ⚠️ ...Ready 는 결과까지 다 받은 뒤에만 true 로 만든다. 이걸 먼저 켜면 진행률이
   //    다시 거짓말을 하게 되고, 그게 이 화면들을 고친 이유였다.
   const [analysisPhase, setAnalysisPhase] = useState(0)
+  const [analysisNotice, setAnalysisNotice] = useState<string | null>(null)
   /** 지금 유효한 분석 실행 번호. 상한 없는 폴링 루프를 화면 이탈 시 끊는 데 쓴다. */
   const analysisRunRef = useRef(0)
+  const analysisStartRef = useRef(false)
+  const podUploadRef = useRef<PodUploadResponse | null>(null)
   const [isAnalysisReady, setIsAnalysisReady] = useState(false)
   /** 로딩 화면에 띄울 안내(오래 걸림) / 실패 문구. 실패면 «다시 시도»가 같이 뜬다. */
   const [routinePhase, setRoutinePhase] = useState(0)
@@ -748,7 +752,7 @@ function App() {
    *    두고 데이터 없이 결과 화면으로 넘기던 탓에 새로고침을 해야 점수가 나왔다.
    *    넘어가는 조건은 **결과를 실제로 손에 쥐었을 때 하나**다.
    */
-  const beginAnalysis = async (force = false) => {
+  const runAnalysis = async (force = false) => {
     const sessionId = getStoredSessionId()
     if (!sessionId) return
     // 이 실행의 표. 사용자가 로고를 눌러 나가거나 분석을 다시 걸면 옛 실행은 여기서 끊긴다
@@ -762,6 +766,7 @@ function App() {
     const quick = getStoredAnalysisMode() === 'quick'
 
     setAnalysisPhase(0)
+    setAnalysisNotice(null)
     // ⚠️ 단계는 **앞으로만 간다.** 조회 실패나 재시동으로 되돌리면 게이지가 뒤로 흐르는데,
     //    사용자에게는 진행이 취소된 것처럼 보인다. 실제로 다시 하더라도 화면은 멈춰만 있게 한다.
     const advancePhase = (next: number) => setAnalysisPhase(current => Math.max(current, next))
@@ -784,19 +789,25 @@ function App() {
         try {
           if (isPrivatePhotoFlow) {
             if (!refData?.file || !lastUserPhoto) throw new Error('Photos must remain on this device until analysis starts')
-            await uploadPhotosToAnalysisPod(sessionId, { reference: refData.file, user: lastUserPhoto, pipeline: quick ? 'quick' : 'full' })
+            const podUpload = await uploadPhotosToAnalysisPod(sessionId, { reference: refData.file, user: lastUserPhoto, pipeline: quick ? 'quick' : 'full' })
+            podUploadRef.current = podUpload.response ?? null
+            setAnalysisNotice(null)
           } else {
             await (quick ? startQuickAnalysis(sessionId, retry) : startAnalysis(sessionId, retry))
           }
           return true
         } catch (error) {
           if (error instanceof RefitApiError && error.code === 'INSUFFICIENT_PARTS') throw error
+          if (isPrivatePhotoFlow && error instanceof RefitApiError && error.status === 503 && (
+            error.code === 'POD_BUSY' || error.code === 'SCREENING_UNAVAILABLE'
+          )) {
+            setAnalysisNotice('지금 분석 요청이 많아요. 잠시 후 다시 시도할게요.')
+            await new Promise(resolve => window.setTimeout(resolve, POD_BUSY_RETRY_MS))
+            continue
+          }
           if (isPrivatePhotoFlow && error instanceof RefitApiError && (
-            error.code === 'UNSUITABLE_PHOTO' ||
-            error.code === 'FILE_TOO_LARGE' ||
-            error.code === 'UNSUPPORTED_MEDIA_TYPE' ||
-            error.code === 'PRECONDITION_NOT_MET' ||
-            error.code === 'POD_UNAVAILABLE'
+            error.status === 401 || error.status === 413 || error.status === 415 || error.status === 429 ||
+            error.code === 'UNSUITABLE_PHOTO' || error.code === 'PRECONDITION_NOT_MET' || error.code === 'POD_UNAVAILABLE'
           )) throw error
           if (!(error instanceof RefitApiError) || error.status !== 409) failures += 1
           await waitTick()
@@ -874,6 +885,17 @@ function App() {
         window.alert(userFacingMessage(error, '사진 처리 서버에 연결할 수 없어요. 잠시 후 다시 시도해주세요.'))
         setView(error.code === 'POD_UNAVAILABLE' ? 'inbody-upload' : 'pose-capture')
       }
+    }
+  }
+
+  /** Prevent duplicate clicks from spending two one-use upload tokens. */
+  const beginAnalysis = async (force = false) => {
+    if (analysisStartRef.current) return
+    analysisStartRef.current = true
+    try {
+      await runAnalysis(force)
+    } finally {
+      analysisStartRef.current = false
     }
   }
 
@@ -1139,13 +1161,13 @@ function App() {
   if (view === 'inbody-unreadable') return <InbodyUnreadableScreen onConfirm={() => setView('inbody-form')} onPrevious={() => setView('inbody-uploaded')} />
   // 로딩 애니메이션이 100%가 되면 분석 화면으로 전환한다. 결과 API는 백그라운드에서
   // 이어서 받아 상태를 채우므로, 네트워크 응답 때문에 로딩 화면이 멈춰 있지 않는다.
-    if (view === 'inbody-loading') return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady}
+    if (view === 'inbody-loading') return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady} notice={analysisNotice}
       onComplete={() => setView('comparison')} />
   // ⚠️ 점수·요약이 다 있을 때만 결과 화면을 그린다. 사용자가 «—점» 이나
   //    «요약을 준비하고 있어요» 를 보는 일이 없어야 한다 — 로딩 화면의 존재 이유다.
   //    새로고침 복원처럼 로딩을 안 거치고 들어오는 길이 있어서 여기서 한 번 더 막는다.
   if (view === 'comparison' && !isAnalysisRenderable(analysisData))
-    return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady} onComplete={() => setView('comparison')} />
+    return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady} notice={analysisNotice} onComplete={() => setView('comparison')} />
   if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} photoUrls={photoUrls} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
   if (view === 'loading-two') return <LoadingTwoScreen phase={routinePhase} isComplete={isRoutineReady} onComplete={() => setView('custom-routine')} />
