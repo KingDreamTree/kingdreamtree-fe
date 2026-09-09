@@ -89,7 +89,6 @@ function PhotoWithOverlay({ seg, photoUrl, cropBox, selected, label }: { seg: Se
       if (cancelled) return
       const ctx = drawDevicePhoto(canvas, photo, seg.crop_box ?? cropBox)
       if (!ctx) return
-      ctx.drawImage(photo, 0, 0)
 
       // 촬영본이 거울 방향으로 저장되므로(업로드와 같은 기준) 부위명 그대로 칠한다
       const entry = selected ? seg.palette.find(item => item.class_name === selected.class_name) : null
