@@ -29,7 +29,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, archiveSession, clearStoredIdentity, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, archiveSession, clearStoredIdentity, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, isPrivatePhotoFlow, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadPhotosToAnalysisPod, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -394,7 +394,7 @@ function PoseScreen({ result, score, message, referenceUrl, userPhoto, onRetry, 
   </div></FixedStepFrame>
 }
 
-type ReferenceData = { pose: DetectedPose; url: string; aspect: number }
+type ReferenceData = { file: File; pose: DetectedPose; url: string; aspect: number }
 
 function getJobId(value: Record<string, unknown>): string | null {
   return typeof value.job_id === 'string' ? value.job_id : null
@@ -456,7 +456,11 @@ function isAnalysisRenderable(analysis: AnalysisResult | null): boolean {
 /** 원본 사진 URL 두 장 — **세그멘테이션이 없을 때 사진만이라도** 보여주기 위한 것.
  *  퀵/웹캠 경로는 Sapiens2 를 안 돌려 세그가 없지만 photo 행은 있다. 실패해도
  *  화면을 막지 않는다 — 사진이 없으면 비교 이미지 섹션만 빠진다. */
-async function fetchPhotoUrls(sessionId: string): Promise<{ user: string | null; reference: string | null }> {
+async function fetchPhotoUrls(sessionId: string, devicePhotos?: { user: File | null; reference: File | null }): Promise<{ user: string | null; reference: string | null }> {
+  if (isPrivatePhotoFlow) return {
+    user: devicePhotos?.user ? URL.createObjectURL(devicePhotos.user) : null,
+    reference: devicePhotos?.reference ? URL.createObjectURL(devicePhotos.reference) : null,
+  }
   const [user, reference] = await Promise.all([
     getSessionPhoto(sessionId, 'user').then(p => p.signed_url ?? null).catch(() => null),
     getSessionPhoto(sessionId, 'reference').then(p => p.signed_url ?? null).catch(() => null),
@@ -671,7 +675,7 @@ function App() {
       await uploadReferencePhoto(sessionId, { file, poseLandmarks: pose.landmarks, poseScaleBasis: pose.scaleBasis, posePersonAreaRatio: pose.personAreaRatio, multiPerson: pose.multiPerson })
       setRefData(prev => {
         if (prev) URL.revokeObjectURL(prev.url)
-        return { pose, url, aspect: image.naturalWidth / image.naturalHeight }
+        return { file, pose, url, aspect: image.naturalWidth / image.naturalHeight }
       })
     } catch (error) {
       URL.revokeObjectURL(url)
@@ -777,7 +781,15 @@ function App() {
     const kickOff = async (retry: boolean) => {
       for (;;) {
         if (!alive()) return false
-        try { await (quick ? startQuickAnalysis(sessionId, retry) : startAnalysis(sessionId, retry)); return true } catch (error) {
+        try {
+          if (isPrivatePhotoFlow) {
+            if (!refData?.file || !lastUserPhoto) throw new Error('Photos must remain on this device until analysis starts')
+            await uploadPhotosToAnalysisPod(sessionId, { reference: refData.file, user: lastUserPhoto, pipeline: quick ? 'quick' : 'full' })
+          } else {
+            await (quick ? startQuickAnalysis(sessionId, retry) : startAnalysis(sessionId, retry))
+          }
+          return true
+        } catch (error) {
           if (error instanceof RefitApiError && error.code === 'INSUFFICIENT_PARTS') throw error
           if (!(error instanceof RefitApiError) || error.status !== 409) failures += 1
           await waitTick()
@@ -835,7 +847,7 @@ function App() {
           setSegmentationData(quick ? null : (await fetchSegmentation(sessionId) ?? await fetchSegmentation(sessionId)))
           if (!alive()) return
           // 세그가 없어도(퀵) 사진은 보여준다 — 없으면 빈 상자만 남는다.
-          setPhotoUrls(await fetchPhotoUrls(sessionId))
+          setPhotoUrls(await fetchPhotoUrls(sessionId, { user: lastUserPhoto, reference: refData?.file ?? null }))
           if (!alive()) return
           setIsAnalysisReady(true)   // 막대가 100% 를 찍은 뒤 로딩 화면이 전환한다
           return
@@ -1100,6 +1112,7 @@ function App() {
     ? <PoseCaptureScreen sessionId={getStoredSessionId() ?? ''} criteria={criteria}
         refLm={refData.pose.landmarks as PoseLandmarks} refAspect={refData.aspect} refScaleBasis={refData.pose.scaleBasis} referenceUrl={refData.url}
         onNext={() => setView('inbody-upload')}
+        onPhotoAccepted={setLastUserPhoto}
         onPrevious={() => setView('reference')}
         onBrowse={file => void uploadUser(file)} />
     : null
