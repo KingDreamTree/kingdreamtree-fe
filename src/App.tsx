@@ -555,6 +555,7 @@ function App() {
   /** 지금 유효한 분석 실행 번호. 상한 없는 폴링 루프를 화면 이탈 시 끊는 데 쓴다. */
   const analysisRunRef = useRef(0)
   const analysisStartRef = useRef(false)
+  const beginAnalysisRef = useRef<((force?: boolean) => Promise<void>) | null>(null)
   const podUploadRef = useRef<PodUploadResponse | null>(null)
   const [isAnalysisReady, setIsAnalysisReady] = useState(false)
   /** 로딩 화면에 띄울 안내(오래 걸림) / 실패 문구. 실패면 «다시 시도»가 같이 뜬다. */
@@ -589,7 +590,7 @@ function App() {
           // ⚠️ 점수·요약이 없는 응답을 그대로 꽂으면 «—점 / 요약을 준비하고 있어요»가
           //    사용자에게 보인다. 그럴 땐 결과 화면을 채우지 말고 **정상 분석 흐름**으로
           //    돌린다 — 로딩 화면을 띄우고 폴링해서, 다 갖춰졌을 때 결과로 넘긴다.
-          if (!isAnalysisRenderable(analysis)) { void beginAnalysis(); return }
+          if (!isAnalysisRenderable(analysis)) { void beginAnalysisRef.current?.(); return }
           setAnalysisData(analysis)
           const segmentation = await getSessionSegmentation(sessionId).catch(() => null)
           if (!cancelled) setSegmentationData(segmentation)
@@ -934,6 +935,7 @@ function App() {
       analysisStartRef.current = false
     }
   }
+  beginAnalysisRef.current = beginAnalysis
 
   const handleInbodyFile = async (file: File) => {
     const sessionId = getStoredSessionId()
