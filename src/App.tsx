@@ -29,7 +29,7 @@ import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
 import { PoseCaptureScreen } from './screens/PoseCaptureScreen'
-import { applyCoachChanges, archiveSession, clearStoredIdentity, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionJobs, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, isPrivatePhotoFlow, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadPhotosToAnalysisPod, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type PodUploadResponse, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
+import { applyCoachChanges, archiveSession, clearStoredIdentity, createRoutine, createWorkoutLog, deleteInbody, getActiveRoutine, getAnalysis, getAnalysisProgress, getInbody, getJob, getPoseCriteria, getSessionJobs, getSessionPhoto, getSessionSegmentation, getStoredAnalysisMode, getStoredSessionId, getTodayRoutine, isPrivatePhotoFlow, patchInbody, RefitApiError, sendCoachMessage, setStoredAnalysisMode, startAnalysis, startQuickAnalysis, uploadInbody, uploadPhotosToAnalysisPod, uploadReferencePhoto, uploadUserPhoto, userFacingMessage, ensureActiveSession, type AnalysisResult, type CoachChatMessage, type CoachChatResponse, type InbodyDetail, type Job, type PhotoCropBox, type PodUploadResponse, type RoutineDay, type RoutineDetail, type SessionSegmentation, type TodayRoutine } from './lib/api'
 import { detectPoseFromImage, type DetectedPose } from './lib/pose-detector'
 import { loadVideoLandmarker } from './lib/landmarkers'
 import { evaluate, MESSAGES, type PoseCriteria, type PoseEvaluation, type PoseLandmarks } from './lib/pose-score.js'
@@ -535,6 +535,7 @@ function App() {
   const [segmentationData, setSegmentationData] = useState<SessionSegmentation | null>(null)
   // 세그가 없는 경로(퀵/웹캠)에서 사진만이라도 그리기 위한 원본 URL.
   const [photoUrls, setPhotoUrls] = useState<{ user: string | null; reference: string | null } | null>(null)
+  const [photoCropBoxes, setPhotoCropBoxes] = useState<{ user: PhotoCropBox | null; reference: PhotoCropBox | null } | null>(null)
   const [routineData, setRoutineData] = useState<RoutineDetail | null>(null)
   const [selectedDay, setSelectedDay] = useState<RoutineDay | null>(null)
   const [coach, setCoach] = useState<CoachChatResponse | null>(null)
@@ -632,6 +633,7 @@ function App() {
       if (sessionId) void archiveSession(sessionId).catch(() => undefined)
       setAnalysisData(null)
       setSegmentationData(null)
+      setPhotoCropBoxes(null)
       setInbodyId(null)
       setInbodyJobId(null)
       setInbodyData(null)
@@ -792,6 +794,7 @@ function App() {
             if (!refData?.file || !lastUserPhoto) throw new RefitApiError(422, { code: 'PHOTOS_UNAVAILABLE', message: '사진을 다시 선택하거나 촬영해주세요.' })
             const podUpload = await uploadPhotosToAnalysisPod(sessionId, { reference: refData.file, user: lastUserPhoto, pipeline: quick ? 'quick' : 'full' })
             podUploadRef.current = podUpload.response ?? null
+            setPhotoCropBoxes({ user: podUpload.response?.crop_box?.USER ?? null, reference: podUpload.response?.crop_box?.REFERENCE ?? null })
             setAnalysisNotice(null)
           } else {
             await (quick ? startQuickAnalysis(sessionId, retry) : startAnalysis(sessionId, retry))
@@ -880,7 +883,12 @@ function App() {
           setAnalysisData(analysis)
           // 사진이 없어도 수치·문구는 읽을 수 있다 — 한 번 더 시도하고 없으면 그냥 간다.
           // 퀵은 세그멘테이션이 아예 없다 — 조회해 봐야 10초 타임아웃만 기다린다.
-          setSegmentationData(quick ? null : (await fetchSegmentation(sessionId) ?? await fetchSegmentation(sessionId)))
+          const segmentation = quick ? null : (await fetchSegmentation(sessionId) ?? await fetchSegmentation(sessionId))
+          setSegmentationData(segmentation)
+          if (segmentation) setPhotoCropBoxes(current => ({
+            user: segmentation.user?.crop_box ?? current?.user ?? null,
+            reference: segmentation.reference?.crop_box ?? current?.reference ?? null,
+          }))
           if (!alive()) return
           // 세그가 없어도(퀵) 사진은 보여준다 — 없으면 빈 상자만 남는다.
           setPhotoUrls(await fetchPhotoUrls(sessionId, { user: lastUserPhoto, reference: refData?.file ?? null }))
@@ -1186,7 +1194,7 @@ function App() {
   //    새로고침 복원처럼 로딩을 안 거치고 들어오는 길이 있어서 여기서 한 번 더 막는다.
   if (view === 'comparison' && !isAnalysisRenderable(analysisData))
     return <LoadingOneScreen phase={analysisPhase} isComplete={isAnalysisReady} notice={analysisNotice} onComplete={() => setView('comparison')} />
-  if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} photoUrls={photoUrls} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
+  if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} photoUrls={photoUrls} cropBoxes={photoCropBoxes} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
   if (view === 'loading-two') return <LoadingTwoScreen phase={routinePhase} isComplete={isRoutineReady} onComplete={() => setView('custom-routine')} />
   if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setSelectedDay(day); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import comparisonCommentCircle from '../assets/comparison-analysis-comment-circle.svg'
 import comparisonScoreTrack from '../assets/comparison-analysis-score-track.svg'
-import { isPrivatePhotoFlow, type AnalysisPart, type AnalysisResult, type SegmentationInfo, type SessionSegmentation } from '../lib/api'
+import { isPrivatePhotoFlow, type AnalysisPart, type AnalysisResult, type PhotoCropBox, type SegmentationInfo, type SessionSegmentation } from '../lib/api'
 import { PreviousButton } from '../components/PreviousButton'
 import { BodyPartIcon } from '../components/BodyPartIcon'
 import { RefitHomeLogo } from '../components/RefitHomeLogo'
@@ -27,13 +27,41 @@ function displayPartName(name: string | null | undefined): string {
   return (name ?? '부위').replaceAll('팔뚝', '전완').replaceAll('위팔', '상완')
 }
 
+/** Draw the device original using the pod's post-orientation crop coordinates. */
+function drawDevicePhoto(canvas: HTMLCanvasElement, image: HTMLImageElement, cropBox?: PhotoCropBox | null) {
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
+  const sourceWidth = cropBox?.source_width || image.naturalWidth
+  const sourceHeight = cropBox?.source_height || image.naturalHeight
+  const scaleX = image.naturalWidth / sourceWidth
+  const scaleY = image.naturalHeight / sourceHeight
+  const cropX = (cropBox?.x ?? 0) * scaleX
+  const cropY = (cropBox?.y ?? 0) * scaleY
+  const cropW = (cropBox?.w ?? sourceWidth) * scaleX
+  const cropH = (cropBox?.h ?? sourceHeight) * scaleY
+  canvas.width = Math.max(1, Math.round(cropW))
+  canvas.height = Math.max(1, Math.round(cropH))
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  if (cropBox?.flipped) {
+    // Crop coordinates are defined after the pod flips the source image.
+    ctx.save()
+    ctx.translate(canvas.width, 0)
+    ctx.scale(-1, 1)
+    ctx.drawImage(image, image.naturalWidth - cropX - cropW, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height)
+    ctx.restore()
+  } else {
+    ctx.drawImage(image, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height)
+  }
+  return ctx
+}
+
 /**
  * 사진 + 선택 부위 세그멘테이션 색칠을 **캔버스 한 장에 원본 해상도로 합성**한다.
  * 맵은 원본 사진 전체의 단순 스트레치(크롭·패딩 없음)라 배율만 맞추면 정확히
  * 겹치고, 한 캔버스이므로 CSS에서 cover/contain 무엇을 걸어도 같이 변형된다.
  * 선택 부위 bbox(맵 좌표계) 바깥은 칠하지 않는다 — 모델 오검출 노이즈 필터.
  */
-function PhotoWithOverlay({ seg, photoUrl, selected, label }: { seg: SegmentationInfo | null; photoUrl?: string | null; selected: AnalysisPart | null; label: string }) {
+function PhotoWithOverlay({ seg, photoUrl, cropBox, selected, label }: { seg: SegmentationInfo | null; photoUrl?: string | null; cropBox?: PhotoCropBox | null; selected: AnalysisPart | null; label: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -49,9 +77,7 @@ function PhotoWithOverlay({ seg, photoUrl, selected, label }: { seg: Segmentatio
       const plain = new Image()
       plain.onload = () => {
         if (cancelledPlain) return
-        canvas.width = plain.naturalWidth
-        canvas.height = plain.naturalHeight
-        canvas.getContext('2d')?.drawImage(plain, 0, 0)
+        drawDevicePhoto(canvas, plain, cropBox)
       }
       plain.src = photoUrl
       return () => { cancelledPlain = true }
@@ -61,9 +87,7 @@ function PhotoWithOverlay({ seg, photoUrl, selected, label }: { seg: Segmentatio
     const photo = new Image() // 표시 전용이라 crossOrigin 불필요 (픽셀은 맵에서만 읽는다)
     photo.onload = () => {
       if (cancelled) return
-      canvas.width = photo.naturalWidth
-      canvas.height = photo.naturalHeight
-      const ctx = canvas.getContext('2d')
+      const ctx = drawDevicePhoto(canvas, photo, seg.crop_box ?? cropBox)
       if (!ctx) return
       ctx.drawImage(photo, 0, 0)
 
@@ -114,7 +138,7 @@ function PhotoWithOverlay({ seg, photoUrl, selected, label }: { seg: Segmentatio
     if (!source) return () => { cancelled = true }
     photo.src = source
     return () => { cancelled = true }
-  }, [seg, photoUrl, selected])
+  }, [seg, photoUrl, cropBox, selected])
 
   return <div className="comparison-analysis-photo">
     <canvas ref={canvasRef} className="comparison-analysis-photo__canvas" role="img" aria-label={label} />
@@ -127,6 +151,7 @@ type ComparisonAnalysisScreenProps = {
   segmentation: SessionSegmentation | null
   /** 세그가 없을 때(퀵/웹캠) 사진만이라도 그리기 위한 원본 URL. */
   photoUrls?: { user: string | null; reference: string | null } | null
+  cropBoxes?: { user: PhotoCropBox | null; reference: PhotoCropBox | null } | null
   onCreateRoutine: () => void
   onPrevious?: () => void
 }
@@ -142,7 +167,7 @@ type ComparisonAnalysisScreenProps = {
 const DESIGN_WIDTH = 1440
 const DESIGN_HEIGHT = 1024
 
-export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, onCreateRoutine, onPrevious }: ComparisonAnalysisScreenProps) {
+export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, cropBoxes, onCreateRoutine, onPrevious }: ComparisonAnalysisScreenProps) {
   const pageRef = useRef<HTMLElement>(null)
   const [scale, setScale] = useState(1)
   // 잰 높이 x 배율이 바깥 상자의 높이다. transform 은 자리를 안 바꾸므로
@@ -281,8 +306,8 @@ export function ComparisonAnalysisScreen({ analysis, segmentation, photoUrls, on
           사용자에게는 "사진이 안 뜬다"로 읽힌다. 색칠만 세그가 필요하고 사진
           자체는 photo 행만으로 그릴 수 있다. */}
       {hasImages && <section className="comparison-analysis-images" aria-label="현재 체형과 목표 레퍼런스 비교">
-        <PhotoWithOverlay seg={segmentation?.user ?? null} photoUrl={photoUrls?.user} selected={selected} label="현재 체형" />
-        <PhotoWithOverlay seg={segmentation?.reference ?? null} photoUrl={photoUrls?.reference} selected={selected} label="목표 레퍼런스" />
+        <PhotoWithOverlay seg={segmentation?.user ?? null} photoUrl={photoUrls?.user} cropBox={cropBoxes?.user} selected={selected} label="현재 체형" />
+        <PhotoWithOverlay seg={segmentation?.reference ?? null} photoUrl={photoUrls?.reference} cropBox={cropBoxes?.reference} selected={selected} label="목표 레퍼런스" />
       </section>}
 
       <p className="comparison-analysis-help">부위를 선택하면 맞춤 솔루션을 볼 수 있어요.</p>

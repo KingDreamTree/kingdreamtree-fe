@@ -299,6 +299,16 @@ export interface SegPaletteEntry {
   is_truncated: boolean
 }
 
+export type PhotoCropBox = {
+  x: number
+  y: number
+  w: number
+  h: number
+  source_width: number
+  source_height: number
+  flipped: boolean
+}
+
 export interface SegmentationInfo {
   segmentation_id: string
   photo_id: string
@@ -315,6 +325,8 @@ export interface SegmentationInfo {
   person_area_ratio: number
   palette: SegPaletteEntry[]
   signed_url_expires_at: string
+  crop_box?: PhotoCropBox | null
+  was_mirrored?: boolean | null
 }
 
 export interface SessionSegmentation {
@@ -471,7 +483,7 @@ export type PodUploadResponse = {
   session_id: string
   mode: 'full' | 'quick'
   jobs?: Record<string, string>
-  crop_box?: Record<string, unknown>
+  crop_box?: Partial<Record<'REFERENCE' | 'USER', PhotoCropBox>>
   face_masked?: Record<string, boolean>
   photo_size?: Record<string, unknown>
 }
