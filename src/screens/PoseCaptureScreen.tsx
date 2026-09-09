@@ -5,7 +5,8 @@ import { PoseScore } from '../components/PoseScore'
 import { createHoldGate, evaluate, IDX, MESSAGES, mirrorLandmarks, SEGMENTS, type EvaluateResult, type PoseCriteria, type PoseLandmarks } from '../lib/pose-score.js'
 import { loadVideoLandmarker } from '../lib/landmarkers'
 import { areaRatio, chooseScaleBasis, findOutOfRangeLandmark } from '../lib/pose-detector'
-import { RefitApiError, setStoredAnalysisMode, uploadUserPhoto, userFacingMessage } from '../lib/api'
+import { isPrivatePhotoFlow, RefitApiError, setStoredAnalysisMode, uploadUserPhoto, userFacingMessage } from '../lib/api'
+import { saveLocalPhoto } from '../lib/local-photos'
 import poseCornerTopLeft from '../assets/pose-corner-top-left.svg'
 import poseCornerTopRight from '../assets/pose-corner-top-right.svg'
 import poseCornerBottomLeft from '../assets/pose-corner-bottom-left.svg'
@@ -189,6 +190,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
         // 분석 시작도 mode=quick 이어야 하므로 업로드 성공과 같은 순간에 모드를 기록한다.
         pipeline: 'quick',
       })
+      if (isPrivatePhotoFlow) await saveLocalPhoto(sessionId, 'user', payload.file)
       setStoredAnalysisMode('quick')
       onPhotoAccepted(payload.file)
       setPhase({ kind: 'done' })
