@@ -25,6 +25,7 @@ import poseCornerBottomRight from './assets/pose-corner-bottom-right.svg'
 import poseSuccessCheck from './assets/pose-success-check.svg'
 import poseFailLineOne from './assets/pose-fail-line-1.svg'
 import poseFailLineTwo from './assets/pose-fail-line-2.svg'
+import { clearPendingCompletion, readPendingCompletion, writePendingCompletion } from './lib/pending-completion'
 import { FixedStepFrame } from './components/FixedStepFrame'
 import { PreviousButton } from './components/PreviousButton'
 import { PoseScore } from './components/PoseScore'
@@ -603,7 +604,19 @@ function App() {
           // ⚠️ feedback 도 함께 채운다. 이 화면의 [완료]가 «몇 번째 Day 를 했는지»를
           //    todayRoutine 에서 읽기 때문이다 — 비워 두면 기록이 엉뚱한 Day 로 남는다.
           const today = await getTodayRoutine(sessionId)
-          if (!cancelled) setTodayRoutine(today)
+          if (cancelled) return
+          setTodayRoutine(today)
+
+          // ⚠️ **보내는 중에 새로고침한 흔적이 있으면 서버와 대조한다.**
+          //    개수가 늘었다면 그 요청은 도착했다 — 이때 feedback 화면에 그대로 두면
+          //    사용자가 [완료]를 한 번 더 누르고, 그 기록은 **다음 Day** 로 들어간다
+          //    (PENDING_COMPLETION_KEY 주석의 ③~⑤). 오늘 루틴으로 보내 그 경로를 닫는다.
+          const pending = readPendingCompletion()
+          clearPendingCompletion()
+          if (pending && pending.sessionId === sessionId && today.progress.completed_count > pending.before) {
+            window.alert('방금 누른 운동 완료는 이미 저장됐어요.')
+            setView('today-routine')
+          }
         }
       } catch {
         // 조회 실패 — 화면은 그대로 두고 빈 상태로 보인다 (위 주석 참고)
@@ -1057,18 +1070,29 @@ function App() {
     //
     //    그래서 기록 직전에 서버에서 다시 확인한다. 아직 기록을 남기기 전이라 이때의
     //    today 가 «방금 한 Day» 그대로다. 확인이 안 되면 **적지 않는다.**
-    const today = await getTodayRoutine(sessionId).catch(() => todayRoutine)
+    const fresh = await getTodayRoutine(sessionId).catch(() => null)
+    const today = fresh ?? todayRoutine
     const dayOrder = today?.day.day_order ?? today?.progress.next_day_order
     const cycleNo = today?.cycle_no ?? today?.progress.cycle_no
     if (dayOrder === undefined || cycleNo === undefined) {
       window.alert('오늘의 루틴 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
       return
     }
+    // ⚠️ 보내기 **직전에** 잠근다 (PENDING_COMPLETION_KEY 주석 — 새로고침이 ref 를
+    //    지우는 경로). 왕복은 늘지 않는다: 방금 부른 today 의 completed_count 가
+    //    그대로 «보내기 전 개수» 다.
+    //    ⚠️ 조회가 실패해 옛 state 로 떨어진 경우에는 잠그지 않는다. 그 값은
+    //       실제보다 작을 수 있고, 그러면 복원 때 «들어갔다» 로 잘못 읽는다.
+    if (fresh) writePendingCompletion({ sessionId, before: fresh.progress.completed_count })
     try {
       await createWorkoutLog(sessionId, { day_order: dayOrder, cycle_no: cycleNo, feedback_text: null })
     } catch (error) {
       window.alert(userFacingMessage(error, '운동 완료를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.'))
       return
+    } finally {
+      // 응답이 왔으면(성공이든 실패든) 잠금은 할 일을 마쳤다. 새로고침으로 여기까지
+      // 못 오면 잠금이 남고, 그것이 이 장치의 목적이다.
+      clearPendingCompletion()
     }
     // 기록이 남았으니 진행률도 같이 올린다 (위 주석 참고)
     await refreshRoutine()
