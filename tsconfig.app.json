@@ -22,5 +22,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // 테스트는 `node --test` 가 타입 스트리핑으로 돌린다. 앱 빌드에 넣으면
+  // node 전역(types: ["node"])이 필요해지고, 그게 앱 코드로 샌다.
+  "exclude": ["src/**/*.test.ts"]
 }

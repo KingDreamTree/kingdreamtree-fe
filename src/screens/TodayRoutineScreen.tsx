@@ -98,7 +98,8 @@ export function TodayRoutineScreen({ today, onFinish, onPrevious }: TodayRoutine
     <PreviousButton onClick={onPrevious} />
     {/* ⚠️ 주차를 빼고 **전체 통산 회차**로 쓴다 — 맞춤 루틴 화면의 표기와 같은 기준이다.
         day_order 는 주기 안에서 1..N 으로 되돌아오는 값이라 주차 없이 쓰면 2주차에도
-        «Day 1» 이 다시 나온다. completed_count + 1 이 «지금 할 회차»다. */}
+        «Day 1» 이 다시 나온다. 통산 회차는 (주기-1)×주당일수 + next_day_order 로
+        편다 — completed_count 로 역산하지 않는다 (#169, routine-progress 주석). */}
     <p className="today-routine-page__eyebrow">오늘의 루틴 {today ? `· Day ${displayProgress(today.progress).nextDay}` : ''}</p>
     <h1>{today?.day.title ?? '오늘 해야 하는 루틴이에요'}</h1>
     <p className="today-routine-page__notice">{isLastStep ? '운동 마치기 버튼을 누르면 피드백 화면으로 넘어갈 수 있어요!' : '완료 버튼을 눌러야 다음 스텝으로 이동할 수 있어요!'}</p>
