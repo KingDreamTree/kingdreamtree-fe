@@ -22,9 +22,14 @@
 `GET /pose-criteria` 제외).
 
 ```
-POST /api/v1/users          → { user_id }   최초 1회, 로컬에 저장
+POST /api/v1/users          → { user_id }   홈 진입마다 새로 발급
 이후 모든 요청 헤더:  X-User-Id: <user_id>
 ```
+
+⚠️ **«최초 1회» 가 아닙니다** (#169). 홈 진입(온보딩 [시작하기])마다 저장된
+`user_id` 를 지우고 새로 받습니다. 옛 값을 이어 쓰면 `POST /sessions` 가 409 로
+옛 세션을 되돌려주고, 그 세션의 운동 기록이 살아 있어 게이지·코치가 이미 진행된
+Day 를 가리킵니다. 돌아왔을 때 기록이 없는 것이 의도된 동작입니다.
 
 ### 에러 형식 — 전부 동일합니다
 
@@ -55,7 +60,7 @@ POST → { job_id }   →   GET /jobs/{job_id}  →  status: PENDING | PROCESSIN
 ## 1. 전체 플로우
 
 ```
-① POST /users                              user_id 발급 (최초 1회)
+① POST /users                              user_id 발급 (홈 진입마다 새로)
 ② POST /sessions                           session_id 발급
 ③ POST /sessions/{id}/photos/reference     레퍼런스 사진
 ④ POST /sessions/{id}/photos/user          사용자 사진  → 세그 잡

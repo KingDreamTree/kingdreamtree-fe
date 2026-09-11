@@ -110,8 +110,10 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
       {progress && shown && <div className="custom-routine-page__progress">
         {/* ⚠️ 주차를 빼고 **전체 통산 회차**로 쓴다 (Day 1 … Day 8 …).
             next_day_order 는 주기 안에서 1..N 으로 되돌아오는 값이라 주차 없이 쓰면
-            «Day 1» 이 계속 반복된다. completed_count + 1 이 옆의 «N/M회» 와 같은
-            기준의 다음 회차다 — 두 숫자가 어긋나지 않는다. */}
+            «Day 1» 이 계속 반복된다. 그래서 주기를 펴서 더한다.
+            ⚠️ 옆의 «N/M회» 와 이 «Day N» 은 **기준이 다르다.** 회차는 몇 번 했나
+               (completed_count), Day 는 어디까지 왔나(마지막 완료 기록)다. 중복
+               기록이 있으면 두 숫자가 어긋나는데, 그때 옳은 쪽은 Day 다 (#169). */}
         <span className="custom-routine-page__progress-next">Day {shown.nextDay}</span>
         <span className="custom-routine-page__progress-gauge" role="progressbar"
           aria-valuenow={shown.percent} aria-valuemin={0} aria-valuemax={100}
