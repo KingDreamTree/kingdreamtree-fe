@@ -1215,7 +1215,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 /* Figma 41:189 — 비교 분석 */
 .comparison-analysis-viewport { min-width: 1440px; min-height: 2691px; background: #222; color: #f6f6f6; }
 .comparison-analysis-page { position: relative; width: 1440px; height: 2691px; margin: 0 auto; overflow: hidden; background: #222; color: #f6f6f6; }
-.comparison-analysis-summary { position: absolute; top: 517px; left: 477px; }
+.comparison-analysis-summary { position: absolute; top: 459px; left: 477px; transform: none; }
 .comparison-analysis-notes { width: 832px; margin: 14px 0 0; padding: 0; list-style: none; color: #ccc; font: 500 18px/1.7 Pretendard, sans-serif; letter-spacing: -.54px; }
 .comparison-analysis-diagnosis { top: 2040px; }
 .custom-routine-detail-page__info { position: absolute; top: 382px; left: 884px; box-sizing: border-box; width: 424px; height: 485px; min-height: 0; padding: 54px 40px; overflow: hidden; border: 0; border-radius: 15.98px; background: rgb(59 59 59 / .4); box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
