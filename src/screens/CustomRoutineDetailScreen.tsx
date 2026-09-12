@@ -75,20 +75,23 @@ function titleSizeClass(name: string): string {
   return ''
 }
 
-type CustomRoutineDetailScreenProps = { day: RoutineDay | null; onPrevious: () => void }
+type CustomRoutineDetailScreenProps = { day: RoutineDay | null; dayNumber: number | null; onPrevious: () => void }
 
 /** Figma 108:93 — 맞춤 루틴 DAY 상세보기. 운동 목록은 선택한 Day의 실데이터. */
-export function CustomRoutineDetailScreen({ day, onPrevious }: CustomRoutineDetailScreenProps) {
+export function CustomRoutineDetailScreen({ day, dayNumber, onPrevious }: CustomRoutineDetailScreenProps) {
+  // ⚠️ 제목은 목록 카드가 찍은 **통산 회차**를 그대로 받아 쓴다. day_order 는 주기 안에서
+  //    1..N 으로 되돌아오는 값이라, 그것을 쓰면 2주차의 «DAY 8» 카드가 상세에서 «DAY 4» 로 보였다.
+  const shownDay = dayNumber ?? day?.day_order ?? 1
   const exercises = day?.exercises ?? []
   const [selectedIndex, setSelectedIndex] = useState(0)
   const selected = exercises[selectedIndex] ?? exercises[0]
   const duration = estimatedDuration(day)
   return <FixedStepFrame label="맞춤 루틴 상세 보기"><div className="custom-routine-detail-page">
     <p className="custom-routine-detail-page__eyebrow">상세 보기</p>
-    <h1>DAY {day?.day_order ?? 1}</h1>
+    <h1>DAY {shownDay}</h1>
     <button className="custom-routine-detail-page__previous" type="button" onClick={onPrevious}>이전 단계</button>
     <p className="custom-routine-detail-page__duration"><img src={customRoutineDetailTime} alt="" />예상 운동시간 <strong>{duration ?? '-'}분</strong></p>
-    <section className="custom-routine-detail-page__groups" aria-label={`DAY ${day?.day_order ?? 1} 운동 목록`}>
+    <section className="custom-routine-detail-page__groups" aria-label={`DAY ${shownDay} 운동 목록`}>
       {exercises.map((exercise, index) => <article className={selected?.order_index === exercise.order_index ? 'is-selected' : ''} key={exercise.order_index} tabIndex={0} onMouseEnter={() => setSelectedIndex(index)} onFocus={() => setSelectedIndex(index)} onClick={() => setSelectedIndex(index)}>
         <img src={exercise.image_url ?? customRoutineDetailWarmup} alt="" />
         <div>
