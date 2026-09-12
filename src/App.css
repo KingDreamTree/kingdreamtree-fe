@@ -648,6 +648,7 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .pose-live-area { position: absolute; top: 348px; left: 593px; width: 711px; height: 471px; overflow: hidden; background: #111; }
 .pose-live-video { width: 100%; height: 100%; object-fit: contain; transform: scaleX(-1); } /* 미리보기를 거울로 — 판정 좌표는 카메라 원본, 저장은 셔터에서 반전 */
 .pose-live-skeleton { position: absolute; inset: 0; transform: scaleX(-1); pointer-events: none; } /* 비반전 좌표로 그리고 미리보기와 같이 CSS로 반전 */
+.pose-live-center-point { position: absolute; top: 50%; left: 50%; z-index: 1; width: 12px; height: 12px; box-sizing: border-box; transform: translate(-50%, -50%); border: 2px solid #111; border-radius: 50%; background: #ffe250; box-shadow: 0 0 0 2px rgba(255, 226, 80, .72), 0 0 10px rgba(255, 226, 80, .9); pointer-events: none; }
 .pose-live-starting { position: absolute; top: 50%; left: 0; width: 100%; margin: 0; transform: translateY(-50%); color: #ccc; font: 500 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; text-align: center; }
 .pose-live-message { position: absolute; bottom: 26px; left: 50%; margin: 0; padding: 8px 22px; transform: translateX(-50%); border-radius: 30px; background: rgba(34, 34, 34, .78); color: #f6f6f6; font: 600 20px/1.5 Pretendard, sans-serif; letter-spacing: -.6px; white-space: nowrap; }
 .pose-live-countdown { position: absolute; top: 50%; left: 50%; display: grid; width: 110px; height: 110px; place-items: center; transform: translate(-50%, -50%); border-radius: 50%; background: rgba(17, 17, 17, .62); color: #ffe250; font: 700 64px/1 Pretendard, sans-serif; }
@@ -1275,7 +1276,6 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
 .feedback-chat-history { position: absolute; top: 218px; left: 131px; right: 131px; display: flex; flex-direction: column; gap: 18px; pointer-events: none; }
 .feedback-chat-history__message { box-sizing: border-box; max-width: 531px; margin: 0; padding: 18px 30px; border-radius: 20px; font: 500 22px/1.5 Pretendard, sans-serif; letter-spacing: -.66px; overflow-wrap: anywhere; white-space: pre-wrap; }
 .feedback-attention-page__header > span:last-child { display: none; }
-.feedback-attention-page__header::after { content: '나가기 →'; position: absolute; top: 20px; right: 35px; color: #f6f6f6; font-size: 18px; }
 .feedback-exercise-page__header button { width: auto; font-size: 0; }
 .feedback-exercise-page__header button::after { content: '나가기 →'; font: 500 18px/1.5 Pretendard, sans-serif; letter-spacing: -.54px; }
 /* 레퍼런스와 현재 체형 사진은 원본 비율을 유지해 전체가 보이도록 표시합니다. */

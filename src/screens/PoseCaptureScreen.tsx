@@ -123,6 +123,32 @@ function drawSkeletonOn(canvas: HTMLCanvasElement | null, lm: PoseLandmarks | nu
 }
 
 /** 한 번 "차단"을 누른 브라우저는 다시 묻지 않으므로 원인별로 해결 방법을 안내한다. */
+/**
+ * 다인 감지 때는 몸통(양 어깨·양 골반)의 중심이 프리뷰 중심에 가장 가까운 사람을 쓴다.
+ * 프리뷰의 좌우 반전은 중심과의 거리에 영향을 주지 않는다.
+ */
+function selectCenteredPose(poses: PoseLandmarks[]): PoseLandmarks | null {
+  let selected: PoseLandmarks | null = null
+  let closestDistance = Number.POSITIVE_INFINITY
+
+  for (const pose of poses) {
+    const torso = [pose[IDX.shoulderL], pose[IDX.shoulderR], pose[IDX.hipL], pose[IDX.hipR]].filter(
+      (point): point is { x: number; y: number } => Boolean(point),
+    )
+    if (torso.length === 0) continue
+
+    const centerX = torso.reduce((sum, point) => sum + point.x, 0) / torso.length
+    const centerY = torso.reduce((sum, point) => sum + point.y, 0) / torso.length
+    const distance = (centerX - 0.5) ** 2 + (centerY - 0.5) ** 2
+    if (distance < closestDistance) {
+      selected = pose
+      closestDistance = distance
+    }
+  }
+
+  return selected ?? poses[0] ?? null
+}
+
 function cameraErrorMessage(error: unknown) {
   const name = error instanceof DOMException ? error.name : ''
   if (name === 'NotAllowedError' || name === 'SecurityError')
@@ -322,10 +348,11 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
           if (cancelled) return
           if (video.readyState >= 2 && phaseRef.current === 'live') {
             const res = videoLandmarker.detectForVideo(video, performance.now())
-            const liveLm = (res.landmarks[0] as PoseLandmarks | undefined) ?? null
+            const detectedPoses = res.landmarks as PoseLandmarks[]
+            const liveLm = selectCenteredPose(detectedPoses)
             drawSkeletonOn(liveSkeletonRef.current, liveLm, video.videoWidth, video.videoHeight, criteria.min_visibility)
             if (liveLm) {
-              const multiPerson = res.landmarks.length > 1
+              const multiPerson = detectedPoses.length > 1
               const result = evaluate(mirroredRefLm, liveLm, criteria, {
                 multiPerson,
                 refAspect,
@@ -437,6 +464,7 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
           저장은 셔터에서 사진·좌표를 함께 반전해 화면에서 본 방향으로 남긴다 (shutter 주석 참고) */}
       <video ref={videoRef} className="pose-live-video" playsInline muted />
       <canvas ref={liveSkeletonRef} className="pose-live-skeleton" aria-hidden="true" />
+      <span className="pose-live-center-point" aria-hidden="true" />
       {phase.kind === 'starting' && <p className="pose-live-starting">카메라를 준비하고 있어요…</p>}
       {phase.kind === 'live' && <>
         {countdown !== null && <span className="pose-live-countdown" aria-live="assertive">{countdown}</span>}
