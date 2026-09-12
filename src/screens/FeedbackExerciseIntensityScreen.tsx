@@ -53,6 +53,6 @@ export function FeedbackExerciseIntensityScreen({ userMessage, coach, onSubmit, 
       <p>{coach?.reply ?? '코치가 피드백을 확인하고 있어요…'}</p>
       {coach?.tool_events?.map((event, index) => <div key={`${event.name}-${index}`}><span><img src={feedbackCheck} alt="" /></span><strong>{toolEventLabel(event)}</strong></div>)}
     </section>
-    <form className="feedback-exercise-page__input" onSubmit={event => { event.preventDefault(); submitFeedback() }}><label className="sr-only" htmlFor="exercise-feedback-message">새 피드백</label><input id="exercise-feedback-message" value={nextFeedback} onChange={event => setNextFeedback(event.target.value)} placeholder="새로운 피드백을 입력해 주세요." /><button type="submit" disabled={!isReadyToSubmit} aria-label="피드백 보내기"><img src={isReadyToSubmit ? sendIcon : inactiveSendIcon} alt="" /></button></form>
+    <form className="feedback-exercise-page__input" autoComplete="off" onSubmit={event => { event.preventDefault(); submitFeedback() }}><label className="sr-only" htmlFor="exercise-feedback-message">새 피드백</label><input id="exercise-feedback-message" autoComplete="off" autoCorrect="off" spellCheck={false} value={nextFeedback} onChange={event => setNextFeedback(event.target.value)} placeholder="새로운 피드백을 입력해 주세요." /><button type="submit" disabled={!isReadyToSubmit} aria-label="피드백 보내기"><img src={isReadyToSubmit ? sendIcon : inactiveSendIcon} alt="" /></button></form>
   </div></FixedStepFrame>
 }

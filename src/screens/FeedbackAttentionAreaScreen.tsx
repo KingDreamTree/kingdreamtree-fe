@@ -89,6 +89,6 @@ export function FeedbackAttentionAreaScreen({ userMessage, coach, onSubmit, onEx
       </div>}
       {coach?.tool_events?.map((event, index) => <div className="feedback-chat-history__tool-event" key={`${event.name}-${index}`}><span><img src={feedbackCheck} alt="" /></span><strong>{toolEventLabel(event)}</strong></div>)}
     </section>
-    <form className="feedback-attention-page__input" onSubmit={event => { event.preventDefault(); submitFeedback() }}><label className="sr-only" htmlFor="attention-feedback-message">새 피드백</label><input id="attention-feedback-message" value={nextFeedback} onChange={event => setNextFeedback(event.target.value)} {...enterToSubmit} placeholder="코치에게 답해 주세요." /><button type="submit" disabled={!isReadyToSubmit} aria-label="피드백 보내기"><img src={isReadyToSubmit ? sendIcon : inactiveSendIcon} alt="" /></button></form>
+    <form className="feedback-attention-page__input" autoComplete="off" onSubmit={event => { event.preventDefault(); submitFeedback() }}><label className="sr-only" htmlFor="attention-feedback-message">새 피드백</label><input id="attention-feedback-message" autoComplete="off" autoCorrect="off" spellCheck={false} value={nextFeedback} onChange={event => setNextFeedback(event.target.value)} {...enterToSubmit} placeholder="코치에게 답해 주세요." /><button type="submit" disabled={!isReadyToSubmit} aria-label="피드백 보내기"><img src={isReadyToSubmit ? sendIcon : inactiveSendIcon} alt="" /></button></form>
   </div></FixedStepFrame>
 }
