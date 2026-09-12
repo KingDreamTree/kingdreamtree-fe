@@ -1409,9 +1409,9 @@ body .inbody-range-field.is-invalid .inbody-range-error-glyph { top: 17px !impor
   justify-content: flex-start;
   gap: 14px;
 }
-/* 카드 행의 오른쪽 끝을 4주간 핵심 목표 박스와 맞춥니다. */
+/* Day 1은 핵심 목표 카드의 왼쪽 기준선에 맞추고, 카드들은 고정 간격으로 이어 둡니다. */
 .custom-routine-page__cards {
-  width: 1178px;
-  justify-content: space-between;
-  gap: 0;
+  width: auto;
+  justify-content: flex-start;
+  gap: 14px;
 }
