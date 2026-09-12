@@ -56,7 +56,8 @@ function dayFocus(day: RoutineDay): string {
 type CustomRoutineScreenProps = {
   routine: RoutineDetail | null
   onAdjustDays: () => void
-  onViewDay: (day: RoutineDay) => void
+  /** 카드에 찍힌 **통산 회차**(Day 1 … Day 8 …)를 같이 넘긴다 — 상세 제목이 이 값을 쓴다. */
+  onViewDay: (day: RoutineDay, dayNumber: number) => void
   onNext: () => void
 }
 
@@ -127,7 +128,7 @@ export function CustomRoutineScreen({ routine, onAdjustDays, onViewDay, onNext }
     <section className="custom-routine-page__cards" aria-label={`${week}주차 운동 루틴`}>{days.map((day, index) => {
       const dayNumber = (week - 1) * days.length + index + 1
       return <article key={`${week}-${day.day_order}`}>
-        <h2>DAY {dayNumber}</h2><p>{dayFocus(day)}</p><button type="button" onClick={() => onViewDay(day)}>+상세보기</button>
+        <h2>DAY {dayNumber}</h2><p>{dayFocus(day)}</p><button type="button" onClick={() => onViewDay(day, dayNumber)}>+상세보기</button>
       </article>
     })}</section>
 

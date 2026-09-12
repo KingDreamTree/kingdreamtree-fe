@@ -543,6 +543,8 @@ function App() {
   const [photoCropBoxes, setPhotoCropBoxes] = useState<{ user: PhotoCropBox | null; reference: PhotoCropBox | null } | null>(null)
   const [routineData, setRoutineData] = useState<RoutineDetail | null>(null)
   const [selectedDay, setSelectedDay] = useState<RoutineDay | null>(null)
+  // 상세 제목에 쓸 통산 회차 — RoutineDay 는 주기 내 순번(day_order)만 들고 있어 주차를 복원할 수 없다.
+  const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(null)
   const [coach, setCoach] = useState<CoachChatResponse | null>(null)
   const completingRef = useRef(false)
   const [completeBusy, setCompleteBusy] = useState(false)
@@ -657,6 +659,7 @@ function App() {
       setInbodyData(null)
       setRoutineData(null)
       setSelectedDay(null)
+      setSelectedDayNumber(null)
       setTodayRoutine(null)
       setCoach(null)
       setRefData(null)
@@ -1233,8 +1236,8 @@ function App() {
   if (view === 'comparison') return <ComparisonAnalysisScreen analysis={analysisData} segmentation={segmentationData} photoUrls={photoUrls} cropBoxes={photoCropBoxes} onCreateRoutine={() => setView('exercise-days')} onPrevious={() => setView('inbody-uploaded')} />
   if (view === 'exercise-days') return <ExerciseDaysScreen days={workoutDays} onDaysChange={setWorkoutDays} onNext={() => void beginRoutine()} onPrevious={() => setView('comparison')} />
   if (view === 'loading-two') return <LoadingTwoScreen phase={routinePhase} isComplete={isRoutineReady} onComplete={() => setView('custom-routine')} />
-  if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={day => { setSelectedDay(day); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />
-  if (view === 'custom-routine-detail') return <CustomRoutineDetailScreen day={selectedDay} onPrevious={() => setView('custom-routine')} />
+  if (view === 'custom-routine') return <CustomRoutineScreen routine={routineData} onAdjustDays={() => setView('exercise-days')} onViewDay={(day, dayNumber) => { setSelectedDay(day); setSelectedDayNumber(dayNumber); setView('custom-routine-detail') }} onNext={() => void openTodayRoutine()} />
+  if (view === 'custom-routine-detail') return <CustomRoutineDetailScreen day={selectedDay} dayNumber={selectedDayNumber} onPrevious={() => setView('custom-routine')} />
   if (view === 'today-routine') return <TodayRoutineScreen today={todayRoutine} onFinish={() => setView('feedback')} onPrevious={() => { void refreshRoutine(); setView('custom-routine') }} />
   if (view === 'feedback') return <FeedbackScreen busy={completeBusy} onSubmit={message => void completeWorkout(message)} onSkip={() => void completeWorkout()} />
   if (view === 'feedback-loading') return <FeedbackLoadingScreen feedback={feedbackMessage} onComplete={() => undefined} />
