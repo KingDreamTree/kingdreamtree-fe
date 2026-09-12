@@ -1101,6 +1101,9 @@ function App() {
     await refreshRoutine()
     if (feedbackText) {
       setFeedbackMessage(feedbackText)
+      // ⚠️ 지난 대화를 먼저 비운다. 안 비우면 화면을 바꾼 순간부터 응답이 올 때까지
+      //    직전 운동의 대화가 그대로 보였다가 새 대화로 바뀐다 — 아래 전제가 깨진다.
+      setCoach(null)
       // feedback-loading 을 거치지 않고 바로 대화 화면으로 — coach 가 아직
       // null 이어도 이 화면은 "코치가 확인하고 있어요" 자리표시자를 보여준다
       // (아래 sendCoach 참고). 중간 화면을 왕복하면 대화창이 매번 다시
