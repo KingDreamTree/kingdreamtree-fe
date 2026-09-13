@@ -352,7 +352,10 @@ export function PoseCaptureScreen({ sessionId, criteria, refLm, refAspect, refSc
             const liveLm = selectCenteredPose(detectedPoses)
             drawSkeletonOn(liveSkeletonRef.current, liveLm, video.videoWidth, video.videoHeight, criteria.min_visibility)
             if (liveLm) {
-              const multiPerson = detectedPoses.length > 1
+              // 웹캠은 화면 중앙의 몸통을 촬영 대상으로 선택한다. 배경에 다른 사람이
+              // 잡혀도 그 사람들의 랜드마크가 선택 대상·저장 대상이 아니므로, 중앙
+              // 촬영자를 MULTI_PERSON 사유로 막지 않는다.
+              const multiPerson = false
               const result = evaluate(mirroredRefLm, liveLm, criteria, {
                 multiPerson,
                 refAspect,
